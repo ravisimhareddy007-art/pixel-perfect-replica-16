@@ -6,9 +6,7 @@ import {
 import { useStore } from "./lib/store";
 import { EVENTS, evalEvent } from "./lib/events";
 import { Brand, Ring, Pill, Card, SectionHead } from "./components/ui";
-import Landing from "./components/Landing";
 import Onboarding from "./components/Onboarding";
-import Landing from "./components/Landing";
 import Dashboard from "./components/Dashboard";
 import Documents from "./components/Documents";
 import Events from "./components/Events";
@@ -22,9 +20,7 @@ const NAV: [View, string, any][] = [
 
 export default function App() {
   const store = useStore();
-  const [enter, setEnter] = useState(false);
   const [view, setView] = useState<View>("dashboard");
-  const [phase, setPhase] = useState<"landing" | "onboard">("landing");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toast = (m: string) => { setToastMsg(m); window.clearTimeout((toast as any)._t); (toast as any)._t = window.setTimeout(() => setToastMsg(null), 2600); };
 
@@ -34,9 +30,7 @@ export default function App() {
     return { ready, avg };
   }, [store.docs]);
 
-  if (!store.onboarded) return phase === "landing"
-    ? <Landing onStart={() => setPhase("onboard")} />
-    : <Onboarding />;
+  if (!store.onboarded) return <Onboarding />;
 
   return (
     <div className="flex min-h-screen bg-[#F5F2EA]">
