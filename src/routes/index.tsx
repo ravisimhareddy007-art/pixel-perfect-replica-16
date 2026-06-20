@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import Landing from "@/components/Landing";
 
 export const Route = createFileRoute("/")({
@@ -14,5 +15,6 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  return <Landing />;
+  const navigate = useNavigate();
+  return <Landing onStart={() => navigate({ to: "/app" })} />;
 }

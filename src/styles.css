@@ -6,6 +6,10 @@
 
 @theme {
   --color-ink: #0E1525;
+  --color-inkdeep: #0B0E24;
+  --color-paper: #F5F2EA;
+  --color-seal: #D8B25A;
+  --color-verified: #2FB68A;
   --color-brand: #5B5BF5;
   --color-brand-2: #8A6BF4;
   --color-ok: #0E9F6E;
@@ -167,6 +171,11 @@
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: #d7dcec; border-radius: 8px; }
+
+@keyframes mrz { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
 
 @media print {
   body * { visibility: hidden; }

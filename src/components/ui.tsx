@@ -7,10 +7,10 @@ import {
 import type { Category } from "../lib/types";
 
 export const CAT_META: Record<Category, { icon: any; color: string }> = {
-  Identity:   { icon: Fingerprint, color: "#5B5BF5" },
-  Employment: { icon: Briefcase,   color: "#8A6BF4" },
-  Finance:    { icon: Landmark,    color: "#0E9F6E" },
-  Insurance:  { icon: Shield,      color: "#D98A18" },
+  Identity:   { icon: Fingerprint, color: "#0B0E24" },
+  Employment: { icon: Briefcase,   color: "#6E8BFF" },
+  Finance:    { icon: Landmark,    color: "#2FB68A" },
+  Insurance:  { icon: Shield,      color: "#D8B25A" },
   Property:   { icon: Home,        color: "#E04A4F" },
   Medical:    { icon: HeartPulse,  color: "#E0508F" },
 };
@@ -22,7 +22,7 @@ export const EVENT_ICONS: Record<string, any> = {
 export const fmtDate = (s?: string) =>
   s ? new Date(s).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-export function Ring({ value, size = 54, stroke = 5, color = "#5B5BF5", track = "#EAEDF6", label }:
+export function Ring({ value, size = 54, stroke = 5, color = "#0B0E24", track = "#EAEDF6", label }:
   { value: number; size?: number; stroke?: number; color?: string; track?: string; label?: string }) {
   const r = (size - stroke) / 2, c = 2 * Math.PI * r, off = c - (value / 100) * c;
   return (
@@ -42,8 +42,8 @@ export function Ring({ value, size = 54, stroke = 5, color = "#5B5BF5", track = 
 
 export function Pill({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted" | "ok" | "warn" | "bad" }) {
   const map: any = {
-    muted: ["#69728A", "#EEF1F8"], ok: ["#0E9F6E", "#E7F7EF"],
-    warn: ["#D98A18", "#FBF1E0"], bad: ["#E04A4F", "#FBEBEC"],
+    muted: ["#69728A", "#EEF1F8"], ok: ["#2FB68A", "#E7F7EF"],
+    warn: ["#D8B25A", "#FBF1E0"], bad: ["#E04A4F", "#FBEBEC"],
   };
   const [c, bg] = map[tone];
   return <span className="font-mono font-semibold" style={{ fontSize: 11, color: c, background: bg, padding: "3px 8px", borderRadius: 20 }}>{children}</span>;
@@ -57,11 +57,11 @@ export function Brand({ large }: { large?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
       <span className="grid place-items-center rounded-xl shadow-soft"
-        style={{ width: large ? 40 : 32, height: large ? 40 : 32, background: "linear-gradient(135deg,#5B5BF5,#8A6BF4)" }}>
-        <ShieldCheck size={large ? 22 : 18} color="#fff" />
+        style={{ width: large ? 40 : 32, height: large ? 40 : 32, background: "#0B0E24" }}>
+        <ShieldCheck size={large ? 22 : 18} color="#D8B25A" />
       </span>
-      <span className="font-bold text-ink tracking-tight" style={{ fontSize: large ? 22 : 17 }}>
-        LifePack<span className="text-brand"> AI</span>
+      <span className="font-display font-bold text-ink tracking-tight" style={{ fontSize: large ? 22 : 17 }}>
+        LifePack<span className="text-seal"> AI</span>
       </span>
     </div>
   );
@@ -81,7 +81,7 @@ export function Dropzone({ onFiles, compact }: { onFiles: (f: FileList) => void;
       style={{ padding: compact ? "20px" : "40px 24px" }}>
       <input ref={ref} type="file" multiple hidden
         onChange={(e) => { if (e.target.files?.length) onFiles(e.target.files); e.currentTarget.value = ""; }} />
-      <UploadCloud size={compact ? 24 : 32} className="text-brand mb-2" />
+      <UploadCloud size={compact ? 24 : 32} className="text-seal mb-2" />
       <div className="font-semibold text-ink" style={{ fontSize: compact ? 14 : 16 }}>
         Drop files or click to upload
       </div>
@@ -92,10 +92,10 @@ export function Dropzone({ onFiles, compact }: { onFiles: (f: FileList) => void;
 
 export const SectionHead = ({ title, sub }: { title: string; sub?: string }) => (
   <div className="mb-5">
-    <h1 className="text-[25px] font-bold text-ink tracking-tight m-0">{title}</h1>
+    <h1 className="font-display text-[25px] font-bold text-ink tracking-tight m-0">{title}</h1>
     {sub && <p className="text-[#69728A] text-[14.5px] mt-1.5">{sub}</p>}
   </div>
 );
 export const SubHead = ({ children }: { children: React.ReactNode }) => (
-  <h3 className="text-[13px] font-bold text-[#98A1B5] uppercase tracking-wider mb-3">{children}</h3>
+  <h3 className="text-[12px] font-mono font-semibold text-seal uppercase tracking-[.18em] mb-3">{children}</h3>
 );

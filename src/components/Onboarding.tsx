@@ -8,7 +8,7 @@ import { classify } from "../lib/classify";
 const CONNECTORS = [
   { id: "gmail", name: "Gmail", sub: "Policies, payslips, bills, receipts", dot: "#EA4335" },
   { id: "drive", name: "Google Drive", sub: "Scanned documents and PDFs", dot: "#1FA463" },
-  { id: "digilocker", name: "DigiLocker", sub: "Aadhaar, PAN, licence, marksheets", dot: "#5B5BF5" },
+  { id: "digilocker", name: "DigiLocker", sub: "Aadhaar, PAN, licence, marksheets", dot: "#0B0E24" },
 ];
 
 export default function Onboarding() {
@@ -35,7 +35,7 @@ export default function Onboarding() {
 
   return (
     <div className="min-h-screen grid place-items-center p-6"
-      style={{ backgroundImage: "radial-gradient(circle at 18% 0%,rgba(91,91,245,.06),transparent 42%),radial-gradient(circle at 92% 100%,rgba(138,107,244,.07),transparent 42%)" }}>
+      style={{ backgroundImage: "radial-gradient(circle at 18% 0%,rgba(216,178,90,.07),transparent 42%),radial-gradient(circle at 92% 100%,rgba(110,139,255,.06),transparent 42%)" }}>
       <AnimatePresence mode="wait">
         {stage === "connect" ? (
           <motion.div key="c" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -51,14 +51,14 @@ export default function Onboarding() {
                 return (
                   <button key={c.id} onClick={() => setConn((p) => ({ ...p, [c.id]: !on }))}
                     className="flex items-center gap-3.5 text-left bg-white rounded-2xl p-4 transition"
-                    style={{ border: `1px solid ${on ? "#5B5BF5" : "#E7EAF3"}`, boxShadow: on ? "0 0 0 3px rgba(91,91,245,.1)" : "0 1px 2px rgba(16,21,37,.04)" }}>
+                    style={{ border: `1px solid ${on ? "#0B0E24" : "#E7EAF3"}`, boxShadow: on ? "0 0 0 3px rgba(11,14,36,.07)" : "0 1px 2px rgba(16,21,37,.04)" }}>
                     <span className="grid place-items-center rounded-xl shrink-0" style={{ width: 38, height: 38, background: c.dot }}>
                       <FileText size={18} color="#fff" /></span>
                     <span className="flex-1">
                       <span className="block font-semibold text-ink text-[15px]">{c.name}</span>
                       <span className="block text-[#98A1B5] text-[13px]">{c.sub}</span>
                     </span>
-                    <span className="text-[13px] font-semibold flex items-center gap-1.5" style={{ color: on ? "#0E9F6E" : "#5B5BF5" }}>
+                    <span className="text-[13px] font-semibold flex items-center gap-1.5" style={{ color: on ? "#2FB68A" : "#0B0E24" }}>
                       {on ? <><Check size={15} /> Connected</> : <><Plus size={15} /> Connect</>}
                     </span>
                   </button>
@@ -73,7 +73,7 @@ export default function Onboarding() {
 
             <button disabled={!ready} onClick={() => setStage("scan")}
               className="mt-6 w-full py-4 rounded-xl text-white text-[15px] font-semibold flex items-center justify-center gap-2 transition disabled:cursor-not-allowed"
-              style={{ background: ready ? "linear-gradient(135deg,#5B5BF5,#8A6BF4)" : "#C9CEE0", boxShadow: ready ? "0 8px 24px rgba(91,91,245,.3)" : "none" }}>
+              style={{ background: ready ? "#0B0E24" : "#C9CEE0", boxShadow: ready ? "0 8px 24px rgba(11,14,36,.22)" : "none" }}>
               <Sparkles size={17} /> Run AI discovery
             </button>
             <button onClick={() => setOnboarded(true)} className="mt-3 w-full text-[#98A1B5] text-[13px] hover:text-brand">
@@ -88,7 +88,7 @@ export default function Onboarding() {
             <div className="relative w-24 h-24 mx-auto mb-7">
               <svg width={96} height={96} style={{ transform: "rotate(-90deg)" }}>
                 <circle cx={48} cy={48} r={45} stroke="#EAEDF6" strokeWidth={6} fill="none" />
-                <circle cx={48} cy={48} r={45} stroke="#5B5BF5" strokeWidth={6} fill="none" strokeLinecap="round"
+                <circle cx={48} cy={48} r={45} stroke="#0B0E24" strokeWidth={6} fill="none" strokeLinecap="round"
                   strokeDasharray={2 * Math.PI * 45} strokeDashoffset={2 * Math.PI * 45 * (1 - scanPct / 100)} />
               </svg>
               <div className="absolute inset-0 grid place-items-center">

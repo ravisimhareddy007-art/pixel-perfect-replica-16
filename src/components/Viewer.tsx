@@ -27,9 +27,9 @@ export default function Viewer({ doc, onClose }: { doc: Doc; onClose: () => void
   return (
     <div onClick={onClose} className="fixed inset-0 z-50 bg-ink/45 backdrop-blur-sm flex items-center justify-center p-4 no-print">
       <motion.div onClick={(e) => e.stopPropagation()} initial={{ scale: .96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        className="bg-[#F3F5FB] rounded-2xl shadow-lg2 w-full max-w-[960px] max-h-[88vh] overflow-hidden flex flex-col md:flex-row">
+        className="bg-[#F5F2EA] rounded-2xl shadow-lg2 w-full max-w-[960px] max-h-[88vh] overflow-hidden flex flex-col md:flex-row">
         {/* preview */}
-        <div className="flex-1 bg-[#202840] grid place-items-center min-h-[280px] overflow-auto">
+        <div className="flex-1 bg-[#0B0E24] grid place-items-center min-h-[280px] overflow-auto">
           {url && isImg && <img src={url} alt={doc.name} className="max-w-full max-h-[88vh] object-contain" />}
           {url && isPdf && <iframe src={url} title={doc.name} className="w-full h-[88vh] border-0" />}
           {url && !isImg && !isPdf && (
