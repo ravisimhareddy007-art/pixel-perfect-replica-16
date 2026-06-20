@@ -23,7 +23,7 @@ export default function Documents() {
         {tabs.map((c) => (
           <button key={c} onClick={() => setActive(c)}
             className="px-3.5 py-2 rounded-full text-[13px] font-semibold transition"
-            style={{ border: `1px solid ${active === c ? "#5B5BF5" : "#E7EAF3"}`, background: active === c ? "rgba(91,91,245,.08)" : "#fff", color: active === c ? "#5B5BF5" : "#69728A" }}>
+            style={{ border: `1px solid ${active === c ? "#0B0E24" : "#E7EAF3"}`, background: active === c ? "rgba(11,14,36,.06)" : "#fff", color: active === c ? "#0B0E24" : "#69728A" }}>
             {c}{c !== "All" && <span className="ml-1.5 font-mono text-[11px] opacity-60">{docs.filter((d) => d.category === c).length}</span>}
           </button>
         ))}

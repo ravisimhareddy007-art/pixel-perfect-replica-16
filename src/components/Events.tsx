@@ -5,6 +5,7 @@ import { EVENTS, evalEvent, type LifeEvent } from "../lib/events";
 import { useStore } from "../lib/store";
 import { buildZip } from "../lib/zip";
 import { Ring, Card, EVENT_ICONS, SectionHead } from "./ui";
+import { Stamp } from "lucide-react";
 
 export function PackageModal({ ev, onClose, toast }: { ev: LifeEvent; onClose: () => void; toast: (m: string) => void }) {
   const { docs } = useStore();
@@ -12,7 +13,7 @@ export function PackageModal({ ev, onClose, toast }: { ev: LifeEvent; onClose: (
   const [building, setBuilding] = useState(true);
   React.useEffect(() => { const t = setTimeout(() => setBuilding(false), 900); return () => clearTimeout(t); }, []);
   const Ic = EVENT_ICONS[ev.icon];
-  const tone = score >= 90 ? "#0E9F6E" : score >= 70 ? "#D98A18" : "#E04A4F";
+  const tone = score >= 90 ? "#2FB68A" : score >= 70 ? "#D8B25A" : "#E04A4F";
   const have = rows.filter((r) => r.have), miss = rows.filter((r) => !r.have);
 
   const onZip = async () => {
@@ -25,15 +26,15 @@ export function PackageModal({ ev, onClose, toast }: { ev: LifeEvent; onClose: (
   return (
     <div onClick={onClose} className="fixed inset-0 z-50 bg-ink/45 backdrop-blur-sm flex justify-end no-print">
       <motion.div onClick={(e) => e.stopPropagation()} initial={{ x: 40, opacity: .4 }} animate={{ x: 0, opacity: 1 }}
-        className="w-[min(480px,100%)] h-full overflow-y-auto bg-[#F3F5FB] shadow-lg2">
+        className="w-[min(480px,100%)] h-full overflow-y-auto bg-[#F5F2EA] shadow-lg2">
         <div className="bg-ink p-6 relative">
           <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 grid place-items-center rounded-lg bg-white/10"><X size={18} color="#fff" /></button>
           <div className="flex items-center gap-3">
-            <span className="grid place-items-center rounded-xl" style={{ width: 46, height: 46, background: "linear-gradient(135deg,#5B5BF5,#8A6BF4)" }}><Ic size={22} color="#fff" /></span>
-            <div><div className="text-white text-[19px] font-bold">{ev.name} package</div><div className="text-[#AEB6D8] text-[13px]">{ev.blurb}</div></div>
+            <span className="grid place-items-center rounded-xl" style={{ width: 46, height: 46, background: "#0B0E24" }}><Ic size={22} color="#fff" /></span>
+            <div><div className="font-display text-white text-[19px] font-bold">{ev.name} package</div><div className="text-[#AEB6D8] text-[13px]">{ev.blurb}</div></div>
           </div>
           <div className="flex items-center gap-4 mt-5">
-            <Ring value={building ? 0 : score} size={72} stroke={6} color={tone} track="rgba(255,255,255,.14)" />
+            <div className="relative"><Ring value={building ? 0 : score} size={72} stroke={6} color={tone} track="rgba(255,255,255,.14)" />{!building && score >= 90 && <span className="absolute -right-2 -top-1 flex items-center gap-1 border-2 border-verified text-verified font-mono text-[10px] font-bold uppercase rounded px-1.5 py-0.5 rotate-[-8deg] bg-ink"><Stamp size={10}/>Ready</span>}</div>
             <div>
               <div className="text-white text-[14px] font-semibold">{building ? "Assembling from your vault…" : "Readiness score"}</div>
               <div className="text-[#AEB6D8] text-[13px] mt-0.5 font-mono">{building ? "matching your documents" : `${have.length} of ${rows.length} ready`}</div>
@@ -68,7 +69,7 @@ export function PackageModal({ ev, onClose, toast }: { ev: LifeEvent; onClose: (
           )}
 
           <div className="grid grid-cols-2 gap-2.5">
-            <button onClick={onZip} className="flex items-center justify-center gap-2 py-3 rounded-xl text-white text-[14px] font-semibold" style={{ background: "linear-gradient(135deg,#5B5BF5,#8A6BF4)", boxShadow: "0 8px 20px rgba(91,91,245,.28)" }}><Download size={16} /> Download ZIP</button>
+            <button onClick={onZip} className="flex items-center justify-center gap-2 py-3 rounded-xl text-white text-[14px] font-semibold" style={{ background: "#0B0E24", boxShadow: "0 8px 20px rgba(11,14,36,.20)" }}><Download size={16} /> Download ZIP</button>
             <button onClick={() => toast("Secure link copied · expires in 7 days")} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white border border-[#E7EAF3] text-ink text-[14px] font-semibold"><Share2 size={16} /> Share link</button>
             <button onClick={() => toast("Package emailed to you")} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white border border-[#E7EAF3] text-ink text-[14px] font-semibold"><Mail size={16} /> Email</button>
             <button onClick={() => toast(`Checklist created · ${miss.length} to-dos`)} className="flex items-center justify-center gap-2 py-3 rounded-xl bg-white border border-[#E7EAF3] text-ink text-[14px] font-semibold"><ListChecks size={16} /> Checklist</button>
@@ -89,14 +90,14 @@ export default function Events({ toast }: { toast: (m: string) => void }) {
       <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))" }}>
         {EVENTS.map((ev, i) => {
           const { score, rows } = evalEvent(ev, docs);
-          const tone = score >= 90 ? "#0E9F6E" : score >= 70 ? "#D98A18" : "#E04A4F";
+          const tone = score >= 90 ? "#2FB68A" : score >= 70 ? "#D8B25A" : "#E04A4F";
           const Ic = EVENT_ICONS[ev.icon];
           return (
             <motion.button key={ev.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
               onClick={() => setOpen(ev)} className="text-left">
               <Card className="p-4.5 p-[18px] hover:shadow-lg2 transition h-full">
                 <div className="flex justify-between items-start">
-                  <span className="grid place-items-center rounded-xl" style={{ width: 42, height: 42, background: "linear-gradient(135deg,#5B5BF5,#8A6BF4)" }}><Ic size={20} color="#fff" /></span>
+                  <span className="grid place-items-center rounded-xl" style={{ width: 42, height: 42, background: "#0B0E24" }}><Ic size={20} color="#fff" /></span>
                   <Ring value={score} size={48} stroke={4} color={tone} />
                 </div>
                 <div className="text-[16px] font-semibold text-ink mt-3.5">{ev.name}</div>
