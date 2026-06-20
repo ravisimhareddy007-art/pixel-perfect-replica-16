@@ -13,6 +13,7 @@ const seedMembers: Member[] = [
 ];
 
 function load(): State {
+  if (typeof window === "undefined") return { onboarded: false, members: seedMembers, docs: [], labs: [], care: {} };
   try {
     const raw = localStorage.getItem(LS);
     if (raw) return JSON.parse(raw);
@@ -22,7 +23,7 @@ function load(): State {
 
 let state: State = load();
 const subs = new Set<() => void>();
-function persist() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch {} subs.forEach((f) => f()); }
+function persist() { try { if (typeof window !== "undefined") localStorage.setItem(LS, JSON.stringify(state)); } catch {} subs.forEach((f) => f()); }
 
 export function useStore() {
   const [, force] = useState(0);
