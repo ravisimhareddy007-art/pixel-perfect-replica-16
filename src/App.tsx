@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import type { Dispatch, SetStateAction, ReactNode, CSSProperties, ReactElement } from "react";
+import type { Dispatch, SetStateAction, ReactNode, CSSProperties } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceArea, ResponsiveContainer
@@ -7,7 +7,8 @@ import {
 import {
   LayoutDashboard, Wallet, HeartPulse, Users, ShieldCheck,
   FileText, KeyRound, Search, ArrowUpRight, ArrowDownRight,
-  Minus, Download, AlertTriangle, Sparkles, Lock, Plug
+  Minus, Download, AlertTriangle, Sparkles, Lock,
+  Plus, Clock, Eye, Check, Circle, Trash2, Link2
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -167,22 +168,9 @@ function Card({ children, style }: { children: ReactNode; style?: CSSProperties 
   );
 }
 
-function Seam({ icon: Icon, title, body }: { icon: LucideIcon; title: string; body: string }) {
-  return (
-    <div style={{ border: `1px dashed ${T.border}`, borderRadius: 16, padding: 40, textAlign: "center", background: T.panel }}>
-      <div style={{ width: 52, height: 52, borderRadius: 14, margin: "0 auto 16px", display: "grid",
-        placeItems: "center", background: T.raised, border: `1px solid ${T.border}` }}>
-        <Icon size={24} color={T.indigoBright} />
-      </div>
-      <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 13.5, color: T.muted, maxWidth: 460, margin: "0 auto", lineHeight: 1.6 }}>{body}</div>
-      <div style={{ marginTop: 18, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12,
-        color: T.faint, border: `1px solid ${T.border}`, borderRadius: 999, padding: "5px 12px" }}>
-        <Plug size={13} /> Wire this in Lovable
-      </div>
-    </div>
-  );
-}
+const btnPrimary: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 8, background: T.indigo, color: "#fff", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const btnGhost: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 8, background: T.raised, color: T.text, border: `1px solid ${T.border}`, borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const btnDanger: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", color: T.red, border: `1px solid rgba(239,65,54,0.4)`, borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 
 function SectionHead({ title, sub }: { title: string; sub: string }) {
   return (
@@ -493,6 +481,279 @@ function AskBar() {
   );
 }
 
+// ---------- family ----------
+
+interface Member { id: number; name: string; relation: string; role: string; scope: string; lastActive: string; }
+interface AccessEntry { who: string; action: string; item: string; when: string; }
+
+const FAMILY: Member[] = [
+  { id: 1, name: "Jaya", relation: "Spouse", role: "Adult member", scope: "All categories", lastActive: "Today" },
+  { id: 2, name: "Veena", relation: "Sister", role: "Emergency access", scope: "Legacy handoff only", lastActive: "3 days ago" },
+  { id: 3, name: "Aarav", relation: "Son", role: "Limited member", scope: "Health and IDs", lastActive: "Yesterday" }
+];
+
+const ACCESS: AccessEntry[] = [
+  { who: "Jaya", action: "viewed", item: "HDFC term policy", when: "2h ago" },
+  { who: "Aarav", action: "downloaded", item: "school records", when: "Yesterday" },
+  { who: "Veena", action: "was granted", item: "emergency access", when: "3 days ago" }
+];
+
+function Family() {
+  const roleTone = (r: string): Tone =>
+    r === "Owner" || r === "Adult member" ? "good" : r === "Emergency access" ? "warn" : "flat";
+  return (
+    <div>
+      <SectionHead title="Family" sub="A shared space where each person sees only what they should." />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ color: T.muted, fontSize: 13 }}>{FAMILY.length} members</span>
+        <button style={btnPrimary}><Plus size={15} /> Add member</button>
+      </div>
+      <Card style={{ padding: 0, overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1.3fr 1.2fr 0.8fr", padding: "12px 16px",
+          fontSize: 11.5, color: T.faint, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: `1px solid ${T.border}` }}>
+          <div>Member</div><div>Role</div><div>Can see</div><div style={{ textAlign: "right" }}>Active</div>
+        </div>
+        {FAMILY.map((m, i) => (
+          <div key={m.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1.3fr 1.2fr 0.8fr",
+            padding: "14px 16px", alignItems: "center", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+            <div>
+              <div style={{ color: T.text, fontWeight: 600, fontSize: 13.5 }}>{m.name}</div>
+              <div style={{ color: T.faint, fontSize: 11.5, marginTop: 2 }}>{m.relation}</div>
+            </div>
+            <div><Pill tone={roleTone(m.role)}>{m.role}</Pill></div>
+            <div style={{ color: T.muted, fontSize: 12.5 }}>{m.scope}</div>
+            <div style={{ color: T.faint, fontSize: 12, textAlign: "right" }}>{m.lastActive}</div>
+          </div>
+        ))}
+      </Card>
+      <Card>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <Eye size={16} color={T.indigoBright} />
+          <span style={{ fontWeight: 700, color: T.text, fontSize: 14 }}>Access history</span>
+        </div>
+        {ACCESS.map((a, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+            <span style={{ color: T.muted, fontSize: 13 }}>
+              <b style={{ color: T.text }}>{a.who}</b> {a.action} {a.item}
+            </span>
+            <span style={{ color: T.faint, fontSize: 12 }}>{a.when}</span>
+          </div>
+        ))}
+      </Card>
+    </div>
+  );
+}
+
+// ---------- legacy handoff ----------
+
+interface Nominee { id: number; name: string; relation: string; tier: string; tone: Tone; ack: boolean; }
+
+const NOMINEES: Nominee[] = [
+  { id: 1, name: "Jaya", relation: "Spouse", tier: "Immediate", tone: "good", ack: true },
+  { id: 2, name: "Veena", relation: "Sister", tier: "On verified death", tone: "warn", ack: true },
+  { id: 3, name: "Family trust", relation: "Estate", tier: "On verified death", tone: "warn", ack: false }
+];
+
+const TIERS: [string, string][] = [
+  ["Immediate", "Shared now with the people you trust most."],
+  ["On verified death", "Released only after a death certificate and a second confirmation."],
+  ["Never release", "Stays with you alone and is destroyed, never handed on."]
+];
+
+function Legacy() {
+  const [armed, setArmed] = useState<boolean>(false);
+  return (
+    <div>
+      <SectionHead title="Legacy handoff" sub="Make sure nothing is lost if you are gone, without giving it away early." />
+      {armed && (
+        <div style={{ background: "rgba(239,65,54,0.12)", border: `1px solid rgba(239,65,54,0.4)`,
+          borderRadius: 12, padding: "12px 16px", marginBottom: 16, color: T.red, fontSize: 13, fontWeight: 600 }}>
+          SOS armed. Your emergency contacts have been notified and the grace period has started.
+        </div>
+      )}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <Clock size={16} color={T.green} />
+            <span style={{ fontWeight: 700, color: T.text, fontSize: 14 }}>Inactivity trigger</span>
+            <span style={{ marginLeft: "auto" }}><Pill tone="good">active</Pill></span>
+          </div>
+          <div style={{ color: T.muted, fontSize: 13, lineHeight: 1.7 }}>
+            Check in every 30 days. If you miss it, a 14 day grace period starts with reminders before anything is shared.
+          </div>
+          <div style={{ color: T.faint, fontSize: 12, marginTop: 10 }}>Last check in: today</div>
+        </Card>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <AlertTriangle size={16} color={T.red} />
+            <span style={{ fontWeight: 700, color: T.text, fontSize: 14 }}>Emergency SOS</span>
+          </div>
+          <div style={{ color: T.muted, fontSize: 13, lineHeight: 1.7, marginBottom: 14 }}>
+            Trigger the handoff yourself, right now, if you choose to.
+          </div>
+          <button onClick={() => setArmed(!armed)}
+            style={armed ? btnGhost : { ...btnDanger, padding: "11px 16px" }}>
+            {armed ? "Cancel SOS" : "Arm SOS"}
+          </button>
+        </Card>
+      </div>
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, color: T.text, fontSize: 14, marginBottom: 12 }}>Nominees</div>
+        {NOMINEES.map((n, i) => (
+          <div key={n.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1.2fr 1fr",
+            alignItems: "center", padding: "12px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+            <div>
+              <div style={{ color: T.text, fontWeight: 600, fontSize: 13.5 }}>{n.name}</div>
+              <div style={{ color: T.faint, fontSize: 11.5, marginTop: 2 }}>{n.relation}</div>
+            </div>
+            <div><Pill tone={n.tone}>{n.tier}</Pill></div>
+            <div style={{ textAlign: "right", fontSize: 12, color: n.ack ? T.green : T.amber, display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 5 }}>
+              {n.ack ? <Check size={13} /> : <Circle size={13} />}{n.ack ? "acknowledged" : "awaiting"}
+            </div>
+          </div>
+        ))}
+      </Card>
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, color: T.text, fontSize: 14, marginBottom: 12 }}>How release is staged</div>
+        {TIERS.map(([name, desc], i) => (
+          <div key={i} style={{ display: "flex", gap: 12, padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+            <KeyRound size={15} color={T.indigoBright} style={{ marginTop: 2, flexShrink: 0 }} />
+            <div>
+              <div style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{name}</div>
+              <div style={{ color: T.muted, fontSize: 12.5, marginTop: 2 }}>{desc}</div>
+            </div>
+          </div>
+        ))}
+      </Card>
+      <div style={{ color: T.faint, fontSize: 12, lineHeight: 1.6 }}>
+        This handoff shares information and documents. It is not a will and does not override succession law.
+      </div>
+    </div>
+  );
+}
+
+// ---------- documents ----------
+
+interface Source { id: string; name: string; connected: boolean; }
+interface Doc { id: number; name: string; type: string; source: string; field: string; version: number; expiry: string; pinned: boolean; }
+
+const DOCS: Doc[] = [
+  { id: 1, name: "Aadhaar card", type: "Identity", source: "DigiLocker", field: "XXXX XXXX 4421", version: 1, expiry: "", pinned: true },
+  { id: 2, name: "Passport", type: "Identity", source: "DigiLocker", field: "Expires Mar 2027", version: 2, expiry: "2027-03-12", pinned: true },
+  { id: 3, name: "HDFC term policy", type: "Insurance", source: "Gmail", field: "Sum assured 1 crore", version: 1, expiry: "2049-03-01", pinned: false },
+  { id: 4, name: "Lipid panel report", type: "Health", source: "ABHA", field: "LDL 119, HDL 46", version: 3, expiry: "", pinned: false },
+  { id: 5, name: "Latest prescription", type: "Health", source: "Manual", field: "Metformin 500mg", version: 1, expiry: "", pinned: true }
+];
+
+function DocumentsScreen() {
+  const [sources, setSources] = useState<Source[]>([
+    { id: "digilocker", name: "DigiLocker", connected: true },
+    { id: "abha", name: "ABHA health", connected: false },
+    { id: "gmail", name: "Gmail import", connected: true }
+  ]);
+  const toggle = (id: string) =>
+    setSources((s) => s.map((x) => (x.id === id ? { ...x, connected: !x.connected } : x)));
+
+  return (
+    <div>
+      <SectionHead title="Documents" sub="Understood, not just stored. One record per thing, wherever it came from." />
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        {sources.map((s) => (
+          <button key={s.id} onClick={() => toggle(s.id)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8,
+              background: s.connected ? "rgba(61,214,140,0.1)" : T.raised,
+              color: s.connected ? T.green : T.muted,
+              border: `1px solid ${s.connected ? "rgba(61,214,140,0.4)" : T.border}`,
+              borderRadius: 10, padding: "9px 13px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            {s.connected ? <Check size={14} /> : <Link2 size={14} />}
+            {s.name} {s.connected ? "connected" : "connect"}
+          </button>
+        ))}
+      </div>
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.4fr 1fr 0.7fr", padding: "12px 16px",
+          fontSize: 11.5, color: T.faint, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: `1px solid ${T.border}` }}>
+          <div>Document</div><div>What we read</div><div>Source</div><div style={{ textAlign: "right" }}>Offline</div>
+        </div>
+        {DOCS.map((d, i) => (
+          <div key={d.id} style={{ display: "grid", gridTemplateColumns: "1.6fr 1.4fr 1fr 0.7fr",
+            padding: "13px 16px", alignItems: "center", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}>
+            <div>
+              <div style={{ color: T.text, fontWeight: 600 }}>{d.name}</div>
+              <div style={{ color: T.faint, fontSize: 11.5, marginTop: 2 }}>{d.type} {d.version > 1 ? `\u00B7 v${d.version}` : ""}</div>
+            </div>
+            <div style={{ color: T.muted, fontSize: 12.5 }}>{d.field}</div>
+            <div><Pill tone="flat">{d.source}</Pill></div>
+            <div style={{ textAlign: "right" }}>
+              {d.pinned ? <Download size={15} color={T.green} /> : <span style={{ color: T.faint, fontSize: 12 }}>-</span>}
+            </div>
+          </div>
+        ))}
+      </Card>
+      <div style={{ color: T.faint, fontSize: 12, marginTop: 12, lineHeight: 1.6 }}>
+        The same item from DigiLocker, Gmail and a manual upload collapses into one record by a shared identity key, so you never see duplicates.
+      </div>
+    </div>
+  );
+}
+
+// ---------- trust center ----------
+
+interface Posture { label: string; on: boolean; detail: string; }
+
+const POSTURE: Posture[] = [
+  { label: "Zero knowledge encryption", on: true, detail: "Your documents are encrypted on your device. We store only ciphertext." },
+  { label: "Recovery key set", on: true, detail: "You can regain access if you forget your passphrase." },
+  { label: "India data residency", on: true, detail: "Your encrypted vault is stored in region." },
+  { label: "Two factor on sensitive actions", on: false, detail: "Turn on for exports and legacy changes." }
+];
+
+function TrustCenter() {
+  return (
+    <div>
+      <SectionHead title="Trust center" sub="In plain language: what is protected, and who can reach it." />
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <ShieldCheck size={16} color={T.green} />
+          <span style={{ fontWeight: 700, color: T.text, fontSize: 14 }}>Security posture</span>
+        </div>
+        {POSTURE.map((p, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, padding: "12px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+            <div style={{ marginTop: 1 }}>
+              {p.on ? <Check size={16} color={T.green} /> : <Circle size={16} color={T.amber} />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ color: T.text, fontWeight: 600, fontSize: 13.5 }}>{p.label}</div>
+              <div style={{ color: T.muted, fontSize: 12.5, marginTop: 2 }}>{p.detail}</div>
+            </div>
+            <div>{p.on ? <Pill tone="good">on</Pill> : <Pill tone="warn">off</Pill>}</div>
+          </div>
+        ))}
+      </Card>
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <Eye size={16} color={T.indigoBright} />
+          <span style={{ fontWeight: 700, color: T.text, fontSize: 14 }}>Recent access</span>
+        </div>
+        {ACCESS.map((a, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+            <span style={{ color: T.muted, fontSize: 13 }}>
+              <b style={{ color: T.text }}>{a.who}</b> {a.action} {a.item}
+            </span>
+            <span style={{ color: T.faint, fontSize: 12 }}>{a.when}</span>
+          </div>
+        ))}
+      </Card>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button style={btnGhost}><Download size={16} /> Export everything</button>
+        <button style={btnDanger}><Trash2 size={16} /> Delete account and data</button>
+      </div>
+    </div>
+  );
+}
+
 // ---------- shell ----------
 
 interface NavItem { key: string; label: string; icon: LucideIcon; }
@@ -516,17 +777,6 @@ export default function App() {
     const noNominee = WEALTH.filter((w) => !w.nominee && w.cls === "asset").length;
     return { assets, liabilities, net: assets - liabilities, noNominee };
   }, []);
-
-  const seams: Record<string, ReactElement> = {
-    family: <Seam icon={Users} title="Family is a shared, role aware space"
-      body="Roles for owner, adult member, limited member and emergency access, with per item sharing, revocation and an access history. Built on the same permission model as the legacy handoff so there is one mental model." />,
-    legacy: <Seam icon={KeyRound} title="Staged, verified legacy handoff"
-      body="Manual SOS, an inactivity trigger with a grace period, and a nominee claim that requires a death certificate plus a second confirmation. Release is tiered, never all or nothing, and uses key escrow so no usable key sits on the server beforehand." />,
-    documents: <Seam icon={FileText} title="Documents, understood not just stored"
-      body="DigiLocker and ABHA connect, Gmail import, one identity key so the same item from three sources collapses into one record, versioning, and offline access to your chosen critical files." />,
-    trust: <Seam icon={Lock} title="Your data, protected by design"
-      body="Zero knowledge client side encryption, a recovery key set at onboarding, India data residency, a full access and audit log, and one tap export and deletion. This screen shows the user, in plain language, exactly what is protected and who can reach it." />
-  };
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.text }}>
@@ -565,12 +815,10 @@ export default function App() {
         {route === "overview" && <Overview totals={totals} />}
         {route === "wealth" && <Wealth />}
         {route === "health" && <Health />}
-        {["family", "legacy", "documents", "trust"].includes(route) && (
-          <div>
-            <SectionHead title={NAV.find((n) => n.key === route)?.label ?? ""} sub="Designed and routed. The backend lands in Lovable." />
-            {seams[route]}
-          </div>
-        )}
+        {route === "family" && <Family />}
+        {route === "legacy" && <Legacy />}
+        {route === "documents" && <DocumentsScreen />}
+        {route === "trust" && <TrustCenter />}
       </main>
     </div>
   );
