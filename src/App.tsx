@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import type { Dispatch, SetStateAction, ReactNode, CSSProperties, ReactElement } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceArea, ResponsiveContainer
@@ -8,12 +9,12 @@ import {
   FileText, KeyRound, Search, ArrowUpRight, ArrowDownRight,
   Minus, Download, AlertTriangle, Sparkles, Lock, Plug
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-// LifePack AI - front end reference build.
-// This runs as a live preview. In Lovable, swap the seams marked SEAM
-// for native integrations (Supabase auth, social login, zero knowledge
-// crypto, AI extraction, DigiLocker and ABHA). Nothing here is faked as
-// if it were real backend; stubs are honest and labelled.
+// LifePack AI - typed reference build for Lovable (strict mode safe).
+// Swap every SEAM for a native integration: Supabase auth and social
+// login, zero knowledge crypto and key escrow, consented no retention
+// AI extraction, DigiLocker and ABHA connect. Stubs are honest, not faked.
 
 const T = {
   bg: "#0B0E14",
@@ -28,14 +29,58 @@ const T = {
   red: "#EF4136",
   green: "#3DD68C",
   amber: "#F2B441"
-};
+} as const;
 
-const money = (n) =>
-  "\u20B9" + Math.abs(n).toLocaleString("en-IN");
+const money = (n: number): string => "\u20B9" + Math.abs(n).toLocaleString("en-IN");
+
+// ---------- types ----------
+
+type AssetClass = "asset" | "liability";
+
+interface WealthItem {
+  id: number;
+  name: string;
+  type: string;
+  inst: string;
+  value: number;
+  cls: AssetClass;
+  status: string;
+  maturity: string;
+  nominee: boolean;
+}
+
+interface Point { date: string; value: number; }
+
+interface Marker {
+  key: string;
+  name: string;
+  unit: string;
+  low: number;
+  high: number;
+  series: Point[];
+}
+
+interface Totals {
+  assets: number;
+  liabilities: number;
+  net: number;
+  noNominee: number;
+}
+
+interface Reading {
+  latest: number;
+  delta: number;
+  inRange: boolean;
+  direction: "up" | "down" | "flat";
+  improving: "better" | "worse" | "flat";
+  note: string;
+}
+
+type Tone = "good" | "warn" | "bad" | "flat";
 
 // ---------- mock data (replace with extracted data in Lovable) ----------
 
-const WEALTH = [
+const WEALTH: WealthItem[] = [
   { id: 1, name: "HDFC Click 2 Protect term cover", type: "Insurance", inst: "HDFC Life", value: 10000000, cls: "asset", status: "active", maturity: "2049-03-01", nominee: true },
   { id: 2, name: "SBI ULIP Smart Wealth", type: "Insurance", inst: "SBI Life", value: 850000, cls: "asset", status: "active", maturity: "2032-07-15", nominee: false },
   { id: 3, name: "Parag Parikh Flexi Cap", type: "Mutual fund", inst: "Zerodha Coin", value: 1240000, cls: "asset", status: "active", maturity: "", nominee: true },
@@ -49,66 +94,46 @@ const WEALTH = [
   { id: 11, name: "LIC Jeevan Anand (lapsed)", type: "Insurance", inst: "LIC", value: 300000, cls: "asset", status: "lapsed", maturity: "2040-01-01", nominee: true }
 ];
 
-const HEALTH = {
+const HEALTH: Record<string, Marker[]> = {
   Diabetes: [
     { key: "hba1c", name: "HbA1c", unit: "%", low: 4.0, high: 5.7,
-      series: [
-        { date: "Jan 25", value: 6.4 }, { date: "May 25", value: 6.7 },
-        { date: "Oct 25", value: 6.9 }, { date: "Mar 26", value: 7.2 }
-      ] },
+      series: [{ date: "Jan 25", value: 6.4 }, { date: "May 25", value: 6.7 }, { date: "Oct 25", value: 6.9 }, { date: "Mar 26", value: 7.2 }] },
     { key: "fbs", name: "Fasting glucose", unit: "mg/dL", low: 70, high: 100,
-      series: [
-        { date: "Jan 25", value: 118 }, { date: "May 25", value: 124 },
-        { date: "Oct 25", value: 129 }, { date: "Mar 26", value: 134 }
-      ] }
+      series: [{ date: "Jan 25", value: 118 }, { date: "May 25", value: 124 }, { date: "Oct 25", value: 129 }, { date: "Mar 26", value: 134 }] }
   ],
   Heart: [
     { key: "ldl", name: "LDL cholesterol", unit: "mg/dL", low: 0, high: 100,
-      series: [
-        { date: "Jan 25", value: 142 }, { date: "May 25", value: 138 },
-        { date: "Oct 25", value: 128 }, { date: "Mar 26", value: 119 }
-      ] },
+      series: [{ date: "Jan 25", value: 142 }, { date: "May 25", value: 138 }, { date: "Oct 25", value: 128 }, { date: "Mar 26", value: 119 }] },
     { key: "hdl", name: "HDL cholesterol", unit: "mg/dL", low: 40, high: 60,
-      series: [
-        { date: "Jan 25", value: 38 }, { date: "May 25", value: 41 },
-        { date: "Oct 25", value: 44 }, { date: "Mar 26", value: 46 }
-      ] },
+      series: [{ date: "Jan 25", value: 38 }, { date: "May 25", value: 41 }, { date: "Oct 25", value: 44 }, { date: "Mar 26", value: 46 }] },
     { key: "bp", name: "Systolic BP", unit: "mmHg", low: 90, high: 120,
-      series: [
-        { date: "Jan 25", value: 128 }, { date: "May 25", value: 132 },
-        { date: "Oct 25", value: 126 }, { date: "Mar 26", value: 124 }
-      ] }
+      series: [{ date: "Jan 25", value: 128 }, { date: "May 25", value: 132 }, { date: "Oct 25", value: 126 }, { date: "Mar 26", value: 124 }] }
   ],
   Kidney: [
     { key: "creat", name: "Creatinine", unit: "mg/dL", low: 0.7, high: 1.3,
-      series: [
-        { date: "Jan 25", value: 0.9 }, { date: "May 25", value: 0.95 },
-        { date: "Oct 25", value: 1.0 }, { date: "Mar 26", value: 1.0 }
-      ] },
+      series: [{ date: "Jan 25", value: 0.9 }, { date: "May 25", value: 0.95 }, { date: "Oct 25", value: 1.0 }, { date: "Mar 26", value: 1.0 }] },
     { key: "egfr", name: "eGFR", unit: "mL/min", low: 90, high: 200,
-      series: [
-        { date: "Jan 25", value: 96 }, { date: "May 25", value: 94 },
-        { date: "Oct 25", value: 92 }, { date: "Mar 26", value: 91 }
-      ] }
+      series: [{ date: "Jan 25", value: 96 }, { date: "May 25", value: 94 }, { date: "Oct 25", value: 92 }, { date: "Mar 26", value: 91 }] }
   ]
 };
 
 // ---------- interpretation helpers (the AI first thesis, mocked) ----------
 
-function interpret(marker) {
+function interpret(marker: Marker): Reading {
   const s = marker.series;
   const latest = s[s.length - 1].value;
   const prev = s[s.length - 2].value;
   const delta = latest - prev;
   const inRange = latest >= marker.low && latest <= marker.high;
-  // "higher is worse" assumption except for HDL and eGFR where higher is better
   const higherBetter = marker.key === "hdl" || marker.key === "egfr";
-  let direction = "flat";
+  let direction: Reading["direction"] = "flat";
   if (Math.abs(delta) > 0.001) direction = delta > 0 ? "up" : "down";
-  const improving =
-    direction === "flat" ? "flat"
-      : (higherBetter ? direction === "up" : direction === "down") ? "better" : "worse";
-  let note;
+  let improving: Reading["improving"] = "flat";
+  if (direction !== "flat") {
+    const good = higherBetter ? direction === "up" : direction === "down";
+    improving = good ? "better" : "worse";
+  }
+  let note: string;
   if (inRange && improving !== "worse") note = "Within range and holding.";
   else if (inRange && improving === "worse") note = "Still in range but drifting the wrong way.";
   else if (!inRange && improving === "better") note = "Out of range but moving the right way.";
@@ -116,16 +141,16 @@ function interpret(marker) {
   return { latest, delta, inRange, direction, improving, note };
 }
 
-// ---------- small ui atoms ----------
+// ---------- ui atoms ----------
 
-function Pill({ tone, children }) {
-  const map = {
+function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
+  const map: Record<Tone, { bg: string; fg: string }> = {
     good: { bg: "rgba(61,214,140,0.12)", fg: T.green },
     warn: { bg: "rgba(242,180,65,0.12)", fg: T.amber },
     bad: { bg: "rgba(239,65,54,0.14)", fg: T.red },
     flat: { bg: "rgba(138,147,166,0.12)", fg: T.muted }
   };
-  const c = map[tone] || map.flat;
+  const c = map[tone];
   return (
     <span style={{ background: c.bg, color: c.fg, fontSize: 11, fontWeight: 600,
       padding: "2px 8px", borderRadius: 999, letterSpacing: 0.2 }}>
@@ -134,38 +159,48 @@ function Pill({ tone, children }) {
   );
 }
 
-function Card({ children, style }) {
+function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
-    <div style={{ background: T.panel, border: `1px solid ${T.border}`,
-      borderRadius: 14, padding: 18, ...style }}>
+    <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 18, ...style }}>
       {children}
     </div>
   );
 }
 
-function Seam({ icon, title, body }) {
-  const Icon = icon;
+function Seam({ icon: Icon, title, body }: { icon: LucideIcon; title: string; body: string }) {
   return (
-    <div style={{ border: `1px dashed ${T.border}`, borderRadius: 16, padding: 40,
-      textAlign: "center", background: T.panel }}>
-      <div style={{ width: 52, height: 52, borderRadius: 14, margin: "0 auto 16px",
-        display: "grid", placeItems: "center", background: T.raised,
-        border: `1px solid ${T.border}` }}>
+    <div style={{ border: `1px dashed ${T.border}`, borderRadius: 16, padding: 40, textAlign: "center", background: T.panel }}>
+      <div style={{ width: 52, height: 52, borderRadius: 14, margin: "0 auto 16px", display: "grid",
+        placeItems: "center", background: T.raised, border: `1px solid ${T.border}` }}>
         <Icon size={24} color={T.indigoBright} />
       </div>
       <div style={{ fontSize: 17, fontWeight: 700, color: T.text, marginBottom: 8 }}>{title}</div>
       <div style={{ fontSize: 13.5, color: T.muted, maxWidth: 460, margin: "0 auto", lineHeight: 1.6 }}>{body}</div>
-      <div style={{ marginTop: 18, display: "inline-flex", alignItems: "center", gap: 6,
-        fontSize: 12, color: T.faint, border: `1px solid ${T.border}`, borderRadius: 999, padding: "5px 12px" }}>
+      <div style={{ marginTop: 18, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12,
+        color: T.faint, border: `1px solid ${T.border}`, borderRadius: 999, padding: "5px 12px" }}>
         <Plug size={13} /> Wire this in Lovable
       </div>
     </div>
   );
 }
 
+function SectionHead({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <h2 style={{ color: T.text, fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>{title}</h2>
+      <p style={{ color: T.muted, fontSize: 13.5, margin: "5px 0 0" }}>{sub}</p>
+    </div>
+  );
+}
+
 // ---------- overview ----------
 
-function Overview({ totals }) {
+function Overview({ totals }: { totals: Totals }) {
+  const rows: [string, string, Tone][] = [
+    ["Two holdings have no nominee", "If anything happened, your family would have to fight for the SBI ULIP and your Nippon Small Cap units. Assign nominees.", "warn"],
+    ["HbA1c is trending up", "Up from 6.4 to 7.2 over a year. Out of range and moving the wrong way. Raise it with your doctor.", "bad"],
+    ["ICICI fixed deposit matures in 90 days", "Decide to renew or redeem before 10 Sep 2026.", "warn"]
+  ];
   return (
     <div>
       <SectionHead title="Estate overview" sub="Your whole life, read in one place." />
@@ -173,9 +208,7 @@ function Overview({ totals }) {
         <Card>
           <div style={{ color: T.muted, fontSize: 12.5, marginBottom: 8 }}>Net position</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: T.text }}>{money(totals.net)}</div>
-          <div style={{ fontSize: 12, color: T.muted, marginTop: 6 }}>
-            {money(totals.assets)} assets, {money(totals.liabilities)} owed
-          </div>
+          <div style={{ fontSize: 12, color: T.muted, marginTop: 6 }}>{money(totals.assets)} assets, {money(totals.liabilities)} owed</div>
         </Card>
         <Card>
           <div style={{ color: T.muted, fontSize: 12.5, marginBottom: 8 }}>Without a nominee</div>
@@ -193,13 +226,8 @@ function Overview({ totals }) {
           <Sparkles size={16} color={T.indigoBright} />
           <span style={{ fontWeight: 700, color: T.text, fontSize: 14 }}>What needs you this week</span>
         </div>
-        {[
-          ["Two holdings have no nominee", "If anything happened, your family would have to fight for the SBI ULIP and your Nippon Small Cap units. Assign nominees.", "warn"],
-          ["HbA1c is trending up", "Up from 6.4 to 7.2 over a year. Out of range and moving the wrong way. Raise it with your doctor.", "bad"],
-          ["ICICI fixed deposit matures in 90 days", "Decide to renew or redeem before 10 Sep 2026.", "warn"]
-        ].map((r, i) => (
-          <div key={i} style={{ display: "flex", gap: 12, padding: "12px 0",
-            borderTop: i ? `1px solid ${T.border}` : "none" }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, padding: "12px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
             <div style={{ marginTop: 2 }}>
               <AlertTriangle size={16} color={r[2] === "bad" ? T.red : T.amber} />
             </div>
@@ -216,14 +244,33 @@ function Overview({ totals }) {
 
 // ---------- wealth ----------
 
+interface SelectProps {
+  label: string;
+  val: string;
+  set: Dispatch<SetStateAction<string>>;
+  opts: string[];
+}
+
+function FilterSelect({ label, val, set, opts }: SelectProps) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <span style={{ fontSize: 11, color: T.faint, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</span>
+      <select value={val} onChange={(e) => set(e.target.value)}
+        style={{ background: T.raised, color: T.text, border: `1px solid ${T.border}`, borderRadius: 8, padding: "7px 10px", fontSize: 13, outline: "none" }}>
+        {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </label>
+  );
+}
+
 function Wealth() {
   const types = ["All", ...Array.from(new Set(WEALTH.map((w) => w.type)))];
-  const [type, setType] = useState("All");
-  const [status, setStatus] = useState("All");
-  const [nominee, setNominee] = useState("All");
-  const [quick, setQuick] = useState(null);
+  const [type, setType] = useState<string>("All");
+  const [status, setStatus] = useState<string>("All");
+  const [nominee, setNominee] = useState<string>("All");
+  const [quick, setQuick] = useState<string | null>(null);
 
-  const rows = useMemo(() => {
+  const rows = useMemo<WealthItem[]>(() => {
     return WEALTH.filter((w) => {
       if (type !== "All" && w.type !== type) return false;
       if (status !== "All" && w.status !== status) return false;
@@ -232,27 +279,14 @@ function Wealth() {
       if (quick === "noNominee" && (w.nominee || w.cls === "liability")) return false;
       if (quick === "expiring") {
         if (!w.maturity) return false;
-        const d = new Date(w.maturity);
-        const cut = new Date("2026-09-20");
-        if (d > cut) return false;
+        if (new Date(w.maturity) > new Date("2026-09-20")) return false;
       }
       if (quick === "lapsed" && w.status !== "lapsed") return false;
       return true;
     });
   }, [type, status, nominee, quick]);
 
-  const Select = ({ label, val, set, opts }) => (
-    <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <span style={{ fontSize: 11, color: T.faint, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</span>
-      <select value={val} onChange={(e) => set(e.target.value)}
-        style={{ background: T.raised, color: T.text, border: `1px solid ${T.border}`,
-          borderRadius: 8, padding: "7px 10px", fontSize: 13, outline: "none" }}>
-        {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </label>
-  );
-
-  const chips = [
+  const chips: [string, string][] = [
     ["expiring", "Expiring in 90 days"],
     ["noNominee", "No nominee"],
     ["lapsed", "Lapsed"]
@@ -264,22 +298,21 @@ function Wealth() {
       <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
         {chips.map(([k, l]) => (
           <button key={k} onClick={() => setQuick(quick === k ? null : k)}
-            style={{ background: quick === k ? T.indigo : T.raised,
-              color: quick === k ? "#fff" : T.muted, border: `1px solid ${quick === k ? T.indigo : T.border}`,
-              borderRadius: 999, padding: "6px 13px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
+            style={{ background: quick === k ? T.indigo : T.raised, color: quick === k ? "#fff" : T.muted,
+              border: `1px solid ${quick === k ? T.indigo : T.border}`, borderRadius: 999, padding: "6px 13px",
+              fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
             {l}
           </button>
         ))}
       </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-        <Select label="Type" val={type} set={setType} opts={types} />
-        <Select label="Status" val={status} set={setStatus} opts={["All", "active", "lapsed", "matured", "claimPending"]} />
-        <Select label="Nominee" val={nominee} set={setNominee} opts={["All", "Assigned", "Missing"]} />
+        <FilterSelect label="Type" val={type} set={setType} opts={types} />
+        <FilterSelect label="Status" val={status} set={setStatus} opts={["All", "active", "lapsed", "matured", "claimPending"]} />
+        <FilterSelect label="Nominee" val={nominee} set={setNominee} opts={["All", "Assigned", "Missing"]} />
       </div>
       <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1.2fr 1fr 0.9fr 0.9fr",
-          padding: "12px 16px", fontSize: 11.5, color: T.faint, textTransform: "uppercase",
-          letterSpacing: 0.4, borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: "2.4fr 1.2fr 1fr 0.9fr 0.9fr", padding: "12px 16px",
+          fontSize: 11.5, color: T.faint, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: `1px solid ${T.border}` }}>
           <div>Holding</div><div>Institution</div><div>Value</div><div>Status</div><div>Nominee</div>
         </div>
         {rows.length === 0 && (
@@ -288,9 +321,8 @@ function Wealth() {
           </div>
         )}
         {rows.map((w, i) => (
-          <div key={w.id} style={{ display: "grid",
-            gridTemplateColumns: "2.4fr 1.2fr 1fr 0.9fr 0.9fr", padding: "13px 16px",
-            alignItems: "center", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}>
+          <div key={w.id} style={{ display: "grid", gridTemplateColumns: "2.4fr 1.2fr 1fr 0.9fr 0.9fr",
+            padding: "13px 16px", alignItems: "center", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}>
             <div>
               <div style={{ color: T.text, fontWeight: 600 }}>{w.name}</div>
               <div style={{ color: T.faint, fontSize: 11.5, marginTop: 2 }}>{w.type}</div>
@@ -312,9 +344,9 @@ function Wealth() {
 
 function Health() {
   const groups = Object.keys(HEALTH);
-  const flat = groups.flatMap((g) => HEALTH[g].map((m) => ({ ...m, group: g })));
-  const [sel, setSel] = useState("hba1c");
-  const marker = flat.find((m) => m.key === sel);
+  const flat: Marker[] = groups.flatMap((g) => HEALTH[g]);
+  const [sel, setSel] = useState<string>("hba1c");
+  const marker = flat.find((m) => m.key === sel) ?? flat[0];
   const meta = interpret(marker);
 
   const dirIcon = meta.direction === "flat"
@@ -326,7 +358,6 @@ function Health() {
     <div>
       <SectionHead title="Health" sub="One question: are you okay, and what changed." />
 
-      {/* plain language summary leads, charts support */}
       <Card style={{ marginBottom: 16, borderColor: "rgba(124,77,255,0.4)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <Sparkles size={16} color={T.indigoBright} />
@@ -343,14 +374,11 @@ function Health() {
       </Card>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16 }}>
-        {/* featured interpreted trend with reference band */}
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
             <div>
               <div style={{ color: T.text, fontWeight: 700, fontSize: 15 }}>{marker.name}</div>
-              <div style={{ color: T.faint, fontSize: 12 }}>
-                normal {marker.low} to {marker.high} {marker.unit}
-              </div>
+              <div style={{ color: T.faint, fontSize: 12 }}>normal {marker.low} to {marker.high} {marker.unit}</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 24, fontWeight: 800, color: meta.inRange ? T.green : T.red }}>
@@ -366,13 +394,10 @@ function Health() {
               <LineChart data={marker.series} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid stroke={T.border} strokeDasharray="3 3" vertical={false} />
                 <XAxis dataKey="date" stroke={T.faint} fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke={T.faint} fontSize={11} tickLine={false} axisLine={false}
-                  domain={["dataMin - 1", "dataMax + 1"]} />
+                <YAxis stroke={T.faint} fontSize={11} tickLine={false} axisLine={false} domain={["dataMin - 1", "dataMax + 1"]} />
                 <ReferenceArea y1={marker.low} y2={marker.high} fill={T.green} fillOpacity={0.1} />
-                <Tooltip contentStyle={{ background: T.raised, border: `1px solid ${T.border}`,
-                  borderRadius: 8, color: T.text, fontSize: 12 }} />
-                <Line type="monotone" dataKey="value" stroke={T.indigoBright} strokeWidth={2.4}
-                  dot={{ r: 4, fill: T.indigoBright }} activeDot={{ r: 6 }} />
+                <Tooltip contentStyle={{ background: T.raised, border: `1px solid ${T.border}`, borderRadius: 8, color: T.text, fontSize: 12 }} />
+                <Line type="monotone" dataKey="value" stroke={T.indigoBright} strokeWidth={2.4} dot={{ r: 4, fill: T.indigoBright }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -382,7 +407,6 @@ function Health() {
           </div>
         </Card>
 
-        {/* marker cards, grouped, interpreted */}
         <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 430, overflowY: "auto", paddingRight: 4 }}>
           {groups.map((g) => (
             <div key={g}>
@@ -390,21 +414,18 @@ function Health() {
               {HEALTH[g].map((m) => {
                 const mi = interpret(m);
                 const active = m.key === sel;
+                const tone: Tone = mi.inRange ? (mi.improving === "worse" ? "warn" : "good") : "bad";
                 return (
                   <button key={m.key} onClick={() => setSel(m.key)}
                     style={{ width: "100%", textAlign: "left", marginBottom: 6, cursor: "pointer",
-                      background: active ? T.raised : T.panel,
-                      border: `1px solid ${active ? T.indigoBright : T.border}`, borderRadius: 10, padding: "10px 12px" }}>
+                      background: active ? T.raised : T.panel, border: `1px solid ${active ? T.indigoBright : T.border}`,
+                      borderRadius: 10, padding: "10px 12px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ color: T.text, fontSize: 13, fontWeight: 600 }}>{m.name}</span>
-                      <span style={{ color: mi.inRange ? T.green : T.red, fontWeight: 700, fontSize: 13 }}>
-                        {mi.latest} {m.unit}
-                      </span>
+                      <span style={{ color: mi.inRange ? T.green : T.red, fontWeight: 700, fontSize: 13 }}>{mi.latest} {m.unit}</span>
                     </div>
                     <div style={{ marginTop: 5 }}>
-                      <Pill tone={mi.inRange ? (mi.improving === "worse" ? "warn" : "good") : "bad"}>
-                        {mi.inRange ? (mi.improving === "worse" ? "in range, drifting" : "in range") : "out of range"}
-                      </Pill>
+                      <Pill tone={tone}>{mi.inRange ? (mi.improving === "worse" ? "in range, drifting" : "in range") : "out of range"}</Pill>
                     </div>
                   </button>
                 );
@@ -415,12 +436,12 @@ function Health() {
       </div>
 
       <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
-        <button style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.indigo,
-          color: "#fff", border: "none", borderRadius: 10, padding: "11px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
+        <button style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.indigo, color: "#fff",
+          border: "none", borderRadius: 10, padding: "11px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
           <Download size={16} /> Export latest prescription
         </button>
-        <button style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.raised,
-          color: T.text, border: `1px solid ${T.border}`, borderRadius: 10, padding: "11px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
+        <button style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.raised, color: T.text,
+          border: `1px solid ${T.border}`, borderRadius: 10, padding: "11px 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
           <FileText size={16} /> Share report with doctor
         </button>
       </div>
@@ -428,22 +449,13 @@ function Health() {
   );
 }
 
-// ---------- shared head ----------
-
-function SectionHead({ title, sub }) {
-  return (
-    <div style={{ marginBottom: 18 }}>
-      <h2 style={{ color: T.text, fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>{title}</h2>
-      <p style={{ color: T.muted, fontSize: 13.5, margin: "5px 0 0" }}>{sub}</p>
-    </div>
-  );
-}
-
 // ---------- ask bar (AI first thesis, mocked sourced answer) ----------
 
+interface Answer { text: string; src: string; }
+
 function AskBar() {
-  const [q, setQ] = useState("");
-  const [ans, setAns] = useState(null);
+  const [q, setQ] = useState<string>("");
+  const [ans, setAns] = useState<Answer | null>(null);
   const demo = () => {
     // SEAM: in Lovable this runs the consented, no retention query path
     // over decrypted, semantically extracted data and returns a sourced answer.
@@ -454,23 +466,17 @@ function AskBar() {
   };
   return (
     <div style={{ marginBottom: 18 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", background: T.panel,
-        border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 14px" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", background: T.panel, border: `1px solid ${T.border}`, borderRadius: 12, padding: "10px 14px" }}>
         <Search size={17} color={T.muted} />
-        <input value={q} onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && demo()}
+        <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") demo(); }}
           placeholder="Ask across your whole life, for example what insurance do I have"
-          style={{ flex: 1, background: "transparent", border: "none", outline: "none",
-            color: T.text, fontSize: 14 }} />
-        <button onClick={demo}
-          style={{ background: T.indigo, color: "#fff", border: "none", borderRadius: 8,
-            padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+          style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: T.text, fontSize: 14 }} />
+        <button onClick={demo} style={{ background: T.indigo, color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           Ask
         </button>
       </div>
       {ans && (
-        <div style={{ marginTop: 10, background: T.raised, border: `1px solid ${T.border}`,
-          borderRadius: 12, padding: 14 }}>
+        <div style={{ marginTop: 10, background: T.raised, border: `1px solid ${T.border}`, borderRadius: 12, padding: 14 }}>
           <div style={{ display: "flex", gap: 8 }}>
             <Sparkles size={16} color={T.indigoBright} style={{ marginTop: 2 }} />
             <div>
@@ -489,7 +495,9 @@ function AskBar() {
 
 // ---------- shell ----------
 
-const NAV = [
+interface NavItem { key: string; label: string; icon: LucideIcon; }
+
+const NAV: NavItem[] = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "wealth", label: "Wealth", icon: Wallet },
   { key: "health", label: "Health", icon: HeartPulse },
@@ -500,16 +508,16 @@ const NAV = [
 ];
 
 export default function App() {
-  const [route, setRoute] = useState("overview");
+  const [route, setRoute] = useState<string>("overview");
 
-  const totals = useMemo(() => {
+  const totals = useMemo<Totals>(() => {
     const assets = WEALTH.filter((w) => w.cls === "asset" && w.status === "active").reduce((a, w) => a + w.value, 0);
     const liabilities = WEALTH.filter((w) => w.cls === "liability").reduce((a, w) => a + w.value, 0);
     const noNominee = WEALTH.filter((w) => !w.nominee && w.cls === "asset").length;
     return { assets, liabilities, net: assets - liabilities, noNominee };
   }, []);
 
-  const seams = {
+  const seams: Record<string, ReactElement> = {
     family: <Seam icon={Users} title="Family is a shared, role aware space"
       body="Roles for owner, adult member, limited member and emergency access, with per item sharing, revocation and an access history. Built on the same permission model as the legacy handoff so there is one mental model." />,
     legacy: <Seam icon={KeyRound} title="Staged, verified legacy handoff"
@@ -522,11 +530,9 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: T.bg, fontFamily: "Inter, system-ui, sans-serif", color: T.text }}>
-      {/* sidebar */}
       <aside style={{ width: 232, background: T.panel, borderRight: `1px solid ${T.border}`, padding: 18, flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 26, padding: "4px 6px" }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8,
-            background: `linear-gradient(135deg, ${T.indigo}, ${T.red})`, display: "grid", placeItems: "center" }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg, ${T.indigo}, ${T.red})`, display: "grid", placeItems: "center" }}>
             <Sparkles size={16} color="#fff" />
           </div>
           <div>
@@ -541,20 +547,19 @@ export default function App() {
             <button key={n.key} onClick={() => setRoute(n.key)}
               style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, marginBottom: 4,
                 background: active ? T.raised : "transparent", color: active ? T.text : T.muted,
-                border: `1px solid ${active ? T.border : "transparent"}`, borderRadius: 9,
-                padding: "9px 11px", fontSize: 13.5, fontWeight: active ? 600 : 500, cursor: "pointer", textAlign: "left" }}>
+                border: `1px solid ${active ? T.border : "transparent"}`, borderRadius: 9, padding: "9px 11px",
+                fontSize: 13.5, fontWeight: active ? 600 : 500, cursor: "pointer", textAlign: "left" }}>
               <Icon size={17} color={active ? T.indigoBright : T.muted} /> {n.label}
             </button>
           );
         })}
-        <div style={{ marginTop: 18, padding: "10px 11px", borderRadius: 9, background: T.raised,
-          border: `1px solid ${T.border}`, fontSize: 11.5, color: T.muted, lineHeight: 1.5, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 18, padding: "10px 11px", borderRadius: 9, background: T.raised, border: `1px solid ${T.border}`,
+          fontSize: 11.5, color: T.muted, lineHeight: 1.5, display: "flex", gap: 8 }}>
           <Lock size={26} color={T.green} />
           <span>End to end encrypted. Even we cannot read your vault.</span>
         </div>
       </aside>
 
-      {/* main */}
       <main style={{ flex: 1, padding: "26px 30px", maxWidth: 1080 }}>
         <AskBar />
         {route === "overview" && <Overview totals={totals} />}
@@ -562,8 +567,7 @@ export default function App() {
         {route === "health" && <Health />}
         {["family", "legacy", "documents", "trust"].includes(route) && (
           <div>
-            <SectionHead title={NAV.find((n) => n.key === route).label}
-              sub="Designed and routed. The backend lands in Lovable." />
+            <SectionHead title={NAV.find((n) => n.key === route)?.label ?? ""} sub="Designed and routed. The backend lands in Lovable." />
             {seams[route]}
           </div>
         )}
