@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import { useStore, type CareProfile } from "../lib/store";
 import type { Doc, Member, LabLog, Medication, Reminder, ReminderKind } from "../lib/types";
-import Viewer from "./Viewer";
 
 /* ── theme ── */
 const C = {
@@ -119,7 +118,6 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
   const [sel, setSel] = useState(s.members[0]?.id || "self");
   const m = s.members.find((x) => x.id === sel) || s.members[0];
   const [modal, setModal] = useState<null | "reading" | "member" | "med" | "reminder" | "profile">(null);
-  const [openDoc, setOpenDoc] = useState<Doc | null>(null);
   const [printHTML, setPrintHTML] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -473,7 +471,7 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
               <div style={{ position: "relative", paddingLeft: 18, marginTop: 4 }}>
                 <div style={{ position: "absolute", left: 4, top: 6, bottom: 6, width: 1, background: C.border }} />
                 {records.map((r) => (
-                  <button key={r.id} className="lh-rec" onClick={() => setOpenDoc(r)}>
+                  <div key={r.id} className="lh-rec">
                     <span
                       style={{
                         position: "absolute",
@@ -499,7 +497,7 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
                         {r.docType} · {fmt(r.docDate || r.addedAt)}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -646,8 +644,6 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
           />
         )}
       </AnimatePresence>
-
-      {openDoc && <Viewer doc={openDoc} onClose={() => setOpenDoc(null)} />}
 
       {!extToast && (
         <AnimatePresence>
