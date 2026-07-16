@@ -298,32 +298,27 @@ export function useStore() {
     };
   }, []);
 
-  const addFiles = useCallback(async (files: FileList | File[], memberId?: string) => {
+  const addFiles = useCallback(async (files: FileList | File[], memberId?: string, override?: Partial<Doc>) => {
     for (const file of Array.from(files)) {
       const c = classify(file.name);
       const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
       try {
         await putBlob(key, file);
       } catch {}
-      state = {
-        ...state,
-        docs: [
-          {
-            id: key,
-            name: file.name,
-            category: c.category,
-            docType: c.docType,
-            medType: c.medType,
-            source: "Upload",
-            mime: file.type || "application/octet-stream",
-            sizeKB: Math.max(1, Math.round(file.size / 1024)),
-            addedAt: new Date().toISOString(),
-            memberId: memberId || (c.category === "Medical" ? undefined : "you"),
-            fileKey: key,
-          },
-          ...state.docs,
-        ],
+      const base: Doc = {
+        id: key,
+        name: file.name,
+        category: c.category,
+        docType: c.docType,
+        medType: c.medType,
+        source: "Upload",
+        mime: file.type || "application/octet-stream",
+        sizeKB: Math.max(1, Math.round(file.size / 1024)),
+        addedAt: new Date().toISOString(),
+        memberId: memberId || (c.category === "Medical" ? undefined : "you"),
+        fileKey: key,
       };
+      state = { ...state, docs: [{ ...base, ...override, id: key, fileKey: key }, ...state.docs] };
     }
     persist();
   }, []);
