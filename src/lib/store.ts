@@ -160,9 +160,36 @@ const seedLabs: LabLog[] = [
   L("son", "Weight", 30, "kg", "2026-05-01"),
 ];
 const seedMeds: Medication[] = [
-  { id: id(), memberId: "father", name: "Metformin", dose: "500 mg", freq: "Twice daily", refillBy: rel(4) },
-  { id: id(), memberId: "father", name: "Telmisartan", dose: "40 mg", freq: "Once daily", refillBy: rel(19) },
-  { id: id(), memberId: "father", name: "Atorvastatin", dose: "10 mg", freq: "Once at night", refillBy: rel(19) },
+  {
+    id: id(),
+    memberId: "father",
+    name: "Metformin",
+    dose: "500 mg",
+    freq: "Twice daily",
+    refillBy: rel(4),
+    remaining: 9,
+    taken: [rel(-2), rel(-1)],
+  },
+  {
+    id: id(),
+    memberId: "father",
+    name: "Telmisartan",
+    dose: "40 mg",
+    freq: "Once daily",
+    refillBy: rel(19),
+    remaining: 24,
+    taken: [rel(-2), rel(0)],
+  },
+  {
+    id: id(),
+    memberId: "father",
+    name: "Atorvastatin",
+    dose: "10 mg",
+    freq: "Once at night",
+    refillBy: rel(19),
+    remaining: 24,
+    taken: [rel(-1)],
+  },
   {
     id: id(),
     memberId: "mother",
@@ -170,6 +197,8 @@ const seedMeds: Medication[] = [
     dose: "50 mcg",
     freq: "Once, empty stomach",
     refillBy: rel(9),
+    remaining: 12,
+    taken: [rel(-1), rel(0)],
   },
 ];
 const seedReminders: Reminder[] = [
@@ -337,8 +366,27 @@ export function useStore() {
     state = { ...state, meds: state.meds.filter((x) => x.id !== mid) };
     persist();
   }, []);
-  const refillMed = useCallback((mid: string, days = 30) => {
-    state = { ...state, meds: state.meds.map((x) => (x.id === mid ? { ...x, refillBy: rel(days) } : x)) };
+  const refillMed = useCallback((mid: string, days = 30, count = 30) => {
+    state = {
+      ...state,
+      meds: state.meds.map((x) => (x.id === mid ? { ...x, refillBy: rel(days), remaining: count } : x)),
+    };
+    persist();
+  }, []);
+  const markTaken = useCallback((mid: string, date = rel(0)) => {
+    state = {
+      ...state,
+      meds: state.meds.map((x) => {
+        if (x.id !== mid) return x;
+        const taken = x.taken || [];
+        if (taken.includes(date)) return x;
+        return {
+          ...x,
+          taken: [...taken, date],
+          remaining: typeof x.remaining === "number" ? Math.max(0, x.remaining - 1) : x.remaining,
+        };
+      }),
+    };
     persist();
   }, []);
   const addReminder = useCallback((r: Reminder) => {
@@ -374,6 +422,7 @@ export function useStore() {
     addMed,
     removeMed,
     refillMed,
+    markTaken,
     addReminder,
     completeReminder,
     removeReminder,
