@@ -112,6 +112,45 @@ const statusOf = (metric: string, r: LabLog[]): Status => {
   return METRICS[metric].status(l.value, l.value2);
 };
 
+/* intent-based record types: people think "I have a blood report", not "upload" */
+const RECORD_TYPES: { label: string; short: string; icon: any; c: string; override: Partial<Doc> }[] = [
+  {
+    label: "Add prescription",
+    short: "Prescription",
+    icon: PillIcon,
+    c: C.violet,
+    override: { category: "Medical", docType: "Prescription", medType: "prescription" },
+  },
+  {
+    label: "Add blood report",
+    short: "Blood report",
+    icon: FlaskConical,
+    c: C.pink,
+    override: { category: "Medical", docType: "Lab Report", medType: "lab_report" },
+  },
+  {
+    label: "Add scan",
+    short: "Scan",
+    icon: ClipboardList,
+    c: C.gold,
+    override: { category: "Medical", docType: "Scan / Imaging", medType: "scan" },
+  },
+  {
+    label: "Add vaccine record",
+    short: "Vaccine record",
+    icon: Syringe,
+    c: C.emerald,
+    override: { category: "Medical", docType: "Vaccination Record", medType: "other" },
+  },
+  {
+    label: "Add discharge",
+    short: "Discharge summary",
+    icon: Stethoscope,
+    c: C.cyan,
+    override: { category: "Medical", docType: "Discharge Summary", medType: "discharge" },
+  },
+];
+
 export default function Healthcare({ toast: extToast }: { toast?: (m: string) => void }) {
   const s = useStore();
   const [localToast, setLocalToast] = useState<string | null>(null);
@@ -130,9 +169,8 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
     null | "reading" | "member" | "med" | "reminder" | "profile" | "emergency" | "visit"
   >(null);
   const [printHTML, setPrintHTML] = useState("");
-  const upRef = useRef<HTMLInputElement>(null);
-  const scanRef = useRef<HTMLInputElement>(null);
-  const galRef = useRef<HTMLInputElement>(null);
+  const recRef = useRef<HTMLInputElement>(null);
+  const pendingRec = useRef<{ override: Partial<Doc>; label: string } | null>(null);
 
   const m = s.members.find((x) => x.id === sel) || s.members[0];
   const care = s.care[sel] || {
@@ -208,6 +246,77 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
     })
     .filter(Boolean) as { mm: Member; txt: string }[];
 
+  const summary = useMemo(() => {
+    let visits = 0,
+      refills = 0,
+      vaccinations = 0,
+      renewals = 0,
+      outRange = 0;
+    const attn = new Set<string>();
+    s.reminders.forEach((r) => {
+      if (r.done) return;
+      const dd = daysTo(r.due);
+      if (r.kind === "appointment" && dd <= 45) {
+        visits++;
+        attn.add(r.memberId);
+      } else if (r.kind === "refill" && dd <= 30) {
+        refills++;
+        attn.add(r.memberId);
+      } else if (r.kind === "vaccination" && dd <= 60) {
+        vaccinations++;
+        attn.add(r.memberId);
+      } else if (r.kind === "insurance" && dd <= 45) {
+        renewals++;
+        attn.add(r.memberId);
+      }
+    });
+    s.members.forEach((mm) => {
+      const by: Record<string, LabLog[]> = {};
+      s.labs.filter((l) => l.memberId === mm.id && METRICS[l.metric]).forEach((l) => (by[l.metric] ||= []).push(l));
+      Object.keys(by).forEach((k) => {
+        by[k].sort(sortR);
+        if (statusOf(k, by[k]) === "out") {
+          outRange++;
+          attn.add(mm.id);
+        }
+      });
+    });
+    return {
+      actions: visits + refills + vaccinations + renewals + outRange,
+      visits,
+      refills,
+      vaccinations,
+      renewals,
+      outRange,
+      upToDate: s.members.length - attn.size,
+      count: s.members.length,
+    };
+  }, [s.reminders, s.labs, s.members]);
+
+  const nextVisit = useMemo(
+    () =>
+      s.reminders
+        .filter((r) => r.memberId === sel && !r.done && r.kind === "appointment")
+        .sort((a, b) => a.due.localeCompare(b.due))[0],
+    [s.reminders, sel],
+  );
+  const lastRecord = records[0];
+  const changedLine = useMemo(() => {
+    const outs: string[] = [];
+    Object.keys(vitals).forEach((k) => {
+      const arr = vitals[k];
+      if (arr.length < 2 || k === "Weight") return;
+      const st = statusOf(k, arr);
+      const l = arr[arr.length - 1],
+        f = arr[0];
+      if (st === "out" || st === "watch") {
+        const dir = l.value > f.value ? "up" : "down";
+        outs.push(`${k} ${dir} to ${METRICS[k].bp ? `${l.value}/${l.value2}` : l.value}`);
+      }
+    });
+    return outs.length ? outs.slice(0, 2).join(", ") : "Readings holding in range";
+  }, [vitals]);
+
   const insight = useMemo(() => {
     const parts: string[] = [];
     Object.keys(vitals).forEach((k) => {
@@ -272,6 +381,51 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
         </p>
       </div>
 
+      {/* family health summary */}
+      <div className="lh-card" style={{ padding: 16, marginBottom: 14 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: summary.actions ? 12 : 0,
+          }}
+        >
+          <div className="lh-sechead" style={{ marginBottom: 0 }}>
+            <Users size={16} color={C.sub} /> Family health
+          </div>
+          <span className="lh-mono" style={{ fontSize: 12.5, color: summary.actions ? C.gold : C.emerald }}>
+            {summary.actions ? `${summary.actions} action${summary.actions > 1 ? "s" : ""}` : "everyone up to date"}
+          </span>
+        </div>
+        {summary.actions > 0 && (
+          <div className="lh-stats">
+            {summary.visits > 0 && (
+              <Stat n={summary.visits} label={`upcoming visit${summary.visits > 1 ? "s" : ""}`} c={C.cyan} />
+            )}
+            {summary.refills > 0 && (
+              <Stat n={summary.refills} label={`refill${summary.refills > 1 ? "s" : ""}`} c={C.violet} />
+            )}
+            {summary.vaccinations > 0 && (
+              <Stat
+                n={summary.vaccinations}
+                label={`vaccination${summary.vaccinations > 1 ? "s" : ""}`}
+                c={C.emerald}
+              />
+            )}
+            {summary.renewals > 0 && (
+              <Stat n={summary.renewals} label={`renewal${summary.renewals > 1 ? "s" : ""}`} c={C.pink} />
+            )}
+            {summary.outRange > 0 && <Stat n={summary.outRange} label="to review" c={C.red} />}
+          </div>
+        )}
+        {summary.actions > 0 && summary.upToDate > 0 && (
+          <div style={{ fontSize: 13, color: C.faint, marginTop: 12 }}>
+            {summary.upToDate} of {summary.count} {summary.upToDate > 1 ? "members are" : "member is"} fully up to date.
+          </div>
+        )}
+      </div>
+
       {/* compact member switcher */}
       <div className="lh-switch">
         {s.members.map((mm) => {
@@ -308,7 +462,6 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
             Add
           </span>
         </button>
-        {totalAttention > 0 && <span className="lh-attncount">{totalAttention} need attention</span>}
       </div>
       {familyAttn.length > 0 && (
         <div className="lh-attnrow">
@@ -376,6 +529,54 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
       {/* ── OVERVIEW ── */}
       {tab === "overview" && (
         <div className="lh-pane">
+          <div className="lh-card lh-nextvisit" style={{ padding: 18, marginBottom: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <div className="lh-eyebrow" style={{ marginBottom: 6 }}>
+                  Next visit
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>
+                  {nextVisit ? `${nextVisit.title} · in ${daysTo(nextVisit.due)} days` : "No visit scheduled"}
+                </div>
+                <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
+                  {nextVisit ? fmt(nextVisit.due) : "Prepare a pack whenever you need one"}
+                  {care.doctor ? ` · ${care.doctor}` : ""}
+                </div>
+              </div>
+              <button className="lh-btn" onClick={() => setModal("visit")}>
+                <ClipboardList size={16} /> Prepare for visit
+              </button>
+            </div>
+            <div className="lh-vgrid">
+              <div>
+                <div className="lh-vlbl">What to bring</div>
+                <div className="lh-vval">
+                  {meds.length} medication{meds.length !== 1 ? "s" : ""}, last{" "}
+                  {Math.min(3, records.filter((r) => r.medType === "lab_report").length)} report
+                  {records.filter((r) => r.medType === "lab_report").length !== 1 ? "s" : ""}
+                  {insuranceOf(m, s.docs) ? ", insurance card" : ""}
+                </div>
+              </div>
+              <div>
+                <div className="lh-vlbl">What changed</div>
+                <div className="lh-vval">{changedLine}</div>
+              </div>
+              <div>
+                <div className="lh-vlbl">Last record</div>
+                <div className="lh-vval">
+                  {lastRecord ? `${lastRecord.docType} · ${fmt(lastRecord.docDate || lastRecord.addedAt)}` : "None yet"}
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="lh-card lh-insight" style={{ padding: 18, marginBottom: 16 }}>
             <div className="lh-eyebrow" style={{ marginBottom: 8 }}>
               Summary of readings
@@ -631,56 +832,38 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
               <Stethoscope size={16} color={C.sub} /> Records
             </div>
             <div className="lh-uprow">
-              <button className="lh-up" onClick={() => upRef.current?.click()}>
-                <Upload size={16} /> Upload file
-              </button>
-              <button className="lh-up" onClick={() => scanRef.current?.click()}>
-                <Camera size={16} /> Scan document
-              </button>
-              <button className="lh-up" onClick={() => galRef.current?.click()}>
-                <ImageIcon size={16} /> From gallery
-              </button>
+              {RECORD_TYPES.map((rt) => (
+                <button
+                  key={rt.label}
+                  className="lh-up"
+                  onClick={() => {
+                    pendingRec.current = { override: rt.override, label: rt.short };
+                    recRef.current?.click();
+                  }}
+                >
+                  <rt.icon size={16} color={rt.c} /> {rt.label}
+                </button>
+              ))}
               <input
-                ref={upRef}
+                ref={recRef}
                 type="file"
+                accept="image/*,application/pdf"
                 multiple
                 hidden
                 onChange={(e) => {
                   if (e.target.files?.length) {
-                    s.addFiles(e.target.files, sel);
-                    toast("Record added to vault");
+                    const pen = pendingRec.current;
+                    s.addFiles(e.target.files, sel, pen?.override);
+                    toast(`${pen?.label || "Record"} added`);
                   }
+                  pendingRec.current = null;
                   e.currentTarget.value = "";
                 }}
               />
-              <input
-                ref={scanRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                hidden
-                onChange={(e) => {
-                  if (e.target.files?.length) {
-                    s.addFiles(e.target.files, sel);
-                    toast("Scan captured");
-                  }
-                  e.currentTarget.value = "";
-                }}
-              />
-              <input
-                ref={galRef}
-                type="file"
-                accept="image/*"
-                multiple
-                hidden
-                onChange={(e) => {
-                  if (e.target.files?.length) {
-                    s.addFiles(e.target.files, sel);
-                    toast("Added from gallery");
-                  }
-                  e.currentTarget.value = "";
-                }}
-              />
+            </div>
+            <div style={{ fontSize: 12, color: C.faint, marginBottom: 6 }}>
+              Pick what it is; LifePack files it and drops a copy into Documents. On mobile you can snap a photo or
+              choose from gallery.
             </div>
             {records.length === 0 ? (
               <Empty t="No records yet. Upload, scan, or pick from gallery. Each one also lands in Documents." />
@@ -835,6 +1018,14 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
 
 /* ── small components ── */
 const Empty = ({ t }: any) => <div style={{ fontSize: 13, color: C.faint, padding: "10px 0" }}>{t}</div>;
+const Stat = ({ n, label, c }: any) => (
+  <div className="lh-stat">
+    <span className="lh-statn" style={{ color: c }}>
+      {n}
+    </span>
+    <span className="lh-statl">{label}</span>
+  </div>
+);
 const Info2 = ({ label, val, warn }: any) => (
   <div className="lh-info">
     <span style={{ fontSize: 13, color: C.faint }}>{label}</span>
@@ -1345,7 +1536,14 @@ const CSS = `
 .lh-dot{position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:9px;border:2px solid #10131f}
 .lh-nm{font-size:12.5px;font-weight:600;white-space:nowrap}
 .lh-addm .lh-av{background:${C.panel2}}
-.lh-attncount{margin-left:auto;font-family:'JetBrains Mono';font-size:12px;color:${C.gold};white-space:nowrap;align-self:center}
+.lh-stats{display:flex;flex-wrap:wrap;gap:10px}
+.lh-stat{display:flex;align-items:baseline;gap:7px;background:${C.panel2};border:1px solid ${C.border};border-radius:10px;padding:8px 13px}
+.lh-statn{font-family:'JetBrains Mono';font-size:19px;font-weight:700}
+.lh-statl{font-size:12.5px;color:${C.sub}}
+.lh-nextvisit{background:linear-gradient(180deg,rgba(110,139,255,.08),${C.panel})}
+.lh-vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid ${C.border}}
+.lh-vlbl{font-family:'JetBrains Mono';font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${C.faint};margin-bottom:5px}
+.lh-vval{font-size:13.5px;color:${C.text};line-height:1.45}
 .lh-attnrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 .lh-chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:${C.sub};background:${C.panel2};border:1px solid ${C.border};border-radius:20px;padding:6px 12px;cursor:pointer;font-family:inherit}
 .lh-chip:hover{background:rgba(255,255,255,.08)}
@@ -1401,7 +1599,7 @@ const CSS = `
 .lh-cond button{background:0;border:0;color:${C.faint};cursor:pointer;display:inline-flex}
 .lh-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:80;background:#111524;border:1px solid ${C.border};color:${C.text};padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 16px 50px rgba(0,0,0,.5)}
 #lh-print{display:none}
-@media(max-width:900px){.lh-grid3{grid-template-columns:1fr}.lh-grid-2-1{grid-template-columns:1fr}}
+@media(max-width:900px){.lh-grid3{grid-template-columns:1fr}.lh-grid-2-1{grid-template-columns:1fr}.lh-vgrid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media print{body *{visibility:hidden}#lh-print,#lh-print *{visibility:visible}#lh-print{display:block;position:absolute;inset:0}}
 `;
