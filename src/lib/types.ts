@@ -1,33 +1,34 @@
 export type Category = "Identity" | "Employment" | "Finance" | "Insurance" | "Property" | "Medical";
 export type MedType = "prescription" | "lab_report" | "discharge" | "bill" | "scan" | "other";
+export type Access = "Owner" | "Full member" | "Emergency access" | "View only";
 
 export interface Member {
   id: string;
   name: string;
   relation: string;
   color: string;
-  dob?: string; // ISO date (yyyy-mm-dd) — added for Health
-  bloodGroup?: string; // e.g. "B+" — added for Health
+  dob?: string;
+  bloodGroup?: string;
+  access?: Access;
 }
-
 export interface Doc {
   id: string;
   name: string;
   category: Category;
-  docType: string; // e.g. "Passport", "Payslip", "Prescription"
-  medType?: MedType; // only for Medical
-  source: "Upload" | "Gmail" | "Drive" | "DigiLocker";
+  docType: string;
+  medType?: MedType;
+  source: "Upload" | "Email" | "Drive" | "DigiLocker";
   mime: string;
   sizeKB: number;
-  addedAt: string; // ISO
-  docDate?: string; // user-set date on the document (visit date / issue date)
-  expiry?: string; // ISO
-  memberId?: string; // who it belongs to
-  fileKey: string; // IndexedDB blob key
+  addedAt: string;
+  docDate?: string;
+  expiry?: string;
+  memberId?: string;
+  fileKey: string;
   notes?: string;
+  value?: number; // for Wealth (documented asset value)
+  nominee?: boolean; // for Wealth (nominee designated?)
 }
-
-// Reused for health readings. value2 carries the second number for paired metrics (e.g. BP diastolic).
 export interface LabLog {
   id: string;
   memberId: string;
@@ -37,7 +38,6 @@ export interface LabLog {
   unit: string;
   date: string;
 }
-
 export interface Medication {
   id: string;
   memberId: string;
@@ -46,7 +46,6 @@ export interface Medication {
   freq: string;
   refillBy: string;
 }
-
 export type ReminderKind = "appointment" | "refill" | "vaccination" | "insurance" | "other";
 export interface Reminder {
   id: string;
