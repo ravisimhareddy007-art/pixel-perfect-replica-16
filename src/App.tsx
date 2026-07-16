@@ -30,6 +30,8 @@ import {
   Lock,
   Bell,
   RotateCcw,
+  Camera,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access } from "@/lib/types";
@@ -788,6 +790,38 @@ function Documents({ store, toast }: any) {
             }}
           />
         </label>
+        <label style={{ ...btnGhost, cursor: "pointer" }}>
+          <Camera size={15} /> Scan
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            hidden
+            onChange={(e) => {
+              if (e.target.files?.length) {
+                store.addFiles(e.target.files);
+                toast("Scan captured and classified");
+              }
+              e.currentTarget.value = "";
+            }}
+          />
+        </label>
+        <label style={{ ...btnGhost, cursor: "pointer" }}>
+          <ImageIcon size={15} /> Gallery
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              if (e.target.files?.length) {
+                store.addFiles(e.target.files);
+                toast(`${e.target.files.length} image(s) added`);
+              }
+              e.currentTarget.value = "";
+            }}
+          />
+        </label>
       </div>
       <Eyebrow>Your document graph</Eyebrow>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 22 }}>
@@ -874,95 +908,6 @@ function Documents({ store, toast }: any) {
   );
 }
 
-/* ═══════════════ FAMILY (roster + access, shares Health members) ═══════════════ */
-function Family({ store, toast }: any) {
-  const [add, setAdd] = useState(false);
-  const accessColor: Record<Access, string> = {
-    Owner: T.gold,
-    "Full member": T.mint,
-    "Emergency access": A.blue,
-    "View only": T.muted,
-  };
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <SectionHead title="Family" sub="One shared archive. Manage who is in it and what each person can reach." />
-        <button onClick={() => setAdd(true)} style={btnGold}>
-          <Plus size={15} /> Add member
-        </button>
-      </div>
-      <Card style={{ padding: 0 }}>
-        {store.members.map((m: Member, i: number) => (
-          <div
-            key={m.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              padding: "14px 16px",
-              borderTop: i ? `1px solid ${T.border}` : "none",
-            }}
-          >
-            <span
-              style={{
-                display: "grid",
-                placeItems: "center",
-                width: 40,
-                height: 40,
-                borderRadius: 11,
-                background: m.color + "26",
-                color: m.color,
-                fontWeight: 800,
-                border: `1px solid ${m.color}55`,
-              }}
-            >
-              {m.name[0]}
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: T.white }}>{m.name}</div>
-              <div style={{ fontSize: 13, color: T.muted }}>{m.relation}</div>
-            </div>
-            <select
-              value={m.access || "View only"}
-              onChange={(e) => {
-                store.updateMember(m.id, { access: e.target.value as Access });
-                toast("Access updated");
-              }}
-              style={{
-                background: T.raised,
-                color: accessColor[(m.access || "View only") as Access],
-                border: `1px solid ${T.border}`,
-                borderRadius: 8,
-                padding: "6px 10px",
-                fontSize: 12.5,
-                fontWeight: 600,
-                fontFamily: "ui-monospace, monospace",
-              }}
-            >
-              {(["Owner", "Full member", "Emergency access", "View only"] as Access[]).map((a) => (
-                <option key={a} style={{ color: "#000" }}>
-                  {a}
-                </option>
-              ))}
-            </select>
-            <span style={pill(T.mint)}>active</span>
-          </div>
-        ))}
-      </Card>
-      {add && (
-        <AddMember
-          onClose={() => setAdd(false)}
-          save={(mm: Member, care: any) => {
-            store.addMember(mm);
-            store.updateCare(mm.id, care);
-            toast("Member added");
-            setAdd(false);
-          }}
-        />
-      )}
-    </div>
-  );
-}
 function AddMember({ onClose, save }: any) {
   const [f, setF] = useState({
     name: "",
@@ -1248,7 +1193,7 @@ function Legacy({ store, go }: any) {
             </div>
           ))}
           <button
-            onClick={() => go("family")}
+            onClick={() => go("trust")}
             style={{ ...btnGhost, width: "100%", justifyContent: "center", marginTop: 12 }}
           >
             Manage trusted people <ArrowRight size={14} />
@@ -1292,11 +1237,21 @@ function Legacy({ store, go }: any) {
 }
 
 /* ═══════════════ TRUST ═══════════════ */
-function Trust({ store, toast, go }: any) {
+function Trust({ store, toast }: any) {
   const withAccess = store.members.filter((m: Member) => m.access);
+  const [add, setAdd] = useState(false);
+  const accessColor: Record<Access, string> = {
+    Owner: T.gold,
+    "Full member": T.mint,
+    "Emergency access": A.blue,
+    "View only": T.muted,
+  };
   return (
     <div>
-      <SectionHead title="Trust center" sub="In plain language: what is protected, and who can reach it." />
+      <SectionHead
+        title="Trust center"
+        sub="In plain language: what is protected, who is in your archive, and what each person can reach."
+      />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
         {[
           { icon: Lock, t: "Encrypted on device", s: "Your archive is encrypted locally. Even we cannot read it." },
@@ -1322,10 +1277,13 @@ function Trust({ store, toast, go }: any) {
         ))}
       </div>
       <Card style={{ padding: 0, marginBottom: 16 }}>
-        <div style={{ padding: "13px 16px", fontWeight: 700, color: T.white, fontSize: 14.5 }}>
-          Who can reach your archive
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "13px 16px" }}>
+          <span style={{ fontWeight: 700, color: T.white, fontSize: 14.5 }}>Family &amp; access</span>
+          <button onClick={() => setAdd(true)} style={btnGold}>
+            <Plus size={15} /> Add member
+          </button>
         </div>
-        {withAccess.map((m: Member, i: number) => (
+        {store.members.map((m: Member) => (
           <div
             key={m.id}
             style={{
@@ -1354,17 +1312,43 @@ function Trust({ store, toast, go }: any) {
               {m.name}
               <span style={{ color: T.muted, fontWeight: 400 }}> · {m.relation}</span>
             </span>
-            <span style={pill(m.access === "Owner" ? T.gold : m.access === "Full member" ? T.mint : A.blue)}>
-              {m.access}
-            </span>
+            <select
+              value={m.access || "View only"}
+              onChange={(e) => {
+                store.updateMember(m.id, { access: e.target.value as Access });
+                toast("Access updated");
+              }}
+              style={{
+                background: T.raised,
+                color: accessColor[(m.access || "View only") as Access],
+                border: `1px solid ${T.border}`,
+                borderRadius: 8,
+                padding: "6px 10px",
+                fontSize: 12.5,
+                fontWeight: 600,
+                fontFamily: "ui-monospace, monospace",
+              }}
+            >
+              {(["Owner", "Full member", "Emergency access", "View only"] as Access[]).map((a) => (
+                <option key={a} style={{ color: "#000" }}>
+                  {a}
+                </option>
+              ))}
+            </select>
           </div>
         ))}
-        <div style={{ padding: 14, borderTop: `1px solid ${T.border}` }}>
-          <button onClick={() => go("family")} style={{ ...btnGhost }}>
-            Manage access <ArrowRight size={14} />
-          </button>
-        </div>
       </Card>
+      {add && (
+        <AddMember
+          onClose={() => setAdd(false)}
+          save={(mm: Member, care: any) => {
+            store.addMember(mm);
+            store.updateCare(mm.id, care);
+            toast("Member added");
+            setAdd(false);
+          }}
+        />
+      )}
       <Card>
         <b style={{ color: T.white, fontSize: 15 }}>Reset demo data</b>
         <p style={{ fontSize: 13, color: T.muted, margin: "6px 0 12px" }}>
@@ -1390,15 +1374,142 @@ const NAV: [string, string, any][] = [
   ["packages", "Packages", Plane],
   ["documents", "Documents", FolderOpen],
   ["health", "Health", HeartPulse],
-  ["family", "Family", Users],
   ["wealth", "Wealth", Wallet],
   ["legacy", "Legacy handoff", KeyRound],
   ["trust", "Trust center", ShieldCheck],
 ];
 
+/* ═══════════════ GLOBAL SEARCH ═══════════════ */
+function SearchResults({ store, query, go }: any) {
+  const q = query.trim().toLowerCase();
+  const nameOf = (id?: string) => store.members.find((m: Member) => m.id === id)?.name || "";
+  const docs = store.docs.filter((d: Doc) =>
+    `${d.docType} ${d.name} ${d.category} ${nameOf(d.memberId)}`.toLowerCase().includes(q),
+  );
+  const meds = store.meds.filter((m: any) => m.name.toLowerCase().includes(q));
+  const conds: { m: Member; c: string }[] = [];
+  store.members.forEach((m: Member) =>
+    (store.care[m.id]?.conditions || []).forEach((c: string) => {
+      if (c.toLowerCase().includes(q)) conds.push({ m, c });
+    }),
+  );
+  const rems = store.reminders.filter((r: any) => !r.done && r.title.toLowerCase().includes(q));
+  const total = docs.length + meds.length + conds.length + rems.length;
+  const Row = ({ icon: Ic, color, title, sub, onClick }: any) => (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%",
+        textAlign: "left",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "11px 14px",
+        background: "none",
+        border: "none",
+        borderTop: `1px solid ${T.border}`,
+      }}
+    >
+      <span
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          background: color + "22",
+        }}
+      >
+        <Ic size={15} color={color} />
+      </span>
+      <span style={{ flex: 1, fontSize: 14, color: T.text }}>
+        {title}
+        <span style={{ color: T.muted }}> · {sub}</span>
+      </span>
+      <ChevronRight size={15} color={T.muted} />
+    </button>
+  );
+  const Group = ({ label, count, children }: any) =>
+    count === 0 ? null : (
+      <Card style={{ padding: 0, marginBottom: 12 }}>
+        <div
+          style={{
+            padding: "11px 14px",
+            fontSize: 11.5,
+            fontWeight: 700,
+            color: T.muted,
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            fontFamily: "ui-monospace, monospace",
+          }}
+        >
+          {label} · {count}
+        </div>
+        {children}
+      </Card>
+    );
+  return (
+    <div>
+      <div style={{ fontSize: 13.5, color: T.muted, marginBottom: 14 }}>
+        {total === 0 ? `No matches for "${query}"` : `${total} result${total > 1 ? "s" : ""} for "${query}"`}
+      </div>
+      <Group label="Documents" count={docs.length}>
+        {docs.map((d: Doc) => (
+          <Row
+            key={d.id}
+            icon={CAT_META[d.category].icon}
+            color={CAT_META[d.category].color}
+            title={d.docType}
+            sub={`${d.category}${d.memberId && nameOf(d.memberId) ? " · " + nameOf(d.memberId).split(" ")[0] : ""}`}
+            onClick={() => go("documents")}
+          />
+        ))}
+      </Group>
+      <Group label="Medications" count={meds.length}>
+        {meds.map((m: any) => (
+          <Row
+            key={m.id}
+            icon={HeartPulse}
+            color={A.purple}
+            title={`${m.name} ${m.dose}`}
+            sub={`${nameOf(m.memberId).split(" ")[0]} · ${m.freq}`}
+            onClick={() => go("health")}
+          />
+        ))}
+      </Group>
+      <Group label="Conditions" count={conds.length}>
+        {conds.map((x, i) => (
+          <Row
+            key={i}
+            icon={HeartPulse}
+            color={A.green}
+            title={x.c}
+            sub={nameOf(x.m.id).split(" ")[0]}
+            onClick={() => go("health")}
+          />
+        ))}
+      </Group>
+      <Group label="Reminders" count={rems.length}>
+        {rems.map((r: any) => (
+          <Row
+            key={r.id}
+            icon={Bell}
+            color={T.gold}
+            title={r.title}
+            sub={`${nameOf(r.memberId).split(" ")[0]} · in ${daysTo(r.due)}d`}
+            onClick={() => go("health")}
+          />
+        ))}
+      </Group>
+    </div>
+  );
+}
+
 export default function App() {
   const store = useStore();
   const [route, setRoute] = useState("home");
+  const [query, setQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toast = (m: string) => {
     setToastMsg(m);
@@ -1499,15 +1610,56 @@ export default function App() {
         </div>
       </aside>
 
-      <main style={{ flex: 1, minWidth: 0, padding: "30px 34px", maxWidth: 1160, margin: "0 auto" }}>
-        {route === "home" && <Home store={store} go={go} toast={toast} />}
-        {route === "packages" && <Packages store={store} toast={toast} />}
-        {route === "documents" && <Documents store={store} toast={toast} />}
-        {route === "health" && <Healthcare toast={toast} />}
-        {route === "family" && <Family store={store} toast={toast} />}
-        {route === "wealth" && <Wealth store={store} toast={toast} />}
-        {route === "legacy" && <Legacy store={store} go={go} />}
-        {route === "trust" && <Trust store={store} toast={toast} go={go} />}
+      <main style={{ flex: 1, minWidth: 0, padding: "24px 34px 40px", maxWidth: 1160, margin: "0 auto" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            background: T.panel,
+            border: `1px solid ${query ? T.gold + "66" : T.border}`,
+            borderRadius: 12,
+            padding: "10px 14px",
+            marginBottom: 22,
+          }}
+        >
+          <Search size={16} color={T.muted} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search everything: thyroid, passport, insurance, Metformin…"
+            style={{ flex: 1, background: "none", border: "none", outline: "none", color: T.text, fontSize: 14 }}
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex" }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+        {query.trim() && (
+          <SearchResults
+            store={store}
+            query={query}
+            go={(r: string) => {
+              setQuery("");
+              go(r);
+            }}
+          />
+        )}
+        {!query.trim() && (
+          <>
+            {route === "home" && <Home store={store} go={go} toast={toast} />}
+            {route === "packages" && <Packages store={store} toast={toast} />}
+            {route === "documents" && <Documents store={store} toast={toast} />}
+            {route === "health" && <Healthcare toast={toast} />}
+            {route === "wealth" && <Wealth store={store} toast={toast} />}
+            {route === "legacy" && <Legacy store={store} go={go} />}
+            {route === "trust" && <Trust store={store} toast={toast} />}
+          </>
+        )}
       </main>
 
       {toastMsg && (
