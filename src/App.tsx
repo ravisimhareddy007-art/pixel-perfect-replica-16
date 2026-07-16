@@ -37,6 +37,7 @@ import {
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access } from "@/lib/types";
 import Healthcare from "@/components/Healthcare";
+import DocViewer from "@/components/DocViewer";
 
 /* ── theme ── */
 const T = {
@@ -548,6 +549,7 @@ function Packages({ store, toast }: any) {
 }
 function PackageDetail({ ev, store, onClose, toast }: any) {
   const have: Set<string> = new Set(store.docs.map((d: Doc) => d.docType));
+  const [view, setView] = useState<Doc | null>(null);
   const { rows, got, total, score } = evalEvent(ev, have);
   const included = store.docs.filter((d: Doc) => ev.reqs.includes(d.docType));
   const exportPack = () => {
@@ -643,14 +645,20 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
               .map((r) => {
                 const d = included.find((x: Doc) => x.docType === r.label);
                 return (
-                  <div
+                  <button
                     key={r.label}
+                    onClick={() => d && setView(d)}
                     style={{
+                      width: "100%",
+                      textAlign: "left",
+                      cursor: d ? "pointer" : "default",
+                      background: "none",
+                      border: "none",
+                      borderTop: `1px solid ${T.border}`,
                       display: "flex",
                       alignItems: "center",
                       gap: 12,
                       padding: "9px 16px",
-                      borderTop: `1px solid ${T.border}`,
                     }}
                   >
                     <span
@@ -666,20 +674,9 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
                       <Check size={12} color={T.mint} />
                     </span>
                     <span style={{ flex: 1, fontSize: 14, color: T.text }}>{r.label}</span>
-                    <span
-                      style={{
-                        fontFamily: "ui-monospace, monospace",
-                        fontSize: 11,
-                        color: T.muted,
-                        maxWidth: 120,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {d?.name}
-                    </span>
-                  </div>
+                    <span style={{ fontSize: 11, color: T.muted }}>View</span>
+                    <ChevronRight size={13} color={T.muted} />
+                  </button>
                 );
               })}
           </Card>
@@ -747,6 +744,7 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
           </p>
         </div>
       </div>
+      {view && <DocViewer doc={view} store={store} onClose={() => setView(null)} />}
     </div>
   );
 }
@@ -754,6 +752,7 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
 /* ═══════════════ DOCUMENTS ═══════════════ */
 function Documents({ store, toast }: any) {
   const cats = Object.keys(EXPECTED) as Category[];
+  const [view, setView] = useState<Doc | null>(null);
   return (
     <div>
       <SectionHead
@@ -877,13 +876,19 @@ function Documents({ store, toast }: any) {
           <span style={{ textAlign: "right" }}>Expiry</span>
         </div>
         {store.docs.map((d: Doc) => (
-          <div
+          <button
             key={d.id}
+            onClick={() => setView(d)}
             style={{
+              width: "100%",
+              textAlign: "left",
+              cursor: "pointer",
+              background: "none",
+              border: "none",
+              borderTop: `1px solid ${T.border}`,
               display: "grid",
               gridTemplateColumns: "2fr 1fr 1fr 0.8fr",
               padding: "12px 16px",
-              borderTop: `1px solid ${T.border}`,
               alignItems: "center",
             }}
           >
@@ -902,9 +907,10 @@ function Documents({ store, toast }: any) {
             >
               {fmtDays(d.expiry)}
             </span>
-          </div>
+          </button>
         ))}
       </Card>
+      {view && <DocViewer doc={view} store={store} onClose={() => setView(null)} />}
     </div>
   );
 }
