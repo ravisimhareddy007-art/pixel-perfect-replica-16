@@ -1630,55 +1630,74 @@ export default function App() {
 
       <main style={{ flex: 1, minWidth: 0, padding: "24px 34px 40px", maxWidth: 1160, margin: "0 auto" }}>
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            background: T.panel,
-            border: `1px solid ${query ? T.gold + "66" : T.border}`,
-            borderRadius: 12,
-            padding: "10px 14px",
-            marginBottom: 22,
-          }}
+          style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20, position: "relative", zIndex: 40 }}
         >
-          <Search size={16} color={T.muted} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search everything: thyroid, passport, insurance, Metformin…"
-            style={{ flex: 1, background: "none", border: "none", outline: "none", color: T.text, fontSize: 14 }}
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex" }}
+          <div style={{ position: "relative", width: 300, maxWidth: "100%" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: T.panel,
+                border: `1px solid ${query ? T.gold + "66" : T.border}`,
+                borderRadius: 10,
+                padding: "8px 12px",
+              }}
             >
-              <X size={16} />
-            </button>
-          )}
+              <Search size={15} color={T.muted} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search…"
+                style={{ flex: 1, background: "none", border: "none", outline: "none", color: T.text, fontSize: 13.5 }}
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery("")}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex" }}
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+            {query.trim() && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 8px)",
+                  right: 0,
+                  width: 440,
+                  maxWidth: "88vw",
+                  maxHeight: 460,
+                  overflowY: "auto",
+                  background: T.navy,
+                  border: `1px solid ${T.border}`,
+                  borderRadius: 14,
+                  padding: 12,
+                  boxShadow: "0 24px 70px rgba(0,0,0,.55)",
+                }}
+              >
+                <SearchResults
+                  store={store}
+                  query={query}
+                  go={(r: string) => {
+                    setQuery("");
+                    go(r);
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
-        {query.trim() && (
-          <SearchResults
-            store={store}
-            query={query}
-            go={(r: string) => {
-              setQuery("");
-              go(r);
-            }}
-          />
-        )}
-        {!query.trim() && (
-          <>
-            {route === "home" && <Home store={store} go={go} toast={toast} />}
-            {route === "packages" && <Packages store={store} toast={toast} />}
-            {route === "documents" && <Documents store={store} toast={toast} />}
-            {route === "health" && <Healthcare toast={toast} />}
-            {route === "wealth" && <Wealth store={store} toast={toast} />}
-            {route === "legacy" && <Legacy store={store} go={go} />}
-            {route === "trust" && <Trust store={store} toast={toast} />}
-          </>
-        )}
+        {route === "home" && <Home store={store} go={go} toast={toast} />}
+        {route === "packages" && <Packages store={store} toast={toast} />}
+        {route === "documents" && <Documents store={store} toast={toast} />}
+        {route === "health" && <Healthcare toast={toast} />}
+        {route === "wealth" && <Wealth store={store} toast={toast} />}
+        {route === "legacy" && <Legacy store={store} go={go} />}
+        {route === "trust" && <Trust store={store} toast={toast} />}
       </main>
+      {query.trim() && <div onClick={() => setQuery("")} style={{ position: "fixed", inset: 0, zIndex: 30 }} />}
 
       {toastMsg && (
         <div
