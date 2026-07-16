@@ -1,316 +1,872 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ReactNode, CSSProperties } from "react";
-import type { LucideIcon } from "lucide-react";
-import Healthcare from "./components/Healthcare";
 import {
-  LayoutGrid, Plane, FolderOpen, HeartPulse, Users, Wallet, KeyRound, ShieldCheck,
-  Search, Download, AlertTriangle, Check, X, Plus, Clock, Link2, FileCheck,
-  Share2, Mail, ChevronRight, Trash2, Eye, Circle, Landmark, Car, BookOpen,
-  FileText, Home as HomeIcon, Fingerprint, Briefcase
+  LayoutGrid,
+  Plane,
+  FolderOpen,
+  HeartPulse,
+  Users,
+  Wallet,
+  KeyRound,
+  ShieldCheck,
+  Landmark,
+  Car,
+  FileText,
+  Home as HomeIcon,
+  Fingerprint,
+  Briefcase,
+  Shield,
+  Search,
+  Download,
+  Plus,
+  ArrowRight,
+  Check,
+  X,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  ChevronRight,
+  UploadCloud,
+  Lock,
+  Bell,
+  RotateCcw,
 } from "lucide-react";
+import { useStore } from "@/lib/store";
+import type { Category, Doc, Member, Access } from "@/lib/types";
+import Healthcare from "@/components/Healthcare";
 
+/* ── theme ── */
 const T = {
-  navy: "#0B1220", panel: "#131C2E", raised: "#1B2740", border: "#27324A",
-  gold: "#D9B86A", goldBright: "#ECCB82", mint: "#4FCB95", coral: "#E8736A",
-  white: "#F4F2EC", text: "#E6EBF3", muted: "#93A0B5", faint: "#5E6B82"
-} as const;
+  navy: "#0B1220",
+  panel: "#131C2E",
+  raised: "#1B2740",
+  border: "#27324A",
+  gold: "#D9B86A",
+  goldBright: "#ECCB82",
+  mint: "#4FCB95",
+  coral: "#E8736A",
+  text: "#E6EBF5",
+  muted: "#8A97AE",
+  faint: "#5C6B80",
+  white: "#FFFFFF",
+};
+const A = { blue: "#5B8DEF", purple: "#9B7BE8", teal: "#3FB9C7", pink: "#E86A9B", green: "#4FCB95", gold: "#D9B86A" };
 
-const A = {
-  blue: "#5B8DEF", purple: "#9B7BE8", teal: "#3FB9C7", pink: "#E86A9B", green: "#4FCB95", gold: "#D9B86A"
-} as const;
+/* ── helpers ── */
+const fmtDays = (expiry?: string) => {
+  if (!expiry) return "-";
+  const d = Math.ceil((+new Date(expiry) - Date.now()) / 86400000);
+  return d < 0 ? "expired" : `${d} days`;
+};
+const daysTo = (s: string) => Math.ceil((+new Date(s) - Date.now()) / 86400000);
+const money = (v: number) =>
+  v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v}`;
+const toneFor = (n: number) => (n >= 90 ? T.mint : n >= 70 ? T.gold : T.coral);
 
-const money = (n: number): string => "\u20B9" + Math.abs(n).toLocaleString("en-IN");
-const NOW = new Date("2026-06-21");
-const daysUntil = (d: string): number => Math.ceil((new Date(d).getTime() - NOW.getTime()) / 86400000);
+/* ── expected key documents per category (the denominator) ── */
+const EXPECTED: Record<Category, string[]> = {
+  Identity: ["Passport", "National ID", "Tax ID", "Driver's License"],
+  Employment: ["Employment Offer", "Payslip", "Relieving Letter"],
+  Finance: ["Tax Return", "Bank Statement", "Investment Statement"],
+  Insurance: ["Health Insurance", "Life Insurance", "Auto Insurance"],
+  Property: ["Property Deed", "Property Tax", "Lease Agreement"],
+  Medical: ["Prescription", "Lab Report"],
+};
+const CAT_META: Record<Category, { icon: any; color: string }> = {
+  Identity: { icon: Fingerprint, color: A.blue },
+  Employment: { icon: Briefcase, color: A.purple },
+  Finance: { icon: Landmark, color: A.gold },
+  Insurance: { icon: Shield, color: A.teal },
+  Property: { icon: HomeIcon, color: A.pink },
+  Medical: { icon: HeartPulse, color: A.green },
+};
 
-interface Doc { id: number; name: string; docType: string; category: string; source: string; updated: string; expiry: string; }
-const DOCS: Doc[] = [
-  { id: 1, name: "Passport", docType: "Passport", category: "Identity", source: "DigiLocker", updated: "Apr 2026", expiry: "2027-03-12" },
-  { id: 2, name: "Aadhaar", docType: "Aadhaar", category: "Identity", source: "DigiLocker", updated: "Jan 2026", expiry: "" },
-  { id: 3, name: "PAN", docType: "PAN", category: "Identity", source: "DigiLocker", updated: "Jan 2026", expiry: "" },
-  { id: 4, name: "Driving licence", docType: "Driver License", category: "Identity", source: "DigiLocker", updated: "Feb 2026", expiry: "2026-11-15" },
-  { id: 5, name: "Offer letter", docType: "Offer Letter", category: "Employment", source: "Gmail", updated: "Apr 2026", expiry: "" },
-  { id: 6, name: "Payslips, 24 months", docType: "Payslip", category: "Employment", source: "Gmail", updated: "Jun 2026", expiry: "" },
-  { id: 7, name: "Form 16, FY25-26", docType: "Form 16", category: "Finance", source: "Gmail", updated: "May 2026", expiry: "" },
-  { id: 8, name: "Bank statements", docType: "Bank Statement", category: "Finance", source: "Gmail", updated: "Jun 2026", expiry: "" },
-  { id: 9, name: "Investment statement", docType: "Investment Statement", category: "Finance", source: "Drive", updated: "May 2026", expiry: "" },
-  { id: 10, name: "Health insurance", docType: "Health Insurance", category: "Insurance", source: "Gmail", updated: "Mar 2026", expiry: "2026-08-30" },
-  { id: 11, name: "Life insurance, HDFC", docType: "Life Insurance", category: "Insurance", source: "Gmail", updated: "Mar 2026", expiry: "2049-03-01" },
-  { id: 12, name: "Prescriptions", docType: "Prescription", category: "Medical", source: "ABHA", updated: "Mar 2026", expiry: "" },
-  { id: 13, name: "Lab reports", docType: "Lab Report", category: "Medical", source: "ABHA", updated: "Mar 2026", expiry: "" },
-  { id: 14, name: "Sale deed, Whitefield", docType: "Sale Deed", category: "Property", source: "Upload", updated: "2024", expiry: "" },
-  { id: 15, name: "Property tax receipt", docType: "Property Tax Receipt", category: "Property", source: "Upload", updated: "Apr 2026", expiry: "" }
+/* ── life-event packages ── */
+const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: any; reqs: string[] }[] = [
+  {
+    id: "schengen",
+    name: "Schengen visa",
+    blurb: "Tourist visa, Europe",
+    accent: A.blue,
+    icon: Plane,
+    reqs: [
+      "Passport",
+      "Payslip",
+      "Bank Statement",
+      "Tax Return",
+      "Employment Offer",
+      "Travel Insurance",
+      "Flight Reservation",
+      "Hotel Booking",
+    ],
+  },
+  {
+    id: "us",
+    name: "US B1/B2 visa",
+    blurb: "Business or tourist",
+    accent: A.blue,
+    icon: Plane,
+    reqs: ["Passport", "Bank Statement", "Payslip", "Employment Offer", "Tax Return", "DS-160 Confirmation"],
+  },
+  {
+    id: "uk",
+    name: "UK visa",
+    blurb: "Standard visitor",
+    accent: A.blue,
+    icon: Plane,
+    reqs: ["Passport", "Bank Statement", "Payslip", "Employment Offer", "Accommodation Proof", "Travel Itinerary"],
+  },
+  {
+    id: "canada",
+    name: "Canada visa",
+    blurb: "Visitor visa",
+    accent: A.blue,
+    icon: Plane,
+    reqs: ["Passport", "Bank Statement", "Tax Return", "Employment Offer", "Invitation Letter", "Biometrics"],
+  },
+  {
+    id: "homeloan",
+    name: "Home loan",
+    blurb: "Application pack",
+    accent: A.green,
+    icon: Landmark,
+    reqs: ["National ID", "Tax ID", "Payslip", "Bank Statement", "Tax Return", "Property Deed", "Property Valuation"],
+  },
+  {
+    id: "carloan",
+    name: "Car loan",
+    blurb: "Vehicle finance",
+    accent: A.green,
+    icon: Car,
+    reqs: ["National ID", "Tax ID", "Payslip", "Bank Statement", "Auto Quotation"],
+  },
+  {
+    id: "bgv",
+    name: "Background verification",
+    blurb: "New job onboarding",
+    accent: A.purple,
+    icon: ShieldCheck,
+    reqs: ["National ID", "Employment Offer", "Relieving Letter", "Payslip", "Tax Return", "Education Certificate"],
+  },
+  {
+    id: "hospital",
+    name: "Hospital admission",
+    blurb: "Cashless pack",
+    accent: A.pink,
+    icon: HeartPulse,
+    reqs: ["Health Insurance", "National ID", "Prescription", "Lab Report", "Discharge Summary"],
+  },
+  {
+    id: "tax",
+    name: "Tax filing",
+    blurb: "Annual return",
+    accent: A.gold,
+    icon: FileText,
+    reqs: ["Tax ID", "Tax Return", "Bank Statement", "Investment Statement", "Payslip"],
+  },
+  {
+    id: "property",
+    name: "Property sale",
+    blurb: "Resale pack",
+    accent: A.pink,
+    icon: HomeIcon,
+    reqs: ["Property Deed", "Property Tax", "National ID", "Tax ID", "Encumbrance Certificate"],
+  },
 ];
-const HAVE = new Set(DOCS.map((d) => d.docType));
+const evalEvent = (ev: (typeof EVENTS)[number], have: Set<string>) => {
+  const rows = ev.reqs.map((r) => ({ label: r, have: have.has(r) }));
+  const got = rows.filter((r) => r.have).length;
+  return { rows, got, total: rows.length, score: Math.round((got / rows.length) * 100) };
+};
 
-interface Category { name: string; complete: number; accent: string; icon: LucideIcon; }
-const CATEGORIES: Category[] = [
-  { name: "Identity", complete: 100, accent: A.blue, icon: Fingerprint },
-  { name: "Employment", complete: 80, accent: A.purple, icon: Briefcase },
-  { name: "Finance", complete: 90, accent: A.gold, icon: Wallet },
-  { name: "Insurance", complete: 75, accent: A.teal, icon: ShieldCheck },
-  { name: "Property", complete: 70, accent: A.pink, icon: HomeIcon },
-  { name: "Medical", complete: 85, accent: A.green, icon: HeartPulse }
-];
-
-interface LifeEvent { id: string; name: string; blurb: string; accent: string; icon: LucideIcon; reqs: string[]; }
-const EVENTS: LifeEvent[] = [
-  { id: "visa", name: "Schengen visa", blurb: "Travel pack", accent: A.blue, icon: Plane, reqs: ["Passport", "Payslip", "Bank Statement", "Form 16", "Travel Insurance", "Flight Reservation", "Hotel Booking"] },
-  { id: "usvisa", name: "US B1/B2 visa", blurb: "Travel pack", accent: A.blue, icon: Plane, reqs: ["Passport", "Bank Statement", "Form 16", "Payslip", "Travel Insurance", "DS-160 form"] },
-  { id: "ukvisa", name: "UK visa", blurb: "Travel pack", accent: A.blue, icon: Plane, reqs: ["Passport", "Bank Statement", "Payslip", "Travel Insurance", "Cover Letter"] },
-  { id: "canada", name: "Canada visa", blurb: "Travel pack", accent: A.blue, icon: Plane, reqs: ["Passport", "Bank Statement", "Form 16", "Travel Insurance", "Funds Proof"] },
-  { id: "homeloan", name: "Home loan", blurb: "Application pack", accent: A.green, icon: Landmark, reqs: ["PAN", "Aadhaar", "Form 16", "Bank Statement", "Payslip", "Sale Deed", "Property Tax Receipt"] },
-  { id: "carloan", name: "Car loan", blurb: "Application pack", accent: A.teal, icon: Car, reqs: ["PAN", "Aadhaar", "Bank Statement", "Payslip", "Driver License", "Down Payment Proof"] },
-  { id: "bgv", name: "Background verification", blurb: "Job switch", accent: A.purple, icon: ShieldCheck, reqs: ["Aadhaar", "PAN", "Payslip", "Offer Letter", "Experience Letter"] },
-  { id: "hospital", name: "Hospital admission", blurb: "Cashless pack", accent: A.pink, icon: HeartPulse, reqs: ["Aadhaar", "Prescription", "Lab Report", "Health Insurance", "Discharge Summary", "Pre-Authorization"] },
-  { id: "tax", name: "Tax filing", blurb: "FY 2025-26", accent: A.gold, icon: FileText, reqs: ["PAN", "Aadhaar", "Form 16", "Bank Statement", "Investment Statement", "Capital Gains Statement"] },
-  { id: "property", name: "Property sale", blurb: "Resale pack", accent: A.pink, icon: HomeIcon, reqs: ["Sale Deed", "Property Tax Receipt", "PAN", "Aadhaar", "Encumbrance Certificate"] },
-  { id: "passport", name: "Passport renewal", blurb: "Tatkal ready", accent: A.blue, icon: BookOpen, reqs: ["Passport", "Aadhaar", "PAN"] }
-];
-
-interface EvalRow { label: string; have: boolean; }
-interface EvalResult { rows: EvalRow[]; score: number; haveCount: number; }
-function evalEvent(ev: LifeEvent): EvalResult {
-  const rows: EvalRow[] = ev.reqs.map((r) => ({ label: r, have: HAVE.has(r) }));
-  const haveCount = rows.filter((r) => r.have).length;
-  return { rows, score: Math.round((haveCount / rows.length) * 100), haveCount };
-}
-
-type Tone = "ready" | "warn" | "wax" | "flat";
-function Pill({ tone, children }: { tone: Tone; children: ReactNode }) {
-  const map: Record<Tone, { bg: string; fg: string }> = {
-    ready: { bg: "rgba(79,203,149,0.14)", fg: T.mint },
-    warn: { bg: "rgba(217,184,106,0.14)", fg: T.gold },
-    wax: { bg: "rgba(232,115,106,0.16)", fg: T.coral },
-    flat: { bg: "rgba(147,160,181,0.12)", fg: T.muted }
-  };
-  const c = map[tone];
-  return <span style={{ background: c.bg, color: c.fg, fontSize: 11, fontWeight: 600, padding: "2px 9px", borderRadius: 999, letterSpacing: 0.3 }}>{children}</span>;
-}
-
+/* ── primitives ── */
 function Card({ children, style }: { children: ReactNode; style?: CSSProperties }) {
-  return <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 18, ...style }}>{children}</div>;
-}
-
-function Stamp() {
-  return <div style={{ transform: "rotate(-9deg)", border: `2px solid ${T.mint}`, color: T.mint, borderRadius: 7, padding: "3px 10px", fontSize: 12, fontWeight: 800, letterSpacing: 2, fontFamily: "ui-monospace, monospace" }}>READY</div>;
-}
-
-function Ring({ score, size = 64, color }: { score: number; size?: number; color?: string }) {
-  const stroke = size > 52 ? 6 : 5;
-  const r = (size - stroke * 2) / 2 - 2;
-  const c = 2 * Math.PI * r;
-  const col = color ?? (score >= 100 ? T.mint : score >= 70 ? T.gold : T.coral);
-  const cx = size / 2;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={cx} cy={cx} r={r} fill="none" stroke={T.border} strokeWidth={stroke} />
-      <circle cx={cx} cy={cx} r={r} fill="none" stroke={col} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - score / 100)} transform={`rotate(-90 ${cx} ${cx})`} />
-      <text x={cx} y={cx + size * 0.08} textAnchor="middle" fontSize={size * 0.24} fontWeight="700" fill={T.white}>{score}</text>
-    </svg>
-  );
-}
-
-function SectionHead({ title, sub }: { title: string; sub: string }) {
-  return (
-    <div style={{ marginBottom: 18 }}>
-      <h2 style={{ color: T.white, fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.3 }}>{title}</h2>
-      <p style={{ color: T.muted, fontSize: 13.5, margin: "5px 0 0" }}>{sub}</p>
+    <div style={{ background: T.panel, border: `1px solid ${T.border}`, borderRadius: 14, padding: 18, ...style }}>
+      {children}
     </div>
   );
 }
-
-const btnGold: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 8, background: T.gold, color: "#10182A", border: "none", borderRadius: 10, padding: "10px 15px", fontSize: 13, fontWeight: 700, cursor: "pointer" };
-const btnGhost: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 8, background: T.raised, color: T.text, border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 15px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
-const btnDanger: CSSProperties = { display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", color: T.coral, border: `1px solid rgba(232,115,106,0.4)`, borderRadius: 10, padding: "10px 15px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
-
-function EventRow({ ev, onClick }: { ev: LifeEvent; onClick: () => void }) {
-  const res = evalEvent(ev);
-  const Icon = ev.icon;
-  const missing = res.rows.length - res.haveCount;
+function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <Card style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}>
-      <div onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 14, flex: 1 }}>
-        <Ring score={res.score} size={50} />
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Icon size={16} color={ev.accent} />
-            <span style={{ color: T.white, fontWeight: 700, fontSize: 14 }}>{ev.name}</span>
-          </div>
-          <div style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>{missing === 0 ? "Everything in place" : `${missing} missing`}</div>
-        </div>
-      </div>
-      {res.score === 100 ? <Stamp /> : <ChevronRight size={18} color={T.faint} />}
-    </Card>
+    <div
+      style={{
+        fontFamily: "ui-monospace, monospace",
+        fontSize: 11.5,
+        fontWeight: 700,
+        letterSpacing: 2,
+        textTransform: "uppercase",
+        color: T.gold,
+        marginBottom: 8,
+      }}
+    >
+      {children}
+    </div>
   );
 }
+function SectionHead({ title, sub }: { title: string; sub: string }) {
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <h1 style={{ fontSize: 26, fontWeight: 800, color: T.white, margin: 0, letterSpacing: -0.5 }}>{title}</h1>
+      <p style={{ color: T.muted, fontSize: 14.5, marginTop: 6 }}>{sub}</p>
+    </div>
+  );
+}
+function Ring({ score, size = 56, color }: { score: number; size?: number; color?: string }) {
+  const sw = size >= 56 ? 5 : 4,
+    r = (size - sw) / 2,
+    c = 2 * Math.PI * r,
+    off = c - (score / 100) * c,
+    col = color || toneFor(score);
+  return (
+    <div style={{ position: "relative", width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={T.raised} strokeWidth={sw} fill="none" />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={col}
+          strokeWidth={sw}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={off}
+        />
+      </svg>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          fontFamily: "ui-monospace, monospace",
+          fontWeight: 700,
+          fontSize: size >= 56 ? 15 : 12,
+          color: T.white,
+        }}
+      >
+        {score}
+      </div>
+    </div>
+  );
+}
+function Stamp() {
+  return (
+    <div
+      style={{
+        transform: "rotate(-9deg)",
+        border: `2px solid ${T.mint}`,
+        color: T.mint,
+        borderRadius: 7,
+        padding: "3px 10px",
+        fontSize: 12,
+        fontWeight: 800,
+        letterSpacing: 2,
+        fontFamily: "ui-monospace, monospace",
+      }}
+    >
+      READY
+    </div>
+  );
+}
+const btnGold: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: T.gold,
+  color: "#10182A",
+  border: "none",
+  borderRadius: 10,
+  padding: "10px 15px",
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
+};
+const btnGhost: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: T.raised,
+  color: T.text,
+  border: `1px solid ${T.border}`,
+  borderRadius: 10,
+  padding: "10px 15px",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: "pointer",
+};
+const pill = (color: string): CSSProperties => ({
+  fontFamily: "ui-monospace, monospace",
+  fontSize: 11,
+  fontWeight: 700,
+  color,
+  background: color + "22",
+  border: `1px solid ${color}44`,
+  padding: "3px 9px",
+  borderRadius: 20,
+});
 
-function Home({ go }: { go: (r: string) => void }) {
-  const expiring = DOCS.filter((d) => d.expiry && daysUntil(d.expiry) < 200).map((d) => ({ d, days: daysUntil(d.expiry) })).sort((a, b) => a.days - b.days);
-  const critical: [string, string, Tone][] = [
-    ["Nominee missing", "SBI ULIP and Nippon Small Cap have no nominee", "wax"],
-    ["Travel insurance missing", "Needed for your Schengen visa pack", "warn"],
-    ["Experience letter missing", "Needed for a job switch verification", "warn"]
+/* ═══════════════ HOME (dashboard, not the package grid) ═══════════════ */
+function Home({ store, go, toast }: any) {
+  const have: Set<string> = useMemo(() => new Set(store.docs.map((d: Doc) => d.docType)), [store.docs]);
+  const scored = EVENTS.map((e) => ({ e, ...evalEvent(e, have) }));
+  const overall = Math.round(scored.reduce((s, x) => s + x.score, 0) / scored.length);
+  const best = [...scored].sort((a, b) => b.score - a.score)[0];
+  const worst = [...scored].sort((a, b) => a.score - b.score)[0];
+  const expiring = store.docs.filter((d: Doc) => d.expiry && daysTo(d.expiry) < 60);
+  const dueReminders = store.reminders.filter((r: any) => !r.done && daysTo(r.due) <= 30);
+  const nomineeGaps = store.docs.filter((d: Doc) => d.value && d.nominee === false);
+  const attention = [
+    ...expiring.map((d: Doc) => ({
+      label: `${d.docType} expires in ${daysTo(d.expiry!)} days`,
+      to: "documents",
+      tone: T.gold,
+    })),
+    ...nomineeGaps.map((d: Doc) => ({ label: `${d.docType} has no nominee`, to: "wealth", tone: T.coral })),
+    ...dueReminders
+      .slice(0, 3)
+      .map((r: any) => ({
+        label: `${store.members.find((m: Member) => m.id === r.memberId)?.name.split(" ")[0]}: ${r.title} in ${daysTo(r.due)}d`,
+        to: "health",
+        tone: T.mint,
+      })),
+  ].slice(0, 6);
+  const stats = [
+    { label: "Documents", value: store.docs.length, icon: FolderOpen, c: A.blue, to: "documents" },
+    { label: "Overall readiness", value: `${overall}%`, icon: ShieldCheck, c: A.green, to: "packages" },
+    { label: "Expiring < 60d", value: expiring.length, icon: Clock, c: A.gold, to: "documents" },
+    { label: "Needs attention", value: attention.length, icon: Bell, c: A.pink, to: "health" },
   ];
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 18, flexWrap: "wrap" }}>
-        <span style={{ color: T.gold, fontSize: 13, fontWeight: 700, letterSpacing: 0.4 }}>Ready when you need them.</span>
-        <span style={{ color: T.faint, fontSize: 11.5, fontFamily: "ui-monospace, monospace" }}>private . on-device . no card</span>
-      </div>
-      <SectionHead title="Good evening, Ravi" sub="What do you want to be ready for?" />
-      <div onClick={() => go("packages")} style={{ display: "flex", gap: 10, alignItems: "center", background: T.panel, border: `1px solid ${T.border}`, borderRadius: 12, padding: "12px 16px", marginBottom: 22, cursor: "pointer" }}>
-        <Search size={17} color={T.gold} />
-        <span style={{ flex: 1, color: T.muted, fontSize: 14 }}>Prepare a visa, a home loan, a hospital admission, a tax filing</span>
-        <span style={btnGold}>Build a pack</span>
-      </div>
-      <div style={{ color: T.faint, fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>READINESS CENTER</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12, marginBottom: 22 }}>
-        {EVENTS.map((ev) => <EventRow key={ev.id} ev={ev} onClick={() => go("packages")} />)}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <Clock size={16} color={T.gold} />
-            <span style={{ fontWeight: 700, color: T.white, fontSize: 14 }}>Expiring soon</span>
-          </div>
-          {expiring.map(({ d, days }, i) => (
-            <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
-              <span style={{ color: T.text, fontSize: 13.5 }}>{d.name}</span>
-              <Pill tone={days < 90 ? "wax" : "warn"}>{days} days</Pill>
+      <Eyebrow>Ready when you need them . private . on-device</Eyebrow>
+      <SectionHead
+        title={`Good evening, ${(store.members[0]?.name || "there").split(" ")[0]}`}
+        sub="Your archive at a glance, and what needs attention today."
+      />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+        {stats.map((s) => (
+          <button
+            key={s.label}
+            onClick={() => go(s.to)}
+            style={{
+              textAlign: "left",
+              cursor: "pointer",
+              background: T.panel,
+              border: `1px solid ${T.border}`,
+              borderRadius: 14,
+              padding: 16,
+            }}
+          >
+            <span
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: 34,
+                height: 34,
+                borderRadius: 9,
+                background: s.c + "22",
+              }}
+            >
+              <s.icon size={17} color={s.c} />
+            </span>
+            <div
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 24,
+                fontWeight: 800,
+                color: T.white,
+                marginTop: 12,
+              }}
+            >
+              {s.value}
             </div>
-          ))}
-        </Card>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <AlertTriangle size={16} color={T.coral} />
-            <span style={{ fontWeight: 700, color: T.white, fontSize: 14 }}>Missing critical</span>
-          </div>
-          {critical.map((c, i) => (
-            <div key={i} style={{ padding: "11px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: T.text, fontSize: 13.5, fontWeight: 600 }}>{c[0]}</span>
-                <Pill tone={c[2]}>{c[2] === "wax" ? "urgent" : "soon"}</Pill>
-              </div>
-              <div style={{ color: T.muted, fontSize: 12, marginTop: 3 }}>{c[1]}</div>
-            </div>
-          ))}
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function Packages() {
-  const [sel, setSel] = useState<string>("visa");
-  const [toast, setToast] = useState<string | null>(null);
-  const ev = EVENTS.find((e) => e.id === sel) ?? EVENTS[0];
-  const res = evalEvent(ev);
-  const fire = (msg: string) => { setToast(msg); window.setTimeout(() => setToast(null), 2600); };
-  const EvIcon = ev.icon;
-  return (
-    <div>
-      <SectionHead title="Life-event packages" sub="Pick an event. LifePack assembles the pack from your real vault, flags what is missing, and exports it." />
-      {toast && <div style={{ background: "rgba(79,203,149,0.12)", border: `1px solid rgba(79,203,149,0.4)`, color: T.mint, borderRadius: 12, padding: "11px 16px", marginBottom: 16, fontSize: 13, fontWeight: 600 }}>{toast}</div>}
-      <div style={{ display: "grid", gridTemplateColumns: "0.85fr 1.15fr", gap: 16 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {EVENTS.map((e) => {
-            const r = evalEvent(e);
-            const active = e.id === sel;
-            const Icon = e.icon;
-            return (
-              <button key={e.id} onClick={() => setSel(e.id)} style={{ textAlign: "left", cursor: "pointer", background: active ? T.raised : T.panel, border: `1px solid ${active ? T.gold : T.border}`, borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", gap: 11 }}>
-                <Ring score={r.score} size={40} />
-                <Icon size={15} color={e.accent} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ color: T.white, fontWeight: 600, fontSize: 13 }}>{e.name}</div>
-                  <div style={{ color: T.faint, fontSize: 11, marginTop: 1 }}>{e.blurb}</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
-            <Ring score={res.score} />
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <EvIcon size={18} color={ev.accent} />
-                <span style={{ color: T.white, fontWeight: 700, fontSize: 17 }}>{ev.name}</span>
-              </div>
-              <div style={{ color: T.muted, fontSize: 12.5, marginTop: 4 }}>{res.haveCount} of {res.rows.length} documents ready</div>
-            </div>
-            {res.score === 100 && <Stamp />}
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            {res.rows.map((row, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
-                {row.have ? <Check size={16} color={T.mint} /> : <X size={16} color={T.coral} />}
-                <span style={{ color: row.have ? T.text : T.muted, fontSize: 13.5 }}>{row.label}</span>
-                {!row.have && <span style={{ marginLeft: "auto" }}><Pill tone="wax">missing</Pill></span>}
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button style={btnGold} onClick={() => fire(`${ev.name} kit assembled with ${res.haveCount} documents. ZIP ready to download.`)}><Download size={15} /> Download ZIP kit</button>
-            <button style={btnGhost} onClick={() => fire("Checklist generated for the missing items.")}><FileCheck size={15} /> Generate checklist</button>
-            <button style={btnGhost} onClick={() => fire("Secure share link created. Expires in 7 days.")}><Share2 size={15} /> Share link</button>
-            <button style={btnGhost} onClick={() => fire("Pack emailed to you.")}><Mail size={15} /> Email</button>
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-interface Source { id: string; name: string; connected: boolean; }
-function Documents() {
-  const [sources, setSources] = useState<Source[]>([
-    { id: "gmail", name: "Gmail", connected: true },
-    { id: "drive", name: "Drive", connected: true },
-    { id: "digilocker", name: "DigiLocker", connected: true },
-    { id: "upload", name: "Upload", connected: true }
-  ]);
-  const toggle = (id: string) => setSources((s) => s.map((x) => (x.id === id ? { ...x, connected: !x.connected } : x)));
-  return (
-    <div>
-      <SectionHead title="Documents" sub="Everything files itself. Connect a source, LifePack reads and sorts each one." />
-      <div style={{ display: "flex", gap: 10, marginBottom: 18, flexWrap: "wrap" }}>
-        {sources.map((s) => (
-          <button key={s.id} onClick={() => toggle(s.id)} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: s.connected ? "rgba(79,203,149,0.1)" : T.raised, color: s.connected ? T.mint : T.muted, border: `1px solid ${s.connected ? "rgba(79,203,149,0.4)" : T.border}`, borderRadius: 10, padding: "9px 13px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-            {s.connected ? <Check size={14} /> : <Link2 size={14} />}{s.name}
+            <div style={{ fontSize: 13, color: T.muted }}>{s.label}</div>
           </button>
         ))}
       </div>
-      <div style={{ color: T.faint, fontSize: 12, fontWeight: 700, letterSpacing: 1, marginBottom: 10 }}>YOUR DOCUMENT GRAPH</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 22 }}>
-        {CATEGORIES.map((c) => {
-          const count = DOCS.filter((d) => d.category === c.name).length;
-          const Icon = c.icon;
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16 }}>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <AlertTriangle size={16} color={T.muted} />
+            <b style={{ color: T.white, fontSize: 15 }}>Needs attention</b>
+          </div>
+          {attention.length === 0 ? (
+            <p style={{ color: T.muted, fontSize: 13 }}>Nothing pressing. Nicely handled.</p>
+          ) : (
+            attention.map((a, i) => (
+              <button
+                key={i}
+                onClick={() => go(a.to)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "10px 0",
+                  borderTop: i ? `1px solid ${T.border}` : "none",
+                  background: "none",
+                  border: "none",
+                  borderRadius: 0,
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: 9, background: a.tone }} />
+                <span style={{ flex: 1, fontSize: 14, color: T.text }}>{a.label}</span>
+                <ChevronRight size={15} color={T.muted} />
+              </button>
+            ))
+          )}
+        </Card>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <ShieldCheck size={16} color={T.muted} />
+            <b style={{ color: T.white, fontSize: 15 }}>Where you stand</b>
+          </div>
+          {[
+            { x: best, lbl: "Most ready" },
+            { x: worst, lbl: "Needs work" },
+          ].map(({ x, lbl }) => (
+            <button
+              key={lbl}
+              onClick={() => go("packages")}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "10px 0",
+                borderTop: lbl === "Needs work" ? `1px solid ${T.border}` : "none",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              <Ring score={x.score} size={46} />
+              <div style={{ textAlign: "left" }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: T.muted,
+                    fontFamily: "ui-monospace, monospace",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                  }}
+                >
+                  {lbl}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{x.e.name}</div>
+              </div>
+            </button>
+          ))}
+          <button
+            onClick={() => go("packages")}
+            style={{ ...btnGhost, width: "100%", justifyContent: "center", marginTop: 12 }}
+          >
+            See all packages <ArrowRight size={14} />
+          </button>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════ PACKAGES ═══════════════ */
+function Packages({ store, toast }: any) {
+  const have: Set<string> = useMemo(() => new Set(store.docs.map((d: Doc) => d.docType)), [store.docs]);
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState<(typeof EVENTS)[number] | null>(null);
+  const list = EVENTS.filter((e) => e.name.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div>
+      <SectionHead
+        title="Packages"
+        sub="Pick a life event. LifePack assembles the pack from your documents and flags what is missing."
+      />
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 12,
+          padding: "10px 14px",
+          marginBottom: 18,
+        }}
+      >
+        <Search size={16} color={T.muted} />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Prepare a visa, a home loan, a hospital admission, a tax filing"
+          style={{ flex: 1, background: "none", border: "none", outline: "none", color: T.text, fontSize: 14 }}
+        />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 }}>
+        {list.map((e) => {
+          const { score, got, total } = evalEvent(e, have);
           return (
-            <Card key={c.name} style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 11, background: T.raised, display: "grid", placeItems: "center" }}>
-                <Icon size={20} color={c.accent} />
-              </div>
+            <button
+              key={e.id}
+              onClick={() => setOpen(e)}
+              style={{
+                textAlign: "left",
+                cursor: "pointer",
+                background: T.panel,
+                border: `1px solid ${T.border}`,
+                borderRadius: 14,
+                padding: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+              }}
+            >
+              <Ring score={score} size={54} />
               <div style={{ flex: 1 }}>
-                <div style={{ color: T.white, fontWeight: 700, fontSize: 14 }}>{c.name}</div>
-                <div style={{ color: T.faint, fontSize: 11.5, marginTop: 2 }}>{count} documents</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <e.icon size={16} color={e.accent} />
+                  <b style={{ color: T.white, fontSize: 15.5 }}>{e.name}</b>
+                </div>
+                <div style={{ fontSize: 13, color: T.muted, marginTop: 3 }}>
+                  {score === 100 ? "Everything in place" : `${total - got} missing · ${got} of ${total} ready`}
+                </div>
               </div>
-              <Ring score={c.complete} size={46} color={c.accent} />
+              {score === 100 ? <Stamp /> : <ChevronRight size={18} color={T.muted} />}
+            </button>
+          );
+        })}
+      </div>
+      {open && <PackageDetail ev={open} store={store} onClose={() => setOpen(null)} toast={toast} />}
+    </div>
+  );
+}
+function PackageDetail({ ev, store, onClose, toast }: any) {
+  const have: Set<string> = new Set(store.docs.map((d: Doc) => d.docType));
+  const { rows, got, total, score } = evalEvent(ev, have);
+  const included = store.docs.filter((d: Doc) => ev.reqs.includes(d.docType));
+  const exportPack = () => {
+    const body =
+      `LifePack . ${ev.name}\nGenerated ${new Date().toLocaleString()}\nReadiness ${score}% (${got} of ${total})\n\nINCLUDED:\n` +
+      included.map((d: Doc, i: number) => `${i + 1}. ${d.name} [${d.docType}]`).join("\n") +
+      `\n\nSTILL NEEDED:\n` +
+      rows
+        .filter((r) => !r.have)
+        .map((r) => `- ${r.label}`)
+        .join("\n");
+    const b = new Blob([body], { type: "text/plain" });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = u;
+    a.download = `${ev.id}_pack.txt`;
+    a.click();
+    URL.revokeObjectURL(u);
+    toast("Pack exported");
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 60,
+        background: "rgba(4,7,15,.6)",
+        display: "flex",
+        justifyContent: "flex-end",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "min(460px,100%)",
+          height: "100%",
+          overflowY: "auto",
+          background: T.navy,
+          borderLeft: `1px solid ${T.border}`,
+        }}
+      >
+        <div style={{ background: T.panel, padding: 22, borderBottom: `1px solid ${T.border}`, position: "relative" }}>
+          <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, ...btnGhost, padding: 8 }}>
+            <X size={16} />
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: ev.accent + "22",
+              }}
+            >
+              <ev.icon size={21} color={ev.accent} />
+            </span>
+            <div>
+              <div style={{ color: T.white, fontSize: 18, fontWeight: 800 }}>{ev.name}</div>
+              <div style={{ color: T.muted, fontSize: 13 }}>{ev.blurb}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 16 }}>
+            <Ring score={score} size={64} />
+            {score === 100 ? (
+              <Stamp />
+            ) : (
+              <div style={{ color: T.muted, fontSize: 13, fontFamily: "ui-monospace, monospace" }}>
+                {got} of {total} ready
+              </div>
+            )}
+          </div>
+        </div>
+        <div style={{ padding: 18 }}>
+          <Card style={{ padding: 0, marginBottom: 12 }}>
+            <div
+              style={{
+                padding: "13px 16px",
+                fontWeight: 700,
+                color: T.white,
+                fontSize: 14.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <CheckCircle2 size={16} color={T.muted} /> Included ({rows.filter((r) => r.have).length})
+            </div>
+            {rows
+              .filter((r) => r.have)
+              .map((r) => {
+                const d = included.find((x: Doc) => x.docType === r.label);
+                return (
+                  <div
+                    key={r.label}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "9px 16px",
+                      borderTop: `1px solid ${T.border}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "grid",
+                        placeItems: "center",
+                        width: 20,
+                        height: 20,
+                        borderRadius: 6,
+                        background: T.mint + "26",
+                      }}
+                    >
+                      <Check size={12} color={T.mint} />
+                    </span>
+                    <span style={{ flex: 1, fontSize: 14, color: T.text }}>{r.label}</span>
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: 11,
+                        color: T.muted,
+                        maxWidth: 120,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {d?.name}
+                    </span>
+                  </div>
+                );
+              })}
+          </Card>
+          {rows.some((r) => !r.have) && (
+            <Card style={{ padding: 0, marginBottom: 16 }}>
+              <div
+                style={{
+                  padding: "13px 16px",
+                  fontWeight: 700,
+                  color: T.white,
+                  fontSize: 14.5,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <AlertTriangle size={16} color={T.muted} /> Still needed ({rows.filter((r) => !r.have).length})
+              </div>
+              {rows
+                .filter((r) => !r.have)
+                .map((r) => (
+                  <div
+                    key={r.label}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "9px 16px",
+                      borderTop: `1px solid ${T.border}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "grid",
+                        placeItems: "center",
+                        width: 20,
+                        height: 20,
+                        borderRadius: 6,
+                        background: T.gold + "26",
+                      }}
+                    >
+                      <X size={12} color={T.gold} />
+                    </span>
+                    <span style={{ flex: 1, fontSize: 14, color: T.text }}>{r.label}</span>
+                  </div>
+                ))}
+            </Card>
+          )}
+          <button onClick={exportPack} style={{ ...btnGold, width: "100%", justifyContent: "center" }}>
+            <Download size={16} /> Export pack
+          </button>
+          <p
+            style={{
+              fontSize: 12,
+              color: T.muted,
+              textAlign: "center",
+              marginTop: 14,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Lock size={12} /> Files stay on your device until you export.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════ DOCUMENTS ═══════════════ */
+function Documents({ store, toast }: any) {
+  const cats = Object.keys(EXPECTED) as Category[];
+  return (
+    <div>
+      <SectionHead
+        title="Documents"
+        sub="Everything files itself. Connect a source, LifePack reads and sorts each one."
+      />
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+        {["Email", "Drive", "DigiLocker"].map((c) => (
+          <span
+            key={c}
+            style={{
+              ...pill(T.mint),
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "8px 12px",
+              fontSize: 13,
+            }}
+          >
+            <Check size={13} /> {c}
+          </span>
+        ))}
+        <label style={{ ...btnGhost, cursor: "pointer" }}>
+          <UploadCloud size={15} /> Upload
+          <input
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => {
+              if (e.target.files?.length) {
+                store.addFiles(e.target.files);
+                toast(`${e.target.files.length} document(s) classified`);
+              }
+              e.currentTarget.value = "";
+            }}
+          />
+        </label>
+      </div>
+      <Eyebrow>Your document graph</Eyebrow>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 22 }}>
+        {cats.map((cat) => {
+          const items = store.docs.filter((d: Doc) => d.category === cat);
+          const present = EXPECTED[cat].filter((t) => items.some((d: Doc) => d.docType === t)).length;
+          const pct = Math.round((present / EXPECTED[cat].length) * 100);
+          const Ic = CAT_META[cat].icon,
+            col = CAT_META[cat].color;
+          return (
+            <Card key={cat} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <span
+                  style={{
+                    display: "grid",
+                    placeItems: "center",
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: col + "22",
+                  }}
+                >
+                  <Ic size={18} color={col} />
+                </span>
+                <Ring score={pct} size={44} color={col} />
+              </div>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: T.white, marginTop: 10 }}>{cat}</div>
+              <div style={{ fontSize: 12.5, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
+                {present} of {EXPECTED[cat].length} key documents · {items.length} on file
+              </div>
             </Card>
           );
         })}
       </div>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 1fr", padding: "12px 16px", fontSize: 11.5, color: T.faint, textTransform: "uppercase", letterSpacing: 0.4, borderBottom: `1px solid ${T.border}` }}>
-          <div>Document</div><div>Category</div><div>Source</div><div style={{ textAlign: "right" }}>Expiry</div>
+      <Card style={{ padding: 0 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "2fr 1fr 1fr 0.8fr",
+            padding: "12px 16px",
+            fontSize: 11.5,
+            fontWeight: 700,
+            color: T.muted,
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            fontFamily: "ui-monospace, monospace",
+          }}
+        >
+          <span>Document</span>
+          <span>Category</span>
+          <span>Source</span>
+          <span style={{ textAlign: "right" }}>Expiry</span>
         </div>
-        {DOCS.map((d, i) => (
-          <div key={d.id} style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr 1fr", padding: "12px 16px", alignItems: "center", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}>
-            <div style={{ color: T.text, fontWeight: 600 }}>{d.name}</div>
-            <div style={{ color: T.muted }}>{d.category}</div>
-            <div><Pill tone="flat">{d.source}</Pill></div>
-            <div style={{ textAlign: "right", color: d.expiry ? T.muted : T.faint, fontSize: 12.5 }}>{d.expiry ? `${daysUntil(d.expiry)} days` : "-"}</div>
+        {store.docs.map((d: Doc) => (
+          <div
+            key={d.id}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "2fr 1fr 1fr 0.8fr",
+              padding: "12px 16px",
+              borderTop: `1px solid ${T.border}`,
+              alignItems: "center",
+            }}
+          >
+            <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{d.docType}</span>
+            <span style={{ fontSize: 13, color: T.muted }}>{d.category}</span>
+            <span>
+              <span style={pill(A.blue)}>{d.source}</span>
+            </span>
+            <span
+              style={{
+                textAlign: "right",
+                fontSize: 13,
+                color: d.expiry && daysTo(d.expiry) < 60 ? T.gold : T.muted,
+                fontFamily: "ui-monospace, monospace",
+              }}
+            >
+              {fmtDays(d.expiry)}
+            </span>
           </div>
         ))}
       </Card>
@@ -318,181 +874,666 @@ function Documents() {
   );
 }
 
-
-function Family() {
-  const members: { name: string; rel: string; role: string; tone: Tone }[] = [
-    { name: "Jaya", rel: "Spouse", role: "Full member", tone: "ready" },
-    { name: "Veena", rel: "Sister", role: "Emergency access", tone: "warn" },
-    { name: "Aarav", rel: "Son", role: "Health and IDs", tone: "flat" }
-  ];
+/* ═══════════════ FAMILY (roster + access, shares Health members) ═══════════════ */
+function Family({ store, toast }: any) {
+  const [add, setAdd] = useState(false);
+  const accessColor: Record<Access, string> = {
+    Owner: T.gold,
+    "Full member": T.mint,
+    "Emergency access": A.blue,
+    "View only": T.muted,
+  };
   return (
     <div>
-      <SectionHead title="Family" sub="A shared archive where each person sees only what they should." />
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <button style={btnGold}><Plus size={15} /> Add member</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <SectionHead title="Family" sub="One shared archive. Manage who is in it and what each person can reach." />
+        <button onClick={() => setAdd(true)} style={btnGold}>
+          <Plus size={15} /> Add member
+        </button>
       </div>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        {members.map((m, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1.4fr 1.4fr 1fr", alignItems: "center", padding: "14px 16px", borderTop: i ? `1px solid ${T.border}` : "none" }}>
-            <div>
-              <div style={{ color: T.text, fontWeight: 600, fontSize: 13.5 }}>{m.name}</div>
-              <div style={{ color: T.faint, fontSize: 11.5, marginTop: 2 }}>{m.rel}</div>
+      <Card style={{ padding: 0 }}>
+        {store.members.map((m: Member, i: number) => (
+          <div
+            key={m.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              padding: "14px 16px",
+              borderTop: i ? `1px solid ${T.border}` : "none",
+            }}
+          >
+            <span
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: 40,
+                height: 40,
+                borderRadius: 11,
+                background: m.color + "26",
+                color: m.color,
+                fontWeight: 800,
+                border: `1px solid ${m.color}55`,
+              }}
+            >
+              {m.name[0]}
+            </span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: T.white }}>{m.name}</div>
+              <div style={{ fontSize: 13, color: T.muted }}>{m.relation}</div>
             </div>
-            <div style={{ color: T.muted, fontSize: 12.5 }}>{m.role}</div>
-            <div style={{ textAlign: "right" }}><Pill tone={m.tone}>active</Pill></div>
+            <select
+              value={m.access || "View only"}
+              onChange={(e) => {
+                store.updateMember(m.id, { access: e.target.value as Access });
+                toast("Access updated");
+              }}
+              style={{
+                background: T.raised,
+                color: accessColor[(m.access || "View only") as Access],
+                border: `1px solid ${T.border}`,
+                borderRadius: 8,
+                padding: "6px 10px",
+                fontSize: 12.5,
+                fontWeight: 600,
+                fontFamily: "ui-monospace, monospace",
+              }}
+            >
+              {(["Owner", "Full member", "Emergency access", "View only"] as Access[]).map((a) => (
+                <option key={a} style={{ color: "#000" }}>
+                  {a}
+                </option>
+              ))}
+            </select>
+            <span style={pill(T.mint)}>active</span>
           </div>
         ))}
       </Card>
+      {add && (
+        <AddMember
+          onClose={() => setAdd(false)}
+          save={(mm: Member, care: any) => {
+            store.addMember(mm);
+            store.updateCare(mm.id, care);
+            toast("Member added");
+            setAdd(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+function AddMember({ onClose, save }: any) {
+  const [f, setF] = useState({
+    name: "",
+    relation: "Parent",
+    access: "View only" as Access,
+    blood: "O+",
+    dob: "1960-01-01",
+  });
+  const colors = [A.blue, A.purple, A.green, A.pink, A.gold, A.teal];
+  const inp: CSSProperties = {
+    width: "100%",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 9,
+    padding: "9px 11px",
+    color: T.text,
+    fontSize: 14,
+    outline: "none",
+  };
+  const lbl: CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: T.muted,
+    fontFamily: "ui-monospace, monospace",
+    marginBottom: 5,
+    display: "block",
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 70,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(440px,100%)",
+          padding: 22,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <b style={{ color: T.white, fontSize: 18 }}>Add a family member</b>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={16} />
+          </button>
+        </div>
+        <label style={lbl}>Name</label>
+        <input
+          style={inp}
+          value={f.name}
+          onChange={(e) => setF({ ...f, name: e.target.value })}
+          placeholder="e.g. Taylor Morgan"
+        />
+        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Relation</label>
+            <select style={inp} value={f.relation} onChange={(e) => setF({ ...f, relation: e.target.value })}>
+              {["Spouse", "Father", "Mother", "Son", "Daughter", "Sibling", "Parent", "Other"].map((r) => (
+                <option key={r} style={{ color: "#000" }}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Access</label>
+            <select style={inp} value={f.access} onChange={(e) => setF({ ...f, access: e.target.value as Access })}>
+              {(["Full member", "Emergency access", "View only"] as Access[]).map((a) => (
+                <option key={a} style={{ color: "#000" }}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Date of birth</label>
+            <input type="date" style={inp} value={f.dob} onChange={(e) => setF({ ...f, dob: e.target.value })} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Blood group</label>
+            <select style={inp} value={f.blood} onChange={(e) => setF({ ...f, blood: e.target.value })}>
+              {["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"].map((b) => (
+                <option key={b} style={{ color: "#000" }}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <button
+          disabled={!f.name}
+          onClick={() =>
+            save(
+              {
+                id:
+                  f.name
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]/g, "")
+                    .slice(0, 8) + Math.random().toString(36).slice(2, 5),
+                name: f.name,
+                relation: f.relation,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                dob: f.dob,
+                bloodGroup: f.blood,
+                access: f.access,
+              },
+              { conditions: [], medications: [], allergies: "None recorded", doctor: "", emergency: "" },
+            )
+          }
+          style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 18, opacity: f.name ? 1 : 0.4 }}
+        >
+          Create profile
+        </button>
+      </div>
     </div>
   );
 }
 
-interface Asset { name: string; type: string; value: number; cls: "asset" | "liability"; nominee: boolean; }
-const WEALTH: Asset[] = [
-  { name: "HDFC term cover", type: "Insurance", value: 10000000, cls: "asset", nominee: true },
-  { name: "SBI ULIP Smart Wealth", type: "Insurance", value: 850000, cls: "asset", nominee: false },
-  { name: "Parag Parikh Flexi Cap", type: "Mutual fund", value: 1240000, cls: "asset", nominee: true },
-  { name: "Nippon Small Cap", type: "Mutual fund", value: 560000, cls: "asset", nominee: false },
-  { name: "EPF corpus", type: "Pension", value: 1850000, cls: "asset", nominee: true },
-  { name: "HDFC home loan", type: "Liability", value: 4200000, cls: "liability", nominee: false }
-];
-
-function Wealth() {
-  const [onlyNoNominee, setOnly] = useState<boolean>(false);
-  const rows = onlyNoNominee ? WEALTH.filter((w) => !w.nominee && w.cls === "asset") : WEALTH;
+/* ═══════════════ WEALTH (derived from documents with value) ═══════════════ */
+function Wealth({ store, toast }: any) {
+  const holdings = store.docs.filter((d: Doc) => typeof d.value === "number" && d.value > 0);
+  const total = holdings.reduce((s: number, d: Doc) => s + (d.value || 0), 0);
+  const gaps = holdings.filter((d: Doc) => d.nominee === false);
   return (
     <div>
-      <SectionHead title="Wealth" sub="Your money documents, read for what matters: nominees and gaps." />
-      <button onClick={() => setOnly(!onlyNoNominee)} style={{ ...(onlyNoNominee ? btnGold : btnGhost), marginBottom: 14 }}>No nominee assigned</button>
-      <Card style={{ padding: 0, overflow: "hidden" }}>
-        {rows.map((w, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1.8fr 1fr 1fr", alignItems: "center", padding: "13px 16px", borderTop: i ? `1px solid ${T.border}` : "none", fontSize: 13 }}>
-            <div>
-              <div style={{ color: T.text, fontWeight: 600 }}>{w.name}</div>
-              <div style={{ color: T.faint, fontSize: 11.5, marginTop: 2 }}>{w.type}</div>
-            </div>
-            <div style={{ color: w.cls === "liability" ? T.coral : T.text, fontWeight: 600 }}>{w.cls === "liability" ? "-" : ""}{money(w.value)}</div>
-            <div style={{ textAlign: "right" }}>{w.nominee ? <Pill tone="ready">nominee set</Pill> : <Pill tone="wax">no nominee</Pill>}</div>
-          </div>
-        ))}
-      </Card>
-    </div>
-  );
-}
-
-function Legacy() {
-  const [armed, setArmed] = useState<boolean>(false);
-  return (
-    <div>
-      <SectionHead title="Legacy handoff" sub="Make sure nothing is lost if you are gone, without giving it away early." />
-      {armed && <div style={{ background: "rgba(232,115,106,0.12)", border: `1px solid rgba(232,115,106,0.4)`, color: T.coral, borderRadius: 12, padding: "12px 16px", marginBottom: 16, fontSize: 13, fontWeight: 600 }}>SOS armed. Emergency contacts notified and the grace period has started.</div>}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+      <SectionHead title="Wealth" sub="Your money documents, read for what matters: total value and nominee gaps." />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
         <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <Clock size={16} color={T.mint} />
-            <span style={{ fontWeight: 700, color: T.white, fontSize: 14 }}>Inactivity trigger</span>
-            <span style={{ marginLeft: "auto" }}><Pill tone="ready">active</Pill></span>
+          <div style={{ fontSize: 13, color: T.muted }}>Documented value</div>
+          <div
+            style={{
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 26,
+              fontWeight: 800,
+              color: T.white,
+              marginTop: 8,
+            }}
+          >
+            {money(total)}
           </div>
-          <div style={{ color: T.muted, fontSize: 13, lineHeight: 1.7 }}>Check in every 30 days, then a 14 day grace period with reminders before anything is shared.</div>
         </Card>
         <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-            <KeyRound size={16} color={T.gold} />
-            <span style={{ fontWeight: 700, color: T.white, fontSize: 14 }}>Emergency SOS</span>
+          <div style={{ fontSize: 13, color: T.muted }}>Holdings tracked</div>
+          <div
+            style={{
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 26,
+              fontWeight: 800,
+              color: T.white,
+              marginTop: 8,
+            }}
+          >
+            {holdings.length}
           </div>
-          <div style={{ color: T.muted, fontSize: 13, lineHeight: 1.7, marginBottom: 12 }}>Trigger the handoff yourself, right now.</div>
-          <button onClick={() => setArmed(!armed)} style={armed ? btnGhost : btnDanger}>{armed ? "Cancel SOS" : "Arm SOS"}</button>
+        </Card>
+        <Card>
+          <div style={{ fontSize: 13, color: T.muted }}>Missing a nominee</div>
+          <div
+            style={{
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 26,
+              fontWeight: 800,
+              color: gaps.length ? T.coral : T.mint,
+              marginTop: 8,
+            }}
+          >
+            {gaps.length}
+          </div>
         </Card>
       </div>
-      <div style={{ color: T.faint, fontSize: 12, lineHeight: 1.6 }}>This handoff shares documents. It is not a will and does not override succession law.</div>
+      <Card style={{ padding: 0 }}>
+        {holdings.map((d: Doc, i: number) => (
+          <div
+            key={d.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "13px 16px",
+              borderTop: i ? `1px solid ${T.border}` : "none",
+            }}
+          >
+            <span
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: 36,
+                height: 36,
+                borderRadius: 9,
+                background: CAT_META[d.category].color + "22",
+              }}
+            >
+              <Wallet size={16} color={CAT_META[d.category].color} />
+            </span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 600, color: T.white }}>{d.docType}</div>
+              <div style={{ fontSize: 12.5, color: T.muted }}>{d.category}</div>
+            </div>
+            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, fontWeight: 700, color: T.text }}>
+              {money(d.value || 0)}
+            </span>
+            {d.nominee === false ? (
+              <button
+                onClick={() => {
+                  store.updateDoc(d.id, { nominee: true });
+                  toast("Nominee marked as added");
+                }}
+                style={{ ...pill(T.coral), cursor: "pointer" }}
+              >
+                add nominee
+              </button>
+            ) : (
+              <span style={pill(T.mint)}>nominee set</span>
+            )}
+          </div>
+        ))}
+      </Card>
     </div>
   );
 }
 
-function Trust() {
-  const posture: { label: string; on: boolean }[] = [
-    { label: "Zero knowledge encryption", on: true },
-    { label: "Recovery key set", on: true },
-    { label: "India data residency", on: true },
-    { label: "Two factor on sensitive actions", on: false }
-  ];
+/* ═══════════════ LEGACY ═══════════════ */
+function Legacy({ store, go }: any) {
+  const trusted = store.members.filter((m: Member) => m.access === "Full member" || m.access === "Emergency access");
+  const gaps = store.docs.filter((d: Doc) => d.value && d.nominee === false);
+  return (
+    <div>
+      <SectionHead
+        title="Legacy handoff"
+        sub="Make sure nothing is lost if you are gone, without giving it away early."
+      />
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16 }}>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <Users size={16} color={T.muted} />
+            <b style={{ color: T.white, fontSize: 15 }}>Who steps in</b>
+          </div>
+          {trusted.map((m: Member, i: number) => (
+            <div
+              key={m.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "11px 0",
+                borderTop: i ? `1px solid ${T.border}` : "none",
+              }}
+            >
+              <span
+                style={{
+                  display: "grid",
+                  placeItems: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 9,
+                  background: m.color + "26",
+                  color: m.color,
+                  fontWeight: 800,
+                }}
+              >
+                {m.name[0]}
+              </span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 600, color: T.white }}>{m.name}</div>
+                <div style={{ fontSize: 12.5, color: T.muted }}>{m.relation}</div>
+              </div>
+              <span style={pill(m.access === "Full member" ? T.mint : A.blue)}>{m.access}</span>
+            </div>
+          ))}
+          <button
+            onClick={() => go("family")}
+            style={{ ...btnGhost, width: "100%", justifyContent: "center", marginTop: 12 }}
+          >
+            Manage trusted people <ArrowRight size={14} />
+          </button>
+        </Card>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <AlertTriangle size={16} color={T.muted} />
+            <b style={{ color: T.white, fontSize: 15 }}>Before handoff</b>
+          </div>
+          {gaps.length === 0 ? (
+            <p style={{ color: T.muted, fontSize: 13 }}>Every valued holding has a nominee. You are covered.</p>
+          ) : (
+            gaps.map((d: Doc) => (
+              <button
+                key={d.id}
+                onClick={() => go("wealth")}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "9px 0",
+                  borderTop: `1px solid ${T.border}`,
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: 9, background: T.coral }} />
+                <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>{d.docType} has no nominee</span>
+                <ChevronRight size={14} color={T.muted} />
+              </button>
+            ))
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════ TRUST ═══════════════ */
+function Trust({ store, toast, go }: any) {
+  const withAccess = store.members.filter((m: Member) => m.access);
   return (
     <div>
       <SectionHead title="Trust center" sub="In plain language: what is protected, and who can reach it." />
-      <Card style={{ marginBottom: 16 }}>
-        {posture.map((p, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
-            {p.on ? <Check size={16} color={T.mint} /> : <Circle size={16} color={T.gold} />}
-            <span style={{ flex: 1, color: T.text, fontSize: 13.5, fontWeight: 600 }}>{p.label}</span>
-            {p.on ? <Pill tone="ready">on</Pill> : <Pill tone="warn">off</Pill>}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+        {[
+          { icon: Lock, t: "Encrypted on device", s: "Your archive is encrypted locally. Even we cannot read it." },
+          { icon: FolderOpen, t: `${store.docs.length} documents`, s: "All stored in one private, searchable graph." },
+          { icon: Users, t: `${withAccess.length} people`, s: "Have some level of access, set by you." },
+        ].map((x) => (
+          <Card key={x.t}>
+            <span
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: 34,
+                height: 34,
+                borderRadius: 9,
+                background: T.mint + "22",
+              }}
+            >
+              <x.icon size={17} color={T.mint} />
+            </span>
+            <div style={{ fontSize: 15.5, fontWeight: 700, color: T.white, marginTop: 12 }}>{x.t}</div>
+            <div style={{ fontSize: 13, color: T.muted, marginTop: 3 }}>{x.s}</div>
+          </Card>
+        ))}
+      </div>
+      <Card style={{ padding: 0, marginBottom: 16 }}>
+        <div style={{ padding: "13px 16px", fontWeight: 700, color: T.white, fontSize: 14.5 }}>
+          Who can reach your archive
+        </div>
+        {withAccess.map((m: Member, i: number) => (
+          <div
+            key={m.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "11px 16px",
+              borderTop: `1px solid ${T.border}`,
+            }}
+          >
+            <span
+              style={{
+                display: "grid",
+                placeItems: "center",
+                width: 34,
+                height: 34,
+                borderRadius: 9,
+                background: m.color + "26",
+                color: m.color,
+                fontWeight: 800,
+              }}
+            >
+              {m.name[0]}
+            </span>
+            <span style={{ flex: 1, fontSize: 14, color: T.white }}>
+              {m.name}
+              <span style={{ color: T.muted, fontWeight: 400 }}> · {m.relation}</span>
+            </span>
+            <span style={pill(m.access === "Owner" ? T.gold : m.access === "Full member" ? T.mint : A.blue)}>
+              {m.access}
+            </span>
           </div>
         ))}
-      </Card>
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <Eye size={16} color={T.gold} />
-          <span style={{ fontWeight: 700, color: T.white, fontSize: 14 }}>Recent access</span>
+        <div style={{ padding: 14, borderTop: `1px solid ${T.border}` }}>
+          <button onClick={() => go("family")} style={{ ...btnGhost }}>
+            Manage access <ArrowRight size={14} />
+          </button>
         </div>
-        <div style={{ color: T.muted, fontSize: 13 }}><b style={{ color: T.text }}>Jaya</b> viewed HDFC term policy, 2h ago</div>
       </Card>
-      <div style={{ display: "flex", gap: 10 }}>
-        <button style={btnGhost}><Download size={16} /> Export everything</button>
-        <button style={btnDanger}><Trash2 size={16} /> Delete account and data</button>
-      </div>
+      <Card>
+        <b style={{ color: T.white, fontSize: 15 }}>Reset demo data</b>
+        <p style={{ fontSize: 13, color: T.muted, margin: "6px 0 12px" }}>
+          Restore the sample family and documents on this device.
+        </p>
+        <button
+          onClick={() => {
+            store.reset();
+            toast("Demo data restored");
+          }}
+          style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "55" }}
+        >
+          <RotateCcw size={15} /> Reset everything
+        </button>
+      </Card>
     </div>
   );
 }
 
-interface NavItem { key: string; label: string; icon: LucideIcon; }
-const NAV: NavItem[] = [
-  { key: "home", label: "Home", icon: LayoutGrid },
-  { key: "packages", label: "Packages", icon: Plane },
-  { key: "documents", label: "Documents", icon: FolderOpen },
-  { key: "health", label: "Health", icon: HeartPulse },
-  { key: "family", label: "Family", icon: Users },
-  { key: "wealth", label: "Wealth", icon: Wallet },
-  { key: "legacy", label: "Legacy handoff", icon: KeyRound },
-  { key: "trust", label: "Trust center", icon: ShieldCheck }
+/* ═══════════════ SHELL ═══════════════ */
+const NAV: [string, string, any][] = [
+  ["home", "Home", LayoutGrid],
+  ["packages", "Packages", Plane],
+  ["documents", "Documents", FolderOpen],
+  ["health", "Health", HeartPulse],
+  ["family", "Family", Users],
+  ["wealth", "Wealth", Wallet],
+  ["legacy", "Legacy handoff", KeyRound],
+  ["trust", "Trust center", ShieldCheck],
 ];
 
 export default function App() {
-  const [route, setRoute] = useState<string>("home");
+  const store = useStore();
+  const [route, setRoute] = useState("home");
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toast = (m: string) => {
+    setToastMsg(m);
+    window.clearTimeout((toast as any)._t);
+    (toast as any)._t = window.setTimeout(() => setToastMsg(null), 2400);
+  };
+  const go = (r: string) => setRoute(r);
+
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: T.navy, fontFamily: "Inter, system-ui, sans-serif", color: T.text }}>
-      <aside style={{ width: 230, background: T.panel, borderRight: `1px solid ${T.border}`, padding: 18, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22, padding: "4px 6px" }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: `linear-gradient(135deg, ${T.goldBright}, ${T.gold})`, display: "grid", placeItems: "center" }}>
-            <FileCheck size={16} color="#10182A" />
-          </div>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: T.navy,
+        fontFamily: "Inter, system-ui, sans-serif",
+        color: T.text,
+      }}
+    >
+      <aside
+        style={{
+          width: 232,
+          flexShrink: 0,
+          borderRight: `1px solid ${T.border}`,
+          padding: 16,
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "6px 8px 22px" }}>
+          <span
+            style={{
+              display: "grid",
+              placeItems: "center",
+              width: 40,
+              height: 40,
+              borderRadius: 11,
+              background: `linear-gradient(135deg, ${T.gold}, ${T.goldBright})`,
+            }}
+          >
+            <FileText size={20} color="#10182A" />
+          </span>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: -0.2, color: T.white }}>LifePack <span style={{ color: T.gold }}>AI</span></div>
-            <div style={{ fontSize: 10, color: T.muted, letterSpacing: 1.5 }}>LIVING ARCHIVE</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: T.white }}>
+              LifePack <span style={{ color: T.gold }}>AI</span>
+            </div>
+            <div style={{ fontSize: 10, letterSpacing: 2, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
+              LIVING ARCHIVE
+            </div>
           </div>
         </div>
-        {NAV.map((n) => {
-          const Icon = n.icon;
-          const active = route === n.key;
-          return (
-            <button key={n.key} onClick={() => setRoute(n.key)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 11, marginBottom: 4, background: active ? T.raised : "transparent", color: active ? T.white : T.muted, border: `1px solid ${active ? T.border : "transparent"}`, borderRadius: 9, padding: "9px 11px", fontSize: 13.5, fontWeight: active ? 600 : 500, cursor: "pointer", textAlign: "left" }}>
-              <Icon size={17} color={active ? T.gold : T.muted} /> {n.label}
-            </button>
-          );
-        })}
-        <div style={{ marginTop: 18, padding: "10px 11px", borderRadius: 9, background: T.raised, border: `1px solid ${T.border}`, fontSize: 11.5, color: T.muted, lineHeight: 1.5, display: "flex", gap: 8 }}>
-          <ShieldCheck size={24} color={T.mint} />
-          <span>Encrypted on your device. Even we cannot read your archive.</span>
+        <nav style={{ display: "grid", gap: 3 }}>
+          {NAV.map(([key, label, Ic]) => {
+            const on = route === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setRoute(key)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  border: on ? `1px solid ${T.border}` : "1px solid transparent",
+                  background: on ? T.raised : "transparent",
+                  color: on ? T.white : T.muted,
+                }}
+              >
+                <Ic size={18} color={on ? T.gold : T.muted} /> {label}
+              </button>
+            );
+          })}
+        </nav>
+        <div style={{ marginTop: "auto" }}>
+          <div
+            style={{
+              background: T.panel,
+              border: `1px solid ${T.border}`,
+              borderRadius: 12,
+              padding: 12,
+              display: "flex",
+              gap: 9,
+              alignItems: "flex-start",
+            }}
+          >
+            <ShieldCheck size={15} color={T.mint} style={{ marginTop: 1, flexShrink: 0 }} />
+            <span style={{ fontSize: 11.5, color: T.muted, lineHeight: 1.5 }}>
+              Encrypted on your device. Even we cannot read your archive.
+            </span>
+          </div>
         </div>
       </aside>
-      <main style={{ flex: 1, padding: "30px 34px", maxWidth: 1060 }}>
-        {route === "home" && <Home go={setRoute} />}
-        {route === "packages" && <Packages />}
-        {route === "documents" && <Documents />}
-        {route === "health" && <Healthcare />}
-        {route === "family" && <Family />}
-        {route === "wealth" && <Wealth />}
-        {route === "legacy" && <Legacy />}
-        {route === "trust" && <Trust />}
+
+      <main style={{ flex: 1, minWidth: 0, padding: "30px 34px", maxWidth: 1160, margin: "0 auto" }}>
+        {route === "home" && <Home store={store} go={go} toast={toast} />}
+        {route === "packages" && <Packages store={store} toast={toast} />}
+        {route === "documents" && <Documents store={store} toast={toast} />}
+        {route === "health" && <Healthcare toast={toast} />}
+        {route === "family" && <Family store={store} toast={toast} />}
+        {route === "wealth" && <Wealth store={store} toast={toast} />}
+        {route === "legacy" && <Legacy store={store} go={go} />}
+        {route === "trust" && <Trust store={store} toast={toast} go={go} />}
       </main>
+
+      {toastMsg && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 90,
+            background: T.panel,
+            border: `1px solid ${T.border}`,
+            color: T.text,
+            padding: "12px 20px",
+            borderRadius: 12,
+            fontSize: 14,
+            fontWeight: 500,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            boxShadow: "0 16px 50px rgba(0,0,0,.5)",
+          }}
+        >
+          <CheckCircle2 size={17} color={T.mint} /> {toastMsg}
+        </div>
+      )}
     </div>
   );
 }
