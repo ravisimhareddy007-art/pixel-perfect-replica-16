@@ -95,7 +95,7 @@ export default function DocViewer({ doc, store, onClose }: { doc: Doc; store: an
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(4,6,15,.66)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: "min(560px,100%)", maxHeight: "88vh", display: "flex", flexDirection: "column", background: "#111524", border: "1px solid rgba(255,255,255,0.09)", borderRadius: 16, overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <span style={{ display: "grid", place theItems: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(216,178,90,0.16)" }}><FileText size={17} color="#D8B25A" /></span>
+          <span style={{ display: "grid", placeItems: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(216,178,90,0.16)" }}><FileText size={17} color="#D8B25A" /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14.5, fontWeight: 600, color: "#EAEDF7" }}>{doc.docType}</div>
             <div style={{ fontSize: 12, color: "rgba(234,237,247,0.5)" }}>{doc.source} · {doc.category}{doc.expiry ? ` · valid to ${fmt(doc.expiry)}` : ""}</div>
