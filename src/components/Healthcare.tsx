@@ -374,56 +374,22 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
     <div className="lh-root">
       <style>{CSS}</style>
       <div className="lh-head">
-        <div className="lh-eyebrow">● Living archive · health</div>
         <h1 className="lh-h1">Health</h1>
-        <p style={{ color: C.sub, fontSize: 15, marginTop: 4 }}>
+        <p style={{ color: C.sub, fontSize: 14.5, marginTop: 4 }}>
           Keep the whole family visit-ready. LifePack organizes and surfaces your records. It never diagnoses.
         </p>
       </div>
 
-      {/* family health summary */}
-      <div className="lh-card" style={{ padding: 16, marginBottom: 14 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: summary.actions ? 12 : 0,
-          }}
-        >
-          <div className="lh-sechead" style={{ marginBottom: 0 }}>
-            <Users size={16} color={C.sub} /> Family health
-          </div>
-          <span className="lh-mono" style={{ fontSize: 12.5, color: summary.actions ? C.gold : C.emerald }}>
-            {summary.actions ? `${summary.actions} action${summary.actions > 1 ? "s" : ""}` : "everyone up to date"}
-          </span>
-        </div>
-        {summary.actions > 0 && (
-          <div className="lh-stats">
-            {summary.visits > 0 && (
-              <Stat n={summary.visits} label={`upcoming visit${summary.visits > 1 ? "s" : ""}`} c={C.cyan} />
-            )}
-            {summary.refills > 0 && (
-              <Stat n={summary.refills} label={`refill${summary.refills > 1 ? "s" : ""}`} c={C.violet} />
-            )}
-            {summary.vaccinations > 0 && (
-              <Stat
-                n={summary.vaccinations}
-                label={`vaccination${summary.vaccinations > 1 ? "s" : ""}`}
-                c={C.emerald}
-              />
-            )}
-            {summary.renewals > 0 && (
-              <Stat n={summary.renewals} label={`renewal${summary.renewals > 1 ? "s" : ""}`} c={C.pink} />
-            )}
-            {summary.outRange > 0 && <Stat n={summary.outRange} label="to review" c={C.red} />}
-          </div>
-        )}
-        {summary.actions > 0 && summary.upToDate > 0 && (
-          <div style={{ fontSize: 13, color: C.faint, marginTop: 12 }}>
-            {summary.upToDate} of {summary.count} {summary.upToDate > 1 ? "members are" : "member is"} fully up to date.
-          </div>
-        )}
+      {/* calm family line */}
+      <div className="lh-famline">
+        <span className="lh-famtitle">
+          <Users size={15} color={C.sub} /> Family health
+        </span>
+        <span className="lh-famsum">
+          {summary.actions
+            ? `${summary.actions} to handle · ${summary.upToDate} of ${summary.count} up to date`
+            : "everyone up to date"}
+        </span>
       </div>
 
       {/* compact member switcher */}
@@ -474,37 +440,54 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
         </div>
       )}
 
-      {/* member header + primary actions */}
-      <div className="lh-mhead">
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <span
-            className="lh-av lg"
-            style={{ background: m.color + "26", color: m.color, borderColor: m.color + "55" }}
-          >
-            {m.name[0]}
-          </span>
-          <div>
-            <h2 className="lh-h2" style={{ fontSize: 21 }}>
-              {m.name}
-            </h2>
-            <div style={{ fontSize: 13.5, color: C.sub, display: "flex", gap: 12, flexWrap: "wrap", marginTop: 2 }}>
-              <span>{m.relation}</span>
-              {age(m.dob) != null && <span>{age(m.dob)} years</span>}
-              {m.bloodGroup && <span>Blood {m.bloodGroup}</span>}
-              {care.doctor && <span>{care.doctor}</span>}
+      {/* selected member — visit companion hero */}
+      <div className="lh-hero">
+        <div className="lh-herotop">
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <span
+              className="lh-av lg"
+              style={{ background: m.color + "26", color: m.color, borderColor: m.color + "55" }}
+            >
+              {m.name[0]}
+            </span>
+            <div>
+              <h2 className="lh-h2" style={{ fontSize: 21 }}>
+                {m.name}
+              </h2>
+              <div style={{ fontSize: 13, color: C.sub, display: "flex", gap: 8, flexWrap: "wrap", marginTop: 3 }}>
+                <span>{m.relation}</span>
+                {age(m.dob) != null && <span>· {age(m.dob)}</span>}
+                {m.bloodGroup && <span>· {m.bloodGroup}</span>}
+                {care.doctor && <span>· {care.doctor}</span>}
+              </div>
             </div>
           </div>
+          <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
+            <button className="lh-btn" onClick={() => setModal("visit")}>
+              <ClipboardList size={16} /> Prepare for visit
+            </button>
+            <button className="lh-btn-g" onClick={() => setModal("emergency")}>
+              <IdCard size={16} /> Emergency card
+            </button>
+            <button className="lh-btn-g" onClick={() => setModal("reading")}>
+              <Plus size={16} /> Log reading
+            </button>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
-          <button className="lh-btn" onClick={() => setModal("visit")}>
-            <ClipboardList size={16} /> Prepare for visit
-          </button>
-          <button className="lh-btn-g" onClick={() => setModal("emergency")}>
-            <IdCard size={16} /> Emergency card
-          </button>
-          <button className="lh-btn-g" onClick={() => setModal("reading")}>
-            <Plus size={16} /> Log a reading
-          </button>
+        <div className="lh-heronext">
+          <CalendarClock size={15} color={C.gold} />
+          <span style={{ fontSize: 14, color: C.text }}>
+            <b style={{ fontWeight: 600 }}>
+              {nextVisit ? `${nextVisit.title} · in ${daysTo(nextVisit.due)} days` : "No visit scheduled"}
+            </b>
+            {nextVisit ? ` · ${fmt(nextVisit.due)}` : ""}
+          </span>
+        </div>
+        <div className="lh-herometa">
+          Bring {meds.length} medication{meds.length !== 1 ? "s" : ""},{" "}
+          {records.filter((r) => r.medType === "lab_report").length} recent report
+          {records.filter((r) => r.medType === "lab_report").length !== 1 ? "s" : ""}
+          {insuranceOf(m, s.docs) ? ", insurance card" : ""} · {changedLine}
         </div>
       </div>
 
@@ -529,54 +512,6 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
       {/* ── OVERVIEW ── */}
       {tab === "overview" && (
         <div className="lh-pane">
-          <div className="lh-card lh-nextvisit" style={{ padding: 18, marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 16,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <div className="lh-eyebrow" style={{ marginBottom: 6 }}>
-                  Next visit
-                </div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: C.text }}>
-                  {nextVisit ? `${nextVisit.title} · in ${daysTo(nextVisit.due)} days` : "No visit scheduled"}
-                </div>
-                <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
-                  {nextVisit ? fmt(nextVisit.due) : "Prepare a pack whenever you need one"}
-                  {care.doctor ? ` · ${care.doctor}` : ""}
-                </div>
-              </div>
-              <button className="lh-btn" onClick={() => setModal("visit")}>
-                <ClipboardList size={16} /> Prepare for visit
-              </button>
-            </div>
-            <div className="lh-vgrid">
-              <div>
-                <div className="lh-vlbl">What to bring</div>
-                <div className="lh-vval">
-                  {meds.length} medication{meds.length !== 1 ? "s" : ""}, last{" "}
-                  {Math.min(3, records.filter((r) => r.medType === "lab_report").length)} report
-                  {records.filter((r) => r.medType === "lab_report").length !== 1 ? "s" : ""}
-                  {insuranceOf(m, s.docs) ? ", insurance card" : ""}
-                </div>
-              </div>
-              <div>
-                <div className="lh-vlbl">What changed</div>
-                <div className="lh-vval">{changedLine}</div>
-              </div>
-              <div>
-                <div className="lh-vlbl">Last record</div>
-                <div className="lh-vval">
-                  {lastRecord ? `${lastRecord.docType} · ${fmt(lastRecord.docDate || lastRecord.addedAt)}` : "None yet"}
-                </div>
-              </div>
-            </div>
-          </div>
           <div className="lh-card lh-insight" style={{ padding: 18, marginBottom: 16 }}>
             <div className="lh-eyebrow" style={{ marginBottom: 8 }}>
               Summary of readings
@@ -1528,22 +1463,21 @@ const CSS = `
 .lh-h2{font-family:'Space Grotesk';font-weight:700;margin:0;color:${C.text}}
 .lh-card{background:${C.panel};border:1px solid ${C.border};border-radius:16px}
 .lh-insight{background:linear-gradient(180deg,rgba(216,178,90,.06),${C.panel})}
-.lh-switch{display:flex;align-items:center;gap:14px;overflow-x:auto;padding:4px 2px 14px}
+.lh-switch{display:flex;align-items:center;gap:16px;overflow-x:auto;padding:2px 2px 16px}
 .lh-mm{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;cursor:pointer;flex-shrink:0;padding:0}
-.lh-av{position:relative;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-weight:700;font-size:18px;border:2px solid transparent;font-family:'Space Grotesk';transition:.15s}
+.lh-av{position:relative;width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-weight:700;font-size:18px;border:2px solid transparent;font-family:'Space Grotesk';transition:.15s}
 .lh-mm.on .lh-av{transform:translateY(-1px)}
 .lh-av.lg{width:52px;height:52px;font-size:22px}
 .lh-dot{position:absolute;top:-2px;right:-2px;width:11px;height:11px;border-radius:9px;border:2px solid #10131f}
 .lh-nm{font-size:12.5px;font-weight:600;white-space:nowrap}
 .lh-addm .lh-av{background:${C.panel2}}
-.lh-stats{display:flex;flex-wrap:wrap;gap:10px}
-.lh-stat{display:flex;align-items:baseline;gap:7px;background:${C.panel2};border:1px solid ${C.border};border-radius:10px;padding:8px 13px}
-.lh-statn{font-family:'JetBrains Mono';font-size:19px;font-weight:700}
-.lh-statl{font-size:12.5px;color:${C.sub}}
-.lh-nextvisit{background:linear-gradient(180deg,rgba(110,139,255,.08),${C.panel})}
-.lh-vgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid ${C.border}}
-.lh-vlbl{font-family:'JetBrains Mono';font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${C.faint};margin-bottom:5px}
-.lh-vval{font-size:13.5px;color:${C.text};line-height:1.45}
+.lh-famline{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 2px;margin-bottom:2px}
+.lh-famtitle{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:${C.text}}
+.lh-famsum{font-family:'JetBrains Mono';font-size:12.5px;color:${C.sub};white-space:nowrap}
+.lh-hero{background:linear-gradient(180deg,rgba(216,178,90,.05),${C.panel});border:1px solid ${C.border};border-radius:16px;padding:18px;margin-bottom:20px}
+.lh-herotop{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.lh-heronext{display:flex;align-items:center;gap:9px;margin-top:16px;padding-top:14px;border-top:1px solid ${C.border}}
+.lh-herometa{font-size:13px;color:${C.sub};margin-top:8px;line-height:1.5}
 .lh-attnrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 .lh-chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:${C.sub};background:${C.panel2};border:1px solid ${C.border};border-radius:20px;padding:6px 12px;cursor:pointer;font-family:inherit}
 .lh-chip:hover{background:rgba(255,255,255,.08)}
