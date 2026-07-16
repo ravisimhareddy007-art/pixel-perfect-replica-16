@@ -32,6 +32,7 @@ import {
   RotateCcw,
   Camera,
   Image as ImageIcon,
+  Stethoscope,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access } from "@/lib/types";
@@ -1383,8 +1384,12 @@ const NAV: [string, string, any][] = [
 function SearchResults({ store, query, go }: any) {
   const q = query.trim().toLowerCase();
   const nameOf = (id?: string) => store.members.find((m: Member) => m.id === id)?.name || "";
+  const monthOf = (s?: string) =>
+    s ? new Date(s).toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "";
   const docs = store.docs.filter((d: Doc) =>
-    `${d.docType} ${d.name} ${d.category} ${nameOf(d.memberId)}`.toLowerCase().includes(q),
+    `${d.docType} ${d.name} ${d.category} ${nameOf(d.memberId)} ${d.source} ${monthOf(d.docDate || d.addedAt)}`
+      .toLowerCase()
+      .includes(q),
   );
   const meds = store.meds.filter((m: any) => m.name.toLowerCase().includes(q));
   const conds: { m: Member; c: string }[] = [];
@@ -1393,8 +1398,9 @@ function SearchResults({ store, query, go }: any) {
       if (c.toLowerCase().includes(q)) conds.push({ m, c });
     }),
   );
+  const doctors = store.members.filter((m: Member) => (store.care[m.id]?.doctor || "").toLowerCase().includes(q));
   const rems = store.reminders.filter((r: any) => !r.done && r.title.toLowerCase().includes(q));
-  const total = docs.length + meds.length + conds.length + rems.length;
+  const total = docs.length + meds.length + conds.length + doctors.length + rems.length;
   const Row = ({ icon: Ic, color, title, sub, onClick }: any) => (
     <button
       onClick={onClick}
@@ -1463,6 +1469,18 @@ function SearchResults({ store, query, go }: any) {
             title={d.docType}
             sub={`${d.category}${d.memberId && nameOf(d.memberId) ? " · " + nameOf(d.memberId).split(" ")[0] : ""}`}
             onClick={() => go("documents")}
+          />
+        ))}
+      </Group>
+      <Group label="Doctors" count={doctors.length}>
+        {doctors.map((m: Member) => (
+          <Row
+            key={m.id}
+            icon={Stethoscope}
+            color={A.teal}
+            title={store.care[m.id]?.doctor}
+            sub={nameOf(m.id).split(" ")[0]}
+            onClick={() => go("health")}
           />
         ))}
       </Group>
