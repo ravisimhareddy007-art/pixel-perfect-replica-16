@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ReactNode, CSSProperties } from "react";
 import type { LucideIcon } from "lucide-react";
+import Healthcare from "./components/Healthcare";
 import {
   LayoutGrid, Plane, FolderOpen, HeartPulse, Users, Wallet, KeyRound, ShieldCheck,
   Search, Download, AlertTriangle, Check, X, Plus, Clock, Link2, FileCheck,
@@ -317,35 +318,6 @@ function Documents() {
   );
 }
 
-interface Reading { label: string; value: string; status: Tone; }
-function Health() {
-  const readings: Reading[] = [
-    { label: "HbA1c", value: "7.2 %", status: "wax" },
-    { label: "LDL cholesterol", value: "119 mg/dL", status: "warn" },
-    { label: "Blood pressure", value: "124/82", status: "ready" }
-  ];
-  return (
-    <div>
-      <SectionHead title="Health" sub="Walk into every appointment ready. LifePack organizes, never diagnoses." />
-      <Card style={{ marginBottom: 16 }}>
-        <p style={{ color: T.text, fontSize: 14, lineHeight: 1.7, margin: 0 }}>Your sugar control is slipping. HbA1c has risen across the last three reports to 7.2, above the normal ceiling. Cholesterol is improving and blood pressure is steady. Worth raising the HbA1c trend with your doctor.</p>
-      </Card>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
-        {readings.map((r, i) => (
-          <Card key={i}>
-            <div style={{ color: T.muted, fontSize: 12.5 }}>{r.label}</div>
-            <div style={{ color: T.white, fontSize: 20, fontWeight: 800, margin: "6px 0 8px" }}>{r.value}</div>
-            <Pill tone={r.status}>{r.status === "ready" ? "in range" : r.status === "warn" ? "watch" : "out of range"}</Pill>
-          </Card>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 10 }}>
-        <button style={btnGold}><Download size={15} /> Export visit pack</button>
-        <button style={btnGhost}><Plus size={15} /> Log a reading</button>
-      </div>
-    </div>
-  );
-}
 
 function Family() {
   const members: { name: string; rel: string; role: string; tone: Tone }[] = [
@@ -515,7 +487,7 @@ export default function App() {
         {route === "home" && <Home go={setRoute} />}
         {route === "packages" && <Packages />}
         {route === "documents" && <Documents />}
-        {route === "health" && <Health />}
+        {route === "health" && <Healthcare />}
         {route === "family" && <Family />}
         {route === "wealth" && <Wealth />}
         {route === "legacy" && <Legacy />}
