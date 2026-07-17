@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import type { ReactNode, CSSProperties } from "react";
 import {
   LayoutGrid,
@@ -33,9 +33,13 @@ import {
   Camera,
   Image as ImageIcon,
   Stethoscope,
+  Printer,
+  Pencil,
+  Coins,
+  Trash2,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import type { Category, Doc, Member, Access } from "@/lib/types";
+import type { Category, Doc, Member, Access, Holding } from "@/lib/types";
 import Healthcare from "@/components/Healthcare";
 import DocViewer from "@/components/DocViewer";
 
@@ -320,14 +324,14 @@ function Home({ store, go, toast }: any) {
   const worst = [...scored].sort((a, b) => a.score - b.score)[0];
   const expiring = store.docs.filter((d: Doc) => d.expiry && daysTo(d.expiry) < 60);
   const dueReminders = store.reminders.filter((r: any) => !r.done && daysTo(r.due) <= 30);
-  const nomineeGaps = store.docs.filter((d: Doc) => d.value && d.nominee === false);
+  const nomineeGaps = store.holdings.filter((h: Holding) => (h.kind === "asset" || h.kind === "cover") && !h.nominee);
   const attention = [
     ...expiring.map((d: Doc) => ({
       label: `${d.docType} expires in ${daysTo(d.expiry!)} days`,
       to: "documents",
       tone: T.gold,
     })),
-    ...nomineeGaps.map((d: Doc) => ({ label: `${d.docType} has no nominee`, to: "wealth", tone: T.coral })),
+    ...nomineeGaps.map((h: Holding) => ({ label: `${h.name} has no nominee`, to: "wealth", tone: T.coral })),
     ...dueReminders
       .slice(0, 3)
       .map((r: any) => ({
@@ -1050,103 +1054,339 @@ function AddMember({ onClose, save }: any) {
 
 /* ═══════════════ WEALTH (derived from documents with value) ═══════════════ */
 function Wealth({ store, toast }: any) {
-  const holdings = store.docs.filter((d: Doc) => typeof d.value === "number" && d.value > 0);
-  const total = holdings.reduce((s: number, d: Doc) => s + (d.value || 0), 0);
-  const gaps = holdings.filter((d: Doc) => d.nominee === false);
+  const [viewDoc, setViewDoc] = useState<Doc | null>(null);
+  const [edit, setEdit] = useState<Holding | "new" | null>(null);
+  const [nomineeFor, setNomineeFor] = useState<Holding | null>(null);
+  const [estate, setEstate] = useState(false);
+  const attachRef = useRef<HTMLInputElement>(null);
+  const pending = useRef<Holding | null>(null);
+
+  const H: Holding[] = store.holdings;
+  const assets = H.filter((h) => h.kind === "asset");
+  const liabilities = H.filter((h) => h.kind === "liability");
+  const covers = H.filter((h) => h.kind === "cover");
+  const sum = (a: Holding[]) => a.reduce((s, h) => s + (h.value || 0), 0);
+  const totalAssets = sum(assets),
+    totalLiab = sum(liabilities),
+    net = totalAssets - totalLiab,
+    totalCover = sum(covers);
+  const guarded = H.filter((h) => h.kind === "asset" || h.kind === "cover");
+  const readiness = Math.round((sum(guarded.filter((h) => h.nominee && h.docId)) / (sum(guarded) || 1)) * 100);
+  const trusted = store.members.filter((m: Member) => m.access === "Full member" || m.access === "Emergency access");
+  const linkedDoc = (h: Holding) => store.docs.find((d: Doc) => d.id === h.docId) || null;
+
+  const gaps: { h: Holding; kind: "nominee" | "doc" | "renewal"; label: string }[] = [];
+  H.forEach((h) => {
+    if ((h.kind === "asset" || h.kind === "cover") && !h.nominee)
+      gaps.push({ h, kind: "nominee", label: `${h.name} \u00B7 no nominee named` });
+  });
+  H.forEach((h) => {
+    if ((h.kind === "asset" || h.kind === "cover") && !h.docId)
+      gaps.push({ h, kind: "doc", label: `${h.name} \u00B7 no document attached` });
+  });
+  covers.forEach((c) => {
+    if (c.renewalDate && daysTo(c.renewalDate) < 60)
+      gaps.push({ h: c, kind: "renewal", label: `${c.name} renews in ${daysTo(c.renewalDate)} days` });
+  });
+
+  const attach = (h: Holding) => {
+    pending.current = h;
+    attachRef.current?.click();
+  };
+  const onAttachFiles = (files: FileList) => {
+    const h = pending.current;
+    if (!h || !files.length) return;
+    const cat: Category = h.kind === "cover" ? "Insurance" : h.type === "Property" ? "Property" : "Finance";
+    store.attachDocToHolding(h.id, files, { category: cat, docType: h.type, memberId: h.memberId || "you" });
+    toast("Document attached");
+    pending.current = null;
+  };
+
+  const stat = (label: string, val: string, color: string) => (
+    <Card>
+      <div style={{ fontSize: 13, color: T.muted }}>{label}</div>
+      <div style={{ fontFamily: "ui-monospace, monospace", fontSize: 24, fontWeight: 800, color, marginTop: 8 }}>
+        {val}
+      </div>
+    </Card>
+  );
+  const Row = ({ h }: { h: Holding }) => {
+    const d = linkedDoc(h);
+    const accent = h.kind === "liability" ? T.coral : h.kind === "cover" ? A.teal : T.gold;
+    const Ic = h.kind === "liability" ? Landmark : h.kind === "cover" ? ShieldCheck : Coins;
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "13px 16px",
+          borderTop: `1px solid ${T.border}`,
+        }}
+      >
+        <span
+          style={{
+            display: "grid",
+            placeItems: "center",
+            width: 36,
+            height: 36,
+            borderRadius: 9,
+            background: accent + "22",
+          }}
+        >
+          <Ic size={16} color={accent} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14.5, fontWeight: 600, color: T.white }}>{h.name}</div>
+          <div style={{ fontSize: 12.5, color: T.muted }}>
+            {h.type}
+            {h.institution ? ` \u00B7 ${h.institution}` : ""}
+            {h.accountRef ? ` ${h.accountRef}` : ""}
+          </div>
+        </div>
+        <span
+          style={{
+            fontFamily: "ui-monospace, monospace",
+            fontSize: 15,
+            fontWeight: 700,
+            color: h.kind === "liability" ? T.coral : T.text,
+          }}
+        >
+          {h.kind === "liability" ? "\u2212" : ""}
+          {money(h.value || 0)}
+        </span>
+        {(h.kind === "asset" || h.kind === "cover") &&
+          (h.nominee ? (
+            <span style={pill(T.mint)} title={h.nomineeName || ""}>
+              nominee
+            </span>
+          ) : (
+            <button onClick={() => setNomineeFor(h)} style={{ ...pill(T.coral), cursor: "pointer" }}>
+              add nominee
+            </button>
+          ))}
+        {d ? (
+          <button onClick={() => setViewDoc(d)} style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}>
+            View
+          </button>
+        ) : h.kind !== "liability" ? (
+          <button onClick={() => attach(h)} style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}>
+            Attach
+          </button>
+        ) : null}
+        <button onClick={() => setEdit(h)} title="Edit" style={{ ...btnGhost, padding: 7 }}>
+          <Pencil size={14} />
+        </button>
+      </div>
+    );
+  };
+  const groups: [string, Holding[]][] = [
+    ["Assets", assets],
+    ["Liabilities", liabilities],
+    ["Protection", covers],
+  ];
+
   return (
     <div>
-      <SectionHead title="Wealth" sub="Your money documents, read for what matters: total value and nominee gaps." />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
-        <Card>
-          <div style={{ fontSize: 13, color: T.muted }}>Documented value</div>
-          <div
-            style={{
-              fontFamily: "ui-monospace, monospace",
-              fontSize: 26,
-              fontWeight: 800,
-              color: T.white,
-              marginTop: 8,
-            }}
-          >
-            {money(total)}
-          </div>
-        </Card>
-        <Card>
-          <div style={{ fontSize: 13, color: T.muted }}>Holdings tracked</div>
-          <div
-            style={{
-              fontFamily: "ui-monospace, monospace",
-              fontSize: 26,
-              fontWeight: 800,
-              color: T.white,
-              marginTop: 8,
-            }}
-          >
-            {holdings.length}
-          </div>
-        </Card>
-        <Card>
-          <div style={{ fontSize: 13, color: T.muted }}>Missing a nominee</div>
-          <div
-            style={{
-              fontFamily: "ui-monospace, monospace",
-              fontSize: 26,
-              fontWeight: 800,
-              color: gaps.length ? T.coral : T.mint,
-              marginTop: 8,
-            }}
-          >
-            {gaps.length}
-          </div>
-        </Card>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <SectionHead title="Wealth" sub="Everything you own and owe, read from your documents and ready to hand on." />
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => setEstate(true)} style={btnGold}>
+            <FileText size={15} /> Estate summary
+          </button>
+          <button onClick={() => setEdit("new")} style={btnGhost}>
+            <Plus size={15} /> Add holding
+          </button>
+        </div>
       </div>
-      <Card style={{ padding: 0 }}>
-        {holdings.map((d: Doc, i: number) => (
-          <div
-            key={d.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "13px 16px",
-              borderTop: i ? `1px solid ${T.border}` : "none",
-            }}
-          >
-            <span
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 18 }}>
+        {stat("Net worth", money(net), T.white)}
+        {stat("Assets", money(totalAssets), T.mint)}
+        {stat("Liabilities", money(totalLiab), T.coral)}
+        {stat("Protection", money(totalCover), A.teal)}
+      </div>
+
+      {gaps.length > 0 && (
+        <Card style={{ padding: 0, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px" }}>
+            <AlertTriangle size={16} color={T.gold} />
+            <b style={{ color: T.white, fontSize: 14.5 }}>Needs attention</b>
+            <span style={{ marginLeft: "auto", ...pill(T.gold) }}>{gaps.length}</span>
+          </div>
+          {gaps.map((g, i) => (
+            <div
+              key={i}
               style={{
-                display: "grid",
-                placeItems: "center",
-                width: 36,
-                height: 36,
-                borderRadius: 9,
-                background: CAT_META[d.category].color + "22",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "11px 16px",
+                borderTop: `1px solid ${T.border}`,
               }}
             >
-              <Wallet size={16} color={CAT_META[d.category].color} />
-            </span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 600, color: T.white }}>{d.docType}</div>
-              <div style={{ fontSize: 12.5, color: T.muted }}>{d.category}</div>
-            </div>
-            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 15, fontWeight: 700, color: T.text }}>
-              {money(d.value || 0)}
-            </span>
-            {d.nominee === false ? (
-              <button
-                onClick={() => {
-                  store.updateDoc(d.id, { nominee: true });
-                  toast("Nominee marked as added");
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 9,
+                  background: g.kind === "renewal" ? T.gold : T.coral,
+                  flexShrink: 0,
                 }}
-                style={{ ...pill(T.coral), cursor: "pointer" }}
-              >
-                add nominee
-              </button>
-            ) : (
-              <span style={pill(T.mint)}>nominee set</span>
-            )}
+              />
+              <span style={{ flex: 1, fontSize: 14, color: T.text }}>{g.label}</span>
+              {g.kind === "nominee" && (
+                <button onClick={() => setNomineeFor(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
+                  Add nominee
+                </button>
+              )}
+              {g.kind === "doc" && (
+                <button onClick={() => attach(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
+                  Attach
+                </button>
+              )}
+              {g.kind === "renewal" &&
+                (linkedDoc(g.h) ? (
+                  <button
+                    onClick={() => setViewDoc(linkedDoc(g.h)!)}
+                    style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}
+                  >
+                    View
+                  </button>
+                ) : (
+                  <button onClick={() => setEdit(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
+                    Update
+                  </button>
+                ))}
+            </div>
+          ))}
+        </Card>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16, alignItems: "start" }}>
+        <div style={{ display: "grid", gap: 16 }}>
+          {groups.map(([label, arr]) =>
+            arr.length > 0 ? (
+              <Card key={label} style={{ padding: 0 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "13px 16px",
+                  }}
+                >
+                  <b style={{ color: T.white, fontSize: 14.5 }}>{label}</b>
+                  <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, color: T.muted }}>
+                    {money(sum(arr))}
+                  </span>
+                </div>
+                {arr.map((h) => (
+                  <Row key={h.id} h={h} />
+                ))}
+              </Card>
+            ) : null,
+          )}
+        </div>
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+            <KeyRound size={16} color={T.muted} />
+            <b style={{ color: T.white, fontSize: 15 }}>Ready to hand on</b>
           </div>
-        ))}
-      </Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 14 }}>
+            <Ring score={readiness} size={54} color={readiness >= 80 ? T.mint : readiness >= 50 ? T.gold : T.coral} />
+            <div style={{ fontSize: 13, color: T.muted }}>of documented value has a nominee and a document on file</div>
+          </div>
+          {trusted.map((m: Member) => (
+            <div
+              key={m.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 0",
+                borderTop: `1px solid ${T.border}`,
+              }}
+            >
+              <span
+                style={{
+                  display: "grid",
+                  placeItems: "center",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  background: m.color + "26",
+                  color: m.color,
+                  fontWeight: 800,
+                  fontSize: 13,
+                }}
+              >
+                {m.name[0]}
+              </span>
+              <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>{m.name}</span>
+              <span style={pill(m.access === "Full member" ? T.mint : A.blue)}>{m.access}</span>
+            </div>
+          ))}
+          <button
+            onClick={() => setEstate(true)}
+            style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
+          >
+            <FileText size={15} /> Prepare estate summary
+          </button>
+        </Card>
+      </div>
+
+      <input
+        ref={attachRef}
+        type="file"
+        hidden
+        onChange={(e) => {
+          if (e.target.files) onAttachFiles(e.target.files);
+          e.currentTarget.value = "";
+        }}
+      />
+      {edit && (
+        <HoldingModal
+          holding={edit === "new" ? null : edit}
+          members={store.members}
+          onClose={() => setEdit(null)}
+          onSave={(h: Holding) => {
+            edit === "new" ? store.addHolding(h) : store.updateHolding(h.id, h);
+            toast(edit === "new" ? "Holding added" : "Holding updated");
+            setEdit(null);
+          }}
+          onDelete={
+            edit !== "new"
+              ? () => {
+                  store.removeHolding((edit as Holding).id);
+                  toast("Holding removed");
+                  setEdit(null);
+                }
+              : undefined
+          }
+        />
+      )}
+      {nomineeFor && (
+        <NomineeModal
+          holding={nomineeFor}
+          onClose={() => setNomineeFor(null)}
+          onSave={(name: string) => {
+            store.updateHolding(nomineeFor.id, { nominee: true, nomineeName: name });
+            toast("Nominee added");
+            setNomineeFor(null);
+          }}
+        />
+      )}
+      {estate && <EstateSheet store={store} onClose={() => setEstate(false)} toast={toast} />}
+      {viewDoc && <DocViewer doc={viewDoc} store={store} onClose={() => setViewDoc(null)} />}
     </div>
   );
 }
@@ -1154,7 +1394,7 @@ function Wealth({ store, toast }: any) {
 /* ═══════════════ LEGACY ═══════════════ */
 function Legacy({ store, go }: any) {
   const trusted = store.members.filter((m: Member) => m.access === "Full member" || m.access === "Emergency access");
-  const gaps = store.docs.filter((d: Doc) => d.value && d.nominee === false);
+  const gaps = store.holdings.filter((h: Holding) => (h.kind === "asset" || h.kind === "cover") && !h.nominee);
   return (
     <div>
       <SectionHead
@@ -1214,9 +1454,9 @@ function Legacy({ store, go }: any) {
           {gaps.length === 0 ? (
             <p style={{ color: T.muted, fontSize: 13 }}>Every valued holding has a nominee. You are covered.</p>
           ) : (
-            gaps.map((d: Doc) => (
+            gaps.map((h: Holding) => (
               <button
-                key={d.id}
+                key={h.id}
                 onClick={() => go("wealth")}
                 style={{
                   width: "100%",
@@ -1232,7 +1472,7 @@ function Legacy({ store, go }: any) {
                 }}
               >
                 <span style={{ width: 8, height: 8, borderRadius: 9, background: T.coral }} />
-                <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>{d.docType} has no nominee</span>
+                <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>{h.name} has no nominee</span>
                 <ChevronRight size={14} color={T.muted} />
               </button>
             ))
@@ -1528,6 +1768,374 @@ function SearchResults({ store, query, go }: any) {
       </Group>
     </div>
   );
+}
+
+function HoldingModal({ holding, members, onClose, onSave, onDelete }: any) {
+  const [f, setF] = useState<any>(
+    holding || {
+      name: "",
+      kind: "asset",
+      type: "",
+      institution: "",
+      accountRef: "",
+      value: 0,
+      nominee: false,
+      nomineeName: "",
+      renewalDate: "",
+      memberId: members[0]?.id || "you",
+    },
+  );
+  const inp: CSSProperties = {
+    width: "100%",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 9,
+    padding: "9px 11px",
+    color: T.text,
+    fontSize: 14,
+    outline: "none",
+  };
+  const lbl: CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: T.muted,
+    fontFamily: "ui-monospace, monospace",
+    marginBottom: 5,
+    display: "block",
+  };
+  const set = (k: string, v: any) => setF({ ...f, [k]: v });
+  const canNominee = f.kind === "asset" || f.kind === "cover";
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 75,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(500px,100%)",
+          padding: 22,
+          maxHeight: "90vh",
+          overflow: "auto",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <b style={{ color: T.white, fontSize: 18 }}>{holding ? "Edit holding" : "Add holding"}</b>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={16} />
+          </button>
+        </div>
+        <label style={lbl}>Name</label>
+        <input
+          style={inp}
+          value={f.name}
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="e.g. Investment portfolio"
+        />
+        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Kind</label>
+            <select style={inp} value={f.kind} onChange={(e) => set("kind", e.target.value)}>
+              {["asset", "liability", "cover"].map((k) => (
+                <option key={k} style={{ color: "#000" }}>
+                  {k}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Type</label>
+            <input
+              style={inp}
+              value={f.type}
+              onChange={(e) => set("type", e.target.value)}
+              placeholder="Mutual funds / Mortgage"
+            />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <div style={{ flex: 2 }}>
+            <label style={lbl}>Institution</label>
+            <input
+              style={inp}
+              value={f.institution}
+              onChange={(e) => set("institution", e.target.value)}
+              placeholder="Bank / insurer"
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Account</label>
+            <input
+              style={inp}
+              value={f.accountRef}
+              onChange={(e) => set("accountRef", e.target.value)}
+              placeholder="\u20224821"
+            />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>{f.kind === "liability" ? "Outstanding" : f.kind === "cover" ? "Cover" : "Value"}</label>
+            <input
+              type="number"
+              style={inp}
+              value={f.value}
+              onChange={(e) => set("value", parseFloat(e.target.value) || 0)}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Owner</label>
+            <select style={inp} value={f.memberId} onChange={(e) => set("memberId", e.target.value)}>
+              {members.map((m: Member) => (
+                <option key={m.id} value={m.id} style={{ color: "#000" }}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {f.kind === "cover" && (
+          <div style={{ marginTop: 12 }}>
+            <label style={lbl}>Renewal date</label>
+            <input
+              type="date"
+              style={inp}
+              value={f.renewalDate || ""}
+              onChange={(e) => set("renewalDate", e.target.value)}
+            />
+          </div>
+        )}
+        {canNominee && (
+          <div style={{ marginTop: 14, display: "flex", gap: 10, alignItems: "center" }}>
+            <label
+              style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: T.text }}
+            >
+              <input type="checkbox" checked={!!f.nominee} onChange={(e) => set("nominee", e.target.checked)} /> Nominee
+              named
+            </label>
+            {f.nominee && (
+              <input
+                style={{ ...inp, flex: 1 }}
+                value={f.nomineeName}
+                onChange={(e) => set("nomineeName", e.target.value)}
+                placeholder="Nominee name"
+              />
+            )}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          <button
+            disabled={!f.name}
+            onClick={() => onSave({ ...f, id: f.id || Math.random().toString(36).slice(2, 9) })}
+            style={{ ...btnGold, flex: 1, justifyContent: "center", opacity: f.name ? 1 : 0.4 }}
+          >
+            {holding ? "Save" : "Add holding"}
+          </button>
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              title="Remove"
+              style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "55", padding: "10px 14px" }}
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NomineeModal({ holding, onClose, onSave }: any) {
+  const [name, setName] = useState(holding.nomineeName || "");
+  const inp: CSSProperties = {
+    width: "100%",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 9,
+    padding: "9px 11px",
+    color: T.text,
+    fontSize: 14,
+    outline: "none",
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 75,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(420px,100%)",
+          padding: 22,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <b style={{ color: T.white, fontSize: 17 }}>Name a nominee</b>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={16} />
+          </button>
+        </div>
+        <p style={{ fontSize: 13, color: T.muted, marginBottom: 14 }}>
+          Who should receive {holding.name} ({holding.institution || holding.type})?
+        </p>
+        <input
+          style={inp}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Jordan Morgan (spouse)"
+          autoFocus
+        />
+        <button
+          disabled={!name.trim()}
+          onClick={() => onSave(name.trim())}
+          style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 16, opacity: name.trim() ? 1 : 0.4 }}
+        >
+          Save nominee
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EstateSheet({ store, onClose, toast }: any) {
+  const html = buildEstate(store);
+  const exportH = () => {
+    const b = new Blob([html], { type: "text/html" });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement("a");
+    a.href = u;
+    a.download = "Estate_Summary.html";
+    a.click();
+    URL.revokeObjectURL(u);
+    toast("Estate summary exported");
+  };
+  const printH = () => {
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(() => w.print(), 250);
+    }
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 75,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(680px,100%)",
+          maxHeight: "88vh",
+          display: "flex",
+          flexDirection: "column",
+          padding: 20,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div>
+            <div
+              style={{
+                fontFamily: "ui-monospace, monospace",
+                fontSize: 11,
+                letterSpacing: 1.5,
+                textTransform: "uppercase",
+                color: T.gold,
+                marginBottom: 4,
+              }}
+            >
+              What your family would need
+            </div>
+            <b style={{ color: T.white, fontSize: 19 }}>Estate summary</b>
+          </div>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={16} />
+          </button>
+        </div>
+        <div
+          style={{ flex: 1, overflow: "auto", background: "#eef0f3", borderRadius: 10, padding: 12 }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button onClick={printH} style={{ ...btnGold, flex: 1, justifyContent: "center" }}>
+            <Printer size={16} /> Save as PDF
+          </button>
+          <button onClick={exportH} style={{ ...btnGhost, flex: 1, justifyContent: "center" }}>
+            <Download size={16} /> Export
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildEstate(store: any): string {
+  const H: Holding[] = store.holdings;
+  const m2 = (v?: number) => `$${(v || 0).toLocaleString("en-US")}`;
+  const A_ = H.filter((h) => h.kind === "asset"),
+    L_ = H.filter((h) => h.kind === "liability"),
+    C_ = H.filter((h) => h.kind === "cover");
+  const s = (a: Holding[]) => a.reduce((x, h) => x + (h.value || 0), 0);
+  const net = s(A_) - s(L_);
+  const dn = (id?: string) => store.docs.find((d: Doc) => d.id === id)?.name || "\u2014 not attached \u2014";
+  const trusted = store.members.filter((mm: Member) => mm.access === "Full member" || mm.access === "Emergency access");
+  const th = (t: string) => `<th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280">${t}</th>`;
+  const secTable = (title: string, arr: Holding[], showNom: boolean) =>
+    `<h3 style="margin:18px 0 6px;font-size:14px;color:#111827">${title}</h3><table style="width:100%;border-collapse:collapse;font-size:12.5px"><tr style="background:#f3f4f6">${th("Holding")}${th("Type")}${th("Where")}${th("Value")}${showNom ? th("Nominee") : ""}${th("Document")}</tr>${arr.map((h) => `<tr><td style="padding:6px 10px;font-weight:600">${h.name}</td><td style="padding:6px 10px">${h.type}</td><td style="padding:6px 10px;color:#6b7280">${h.institution || ""} ${h.accountRef || ""}</td><td style="padding:6px 10px">${m2(h.value)}</td>${showNom ? `<td style="padding:6px 10px;color:${h.nominee ? "#111827" : "#b91c1c"};font-weight:${h.nominee ? 400 : 700}">${h.nominee ? h.nomineeName || "named" : "NOT NAMED"}</td>` : ""}<td style="padding:6px 10px;color:#6b7280">${dn(h.docId)}</td></tr>`).join("") || `<tr><td colspan="6" style="padding:6px 10px;color:#9ca3af">None</td></tr>`}</table>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Estate Summary</title></head><body style="font-family:Inter,Arial,sans-serif;color:#111827;max-width:760px;margin:20px auto;padding:0 20px;background:#fff">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8B25A;padding-bottom:12px"><div><div style="font-weight:800;font-size:20px">LifePack \u00B7 Estate Summary</div><div style="color:#6b7280;font-size:13px">What your family would need to find and claim everything</div></div><div style="text-align:right;color:#6b7280;font-size:12px">Prepared ${new Date().toLocaleString()}</div></div>
+  <div style="display:flex;gap:26px;margin-top:16px">
+    <div><div style="font-size:12px;color:#6b7280">Net worth (documented)</div><div style="font-size:22px;font-weight:800">${m2(net)}</div></div>
+    <div><div style="font-size:12px;color:#6b7280">Assets</div><div style="font-size:18px;font-weight:700">${m2(s(A_))}</div></div>
+    <div><div style="font-size:12px;color:#6b7280">Liabilities</div><div style="font-size:18px;font-weight:700">${m2(s(L_))}</div></div>
+    <div><div style="font-size:12px;color:#6b7280">Protection</div><div style="font-size:18px;font-weight:700">${m2(s(C_))}</div></div>
+  </div>
+  ${secTable("Assets", A_, true)}
+  ${secTable("Liabilities", L_, false)}
+  ${secTable("Insurance & protection", C_, true)}
+  <h3 style="margin:18px 0 6px;font-size:14px;color:#111827">Who can help</h3><ul style="margin:0;padding-left:18px;line-height:1.7;color:#374151;font-size:13px">${trusted.map((mm: Member) => `<li>${mm.name} \u2014 ${mm.relation} (${mm.access})</li>`).join("") || "<li>No trusted contacts set</li>"}</ul>
+  <p style="margin-top:22px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:10px">Prepared by LifePack from your own records. Account references are masked. This is an organizational summary \u2014 not a will, and not legal, tax, or financial advice. Confirm nominee and succession details with each institution and a professional.</p>
+  </body></html>`;
 }
 
 export default function App() {
