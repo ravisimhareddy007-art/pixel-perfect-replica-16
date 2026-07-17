@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import type { Doc, Member, LabLog, Medication, Reminder, Category } from "./types";
+import type { Doc, Member, LabLog, Medication, Reminder, Category, Holding } from "./types";
 import { putBlob, delBlob } from "./idb";
 import { classify } from "./classify";
 
@@ -23,6 +23,7 @@ interface State {
   care: Record<string, CareProfile>;
   meds: Medication[];
   reminders: Reminder[];
+  holdings: Holding[];
 }
 
 /* ── members (enterprise-neutral) ── */
@@ -127,6 +128,108 @@ const seedDocs: Doc[] = [
     medType: "lab_report",
     docDate: iso(-30),
   }),
+];
+
+/* ── wealth holdings (assets, liabilities, protection) ── */
+const dId = (t: string) => seedDocs.find((d) => d.docType === t)?.id;
+const seedHoldings: Holding[] = [
+  {
+    id: id(),
+    memberId: "you",
+    name: "Savings account",
+    kind: "asset",
+    type: "Bank account",
+    institution: "Meridian Bank",
+    accountRef: "•4821",
+    value: 180000,
+    nominee: true,
+    nomineeName: "Jordan Morgan",
+    docId: dId("Bank Statement"),
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "Investment portfolio",
+    kind: "asset",
+    type: "Mutual funds",
+    institution: "Beacon Wealth",
+    accountRef: "•2093",
+    value: 4200000,
+    nominee: true,
+    nomineeName: "Jordan Morgan",
+    docId: dId("Investment Statement"),
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "Retirement account",
+    kind: "asset",
+    type: "Retirement",
+    institution: "Beacon Wealth",
+    accountRef: "•7715",
+    value: 1350000,
+    nominee: false,
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "Family home",
+    kind: "asset",
+    type: "Property",
+    institution: "Registrar of Titles",
+    accountRef: "Deed",
+    value: 18500000,
+    nominee: true,
+    nomineeName: "Jordan Morgan",
+    docId: dId("Property Deed"),
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "Home loan",
+    kind: "liability",
+    type: "Mortgage",
+    institution: "Meridian Bank",
+    accountRef: "•3390",
+    value: 6200000,
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "Car loan",
+    kind: "liability",
+    type: "Auto loan",
+    institution: "Meridian Bank",
+    accountRef: "•8842",
+    value: 410000,
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "Life insurance",
+    kind: "cover",
+    type: "Life insurance",
+    institution: "Aegis Life",
+    accountRef: "•5567",
+    value: 10000000,
+    nominee: false,
+    renewalDate: rel(210),
+    docId: dId("Life Insurance"),
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "Health insurance",
+    kind: "cover",
+    type: "Health insurance",
+    institution: "Aegis Health",
+    accountRef: "•1120",
+    value: 500000,
+    nominee: true,
+    nomineeName: "Family floater",
+    renewalDate: rel(40),
+    docId: dId("Health Insurance"),
+  },
 ];
 
 /* ── health readings ── */
@@ -257,6 +360,7 @@ const DEFAULT: State = {
   care: seedCare,
   meds: seedMeds,
   reminders: seedReminders,
+  holdings: seedHoldings,
 };
 
 function load(): State {
@@ -273,6 +377,7 @@ function load(): State {
         meds: p.meds ?? DEFAULT.meds,
         reminders: p.reminders ?? DEFAULT.reminders,
         docs: p.docs ?? DEFAULT.docs,
+        holdings: p.holdings ?? DEFAULT.holdings,
       };
     }
   } catch {}
@@ -396,6 +501,47 @@ export function useStore() {
     state = { ...state, reminders: state.reminders.filter((x) => x.id !== rid) };
     persist();
   }, []);
+  const addHolding = useCallback((h: Holding) => {
+    state = { ...state, holdings: [...state.holdings, h] };
+    persist();
+  }, []);
+  const updateHolding = useCallback((hid: string, patch: Partial<Holding>) => {
+    state = { ...state, holdings: state.holdings.map((h) => (h.id === hid ? { ...h, ...patch } : h)) };
+    persist();
+  }, []);
+  const removeHolding = useCallback((hid: string) => {
+    state = { ...state, holdings: state.holdings.filter((h) => h.id !== hid) };
+    persist();
+  }, []);
+  const attachDocToHolding = useCallback(async (hid: string, files: FileList | File[], override?: Partial<Doc>) => {
+    const file = Array.from(files)[0];
+    if (!file) return;
+    const c = classify(file.name);
+    const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
+    try {
+      await putBlob(key, file);
+    } catch {}
+    const d: Doc = {
+      id: key,
+      name: file.name,
+      category: c.category,
+      docType: c.docType,
+      medType: c.medType,
+      source: "Upload",
+      mime: file.type || "application/octet-stream",
+      sizeKB: Math.max(1, Math.round(file.size / 1024)),
+      addedAt: new Date().toISOString(),
+      memberId: "you",
+      ...override,
+      fileKey: key,
+    } as Doc;
+    state = {
+      ...state,
+      docs: [d, ...state.docs],
+      holdings: state.holdings.map((h) => (h.id === hid ? { ...h, docId: key } : h)),
+    };
+    persist();
+  }, []);
   const setOnboarded = useCallback((v: boolean) => {
     state = { ...state, onboarded: v };
     persist();
@@ -421,6 +567,10 @@ export function useStore() {
     addReminder,
     completeReminder,
     removeReminder,
+    addHolding,
+    updateHolding,
+    removeHolding,
+    attachDocToHolding,
     setOnboarded,
     reset,
   };
