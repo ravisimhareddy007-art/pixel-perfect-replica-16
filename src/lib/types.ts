@@ -57,3 +57,20 @@ export interface Reminder {
   due: string;
   done: boolean;
 }
+
+export type HoldingKind = "asset" | "liability" | "cover";
+export interface Holding {
+  id: string;
+  memberId?: string;
+  name: string; // "Investment portfolio"
+  kind: HoldingKind;
+  type: string; // "Mutual funds", "Home loan", "Life insurance", "Property"
+  institution?: string; // "Beacon Wealth"
+  accountRef?: string; // masked, "\u20224821"
+  value?: number; // documented value (asset), outstanding (liability), or cover (cover)
+  nominee?: boolean; // beneficiary named
+  nomineeName?: string;
+  renewalDate?: string; // ISO, for policies
+  docId?: string; // linked document
+  notes?: string;
+}
