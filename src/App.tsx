@@ -40,10 +40,12 @@ import {
   Trash2,
   Receipt,
   Paperclip,
+  Siren,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access, Holding, Transaction, Reminder } from "@/lib/types";
 import Healthcare, { METRICS, statusOf, sortR } from "@/components/Healthcare";
+import { buildZip } from "@/lib/zip";
 import DocViewer from "@/components/DocViewer";
 
 /* ── theme ── */
@@ -325,7 +327,7 @@ function Home({ store, go, toast }: any) {
       const n = daysTo(d.expiry!);
       return {
         id: d.id,
-        label: `${d.docType} \u00B7 ${store.members.find((m: Member) => m.id === d.memberId)?.name.split(" ")[0] || ""}`,
+        label: `${d.docType} · ${store.members.find((m: Member) => m.id === d.memberId)?.name.split(" ")[0] || ""}`,
         when: n < 0 ? "expired" : `${n}d left`,
         tone: n < 0 ? T.coral : T.gold,
       };
@@ -359,7 +361,7 @@ function Home({ store, go, toast }: any) {
           const last = by[k][by[k].length - 1];
           acts.push({
             id: mm.id + k,
-            label: `${k} ${(METRICS as any)[k].bp ? `${last.value}/${last.value2}` : last.value} ${(METRICS as any)[k].unit} \u00B7 above range`,
+            label: `${k} ${(METRICS as any)[k].bp ? `${last.value}/${last.value2}` : last.value} ${(METRICS as any)[k].unit} · above range`,
             who: first,
             whoColor: mm.color,
             when: "review",
@@ -371,23 +373,36 @@ function Home({ store, go, toast }: any) {
     });
     return acts.sort((a, b) => a.urgency - b.urgency);
   }, [store.members, store.reminders, store.labs]);
-  const nomineeGaps = store.holdings.filter((h: Holding) => (h.kind === "asset" || h.kind === "cover") && !h.nominee);
   const txFollowUps = store.transactions.filter(
     (t: Transaction) => !t.followUpDone && t.followUpOn && daysTo(t.followUpOn) <= 30,
   );
+  const holdingGaps: Act[] = [];
+  store.holdings.forEach((h: Holding) => {
+    const guarded = h.kind === "asset" || h.kind === "cover";
+    if (guarded && !h.docId)
+      holdingGaps.push({ id: h.id + "d", label: `${h.name} · no document on file`, when: "attach", tone: T.gold });
+    if (guarded && !h.accessNote)
+      holdingGaps.push({ id: h.id + "a", label: `${h.name} · no access instructions`, when: "add", tone: T.gold });
+    if (guarded && !h.nominee)
+      holdingGaps.push({ id: h.id + "n", label: `${h.name} · no nominee named`, when: "fix", tone: T.coral });
+    if (h.maturityDate && daysTo(h.maturityDate) >= 0 && daysTo(h.maturityDate) < 60)
+      holdingGaps.push({
+        id: h.id + "m",
+        label: `${h.name} matures`,
+        when: `${daysTo(h.maturityDate)}d`,
+        tone: T.gold,
+      });
+    if (h.kind === "cover" && h.renewalDate && daysTo(h.renewalDate) < 60)
+      holdingGaps.push({ id: h.id + "r", label: `${h.name} renews`, when: `${daysTo(h.renewalDate)}d`, tone: T.gold });
+  });
   const wealthActs: Act[] = [
     ...txFollowUps.map((t: Transaction) => ({
       id: t.id,
-      label: `Follow up: ${t.purpose}${t.followUpNote ? ` \u00B7 ${t.followUpNote}` : ""}`,
+      label: `Follow up: ${t.purpose}${t.followUpNote ? ` · ${t.followUpNote}` : ""}`,
       when: daysTo(t.followUpOn!) <= 0 ? "due" : `in ${daysTo(t.followUpOn!)}d`,
       tone: daysTo(t.followUpOn!) <= 0 ? T.coral : A.blue,
     })),
-    ...nomineeGaps.map((h: Holding) => ({
-      id: h.id,
-      label: `${h.name} has no nominee`,
-      when: "fix",
-      tone: T.coral,
-    })),
+    ...holdingGaps,
   ];
   const groups: { key: string; label: string; icon: any; color: string; to: string; acts: Act[] }[] = [
     { key: "health", label: "Health", icon: HeartPulse, color: A.green, to: "health", acts: healthActs },
@@ -1821,6 +1836,7 @@ function Wealth({ store, go, toast }: any) {
   const [viewDoc, setViewDoc] = useState<Doc | null>(null);
   const [edit, setEdit] = useState<Holding | null>(null);
   const [addTx, setAddTx] = useState(false);
+  const [sos, setSos] = useState(false);
   const [nomineeFor, setNomineeFor] = useState<Holding | null>(null);
   const [estate, setEstate] = useState(false);
   const attachRef = useRef<HTMLInputElement>(null);
@@ -1836,18 +1852,21 @@ function Wealth({ store, go, toast }: any) {
     net = totalAssets - totalLiab,
     totalCover = sum(covers);
   const guarded = H.filter((h) => h.kind === "asset" || h.kind === "cover");
-  const readiness = Math.round((sum(guarded.filter((h) => h.nominee && h.docId)) / (sum(guarded) || 1)) * 100);
+  const readiness = Math.round(
+    (sum(guarded.filter((h) => h.nominee && h.docId && h.accessNote)) / (sum(guarded) || 1)) * 100,
+  );
   const trusted = store.members.filter((m: Member) => m.access === "Full member" || m.access === "Emergency access");
   const linkedDoc = (h: Holding) => store.docs.find((d: Doc) => d.id === h.docId) || null;
 
-  const gaps: { h: Holding; kind: "nominee" | "doc" | "renewal"; label: string }[] = [];
+  const gaps: { h: Holding; kind: "nominee" | "doc" | "renewal" | "maturity" | "access"; label: string }[] = [];
   H.forEach((h) => {
-    if ((h.kind === "asset" || h.kind === "cover") && !h.nominee)
-      gaps.push({ h, kind: "nominee", label: `${h.name} \u00B7 no nominee named` });
-  });
-  H.forEach((h) => {
-    if ((h.kind === "asset" || h.kind === "cover") && !h.docId)
-      gaps.push({ h, kind: "doc", label: `${h.name} \u00B7 no document attached` });
+    const guardedKind = h.kind === "asset" || h.kind === "cover";
+    if (guardedKind && !h.docId) gaps.push({ h, kind: "doc", label: `${h.name} · no document on file` });
+    if (guardedKind && !h.accessNote)
+      gaps.push({ h, kind: "access", label: `${h.name} · no access instructions for the family` });
+    if (guardedKind && !h.nominee) gaps.push({ h, kind: "nominee", label: `${h.name} · no nominee named` });
+    if (h.maturityDate && daysTo(h.maturityDate) >= 0 && daysTo(h.maturityDate) < 60)
+      gaps.push({ h, kind: "maturity", label: `${h.name} matures in ${daysTo(h.maturityDate)} days` });
   });
   covers.forEach((c) => {
     if (c.renewalDate && daysTo(c.renewalDate) < 60)
@@ -1906,7 +1925,7 @@ function Wealth({ store, go, toast }: any) {
           <div style={{ fontSize: 14.5, fontWeight: 600, color: T.white }}>{h.name}</div>
           <div style={{ fontSize: 12.5, color: T.muted }}>
             {h.type}
-            {h.institution ? ` \u00B7 ${h.institution}` : ""}
+            {h.institution ? ` · ${h.institution}` : ""}
             {h.accountRef ? ` ${h.accountRef}` : ""}
           </div>
         </div>
@@ -1971,9 +1990,54 @@ function Wealth({ store, go, toast }: any) {
           <button onClick={() => setAddTx(true)} style={btnGhost}>
             <Receipt size={15} /> Add transaction
           </button>
+          <button
+            onClick={() => setSos(true)}
+            style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "66", fontWeight: 700 }}
+          >
+            <Siren size={15} /> SOS handoff
+          </button>
         </div>
       </div>
 
+      {store.handoff && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 11,
+            background: T.coral + "14",
+            border: `1px solid ${T.coral}66`,
+            borderRadius: 12,
+            padding: "12px 16px",
+            marginBottom: 16,
+          }}
+        >
+          <Siren size={16} color={T.coral} />
+          <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>
+            <b style={{ color: T.coral }}>SOS handoff active</b> since{" "}
+            {new Date(store.handoff.releasedAt).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+            })}{" "}
+            · shared with{" "}
+            {store.handoff.recipients
+              .map((id: string) => store.members.find((mm: Member) => mm.id === id)?.name.split(" ")[0])
+              .filter(Boolean)
+              .join(", ")}
+          </span>
+          <button
+            onClick={() => {
+              store.cancelHandoff();
+              toast("Handoff cancelled · access revoked");
+            }}
+            style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "55", padding: "7px 12px", fontSize: 12.5 }}
+          >
+            Cancel handoff
+          </button>
+        </div>
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 18 }}>
         {stat("Net worth", money(net), T.white)}
         {stat("Assets", money(totalAssets), T.mint)}
@@ -2017,6 +2081,11 @@ function Wealth({ store, go, toast }: any) {
               {g.kind === "doc" && (
                 <button onClick={() => attach(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
                   Attach
+                </button>
+              )}
+              {(g.kind === "access" || g.kind === "maturity") && (
+                <button onClick={() => setEdit(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
+                  {g.kind === "access" ? "Add note" : "Update"}
                 </button>
               )}
               {g.kind === "renewal" &&
@@ -2169,7 +2238,9 @@ function Wealth({ store, go, toast }: any) {
           </p>
           <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 14 }}>
             <Ring score={readiness} size={54} color={readiness >= 80 ? T.mint : readiness >= 50 ? T.gold : T.coral} />
-            <div style={{ fontSize: 13, color: T.muted }}>of documented value has a nominee and a document on file</div>
+            <div style={{ fontSize: 13, color: T.muted }}>
+              of documented value has a document, a nominee, and access instructions on file
+            </div>
           </div>
           {trusted.map((m: Member) => (
             <div
@@ -2264,6 +2335,7 @@ function Wealth({ store, go, toast }: any) {
           }}
         />
       )}
+      {sos && <SOSHandoffModal store={store} toast={toast} onClose={() => setSos(false)} />}
       {estate && <EstateSheet store={store} onClose={() => setEstate(false)} toast={toast} />}
       {viewDoc && <DocViewer doc={viewDoc} store={store} onClose={() => setViewDoc(null)} />}
     </div>
@@ -2556,6 +2628,178 @@ function SearchResults({ store, query, go }: any) {
   );
 }
 
+function SOSHandoffModal({ store, toast, onClose }: any) {
+  const recipients: Member[] = store.members.filter(
+    (m: Member) => m.access === "Emergency access" || m.access === "Full member",
+  );
+  const [chosen, setChosen] = useState<Set<string>>(new Set(recipients.map((m) => m.id)));
+  const [busy, setBusy] = useState(false);
+  const wealthDocIds = new Set<string>();
+  store.holdings.forEach((h: Holding) => h.docId && wealthDocIds.add(h.docId));
+  store.transactions.forEach((t: Transaction) => t.docId && wealthDocIds.add(t.docId));
+  const wealthDocs: Doc[] = store.docs.filter(
+    (d: Doc) =>
+      wealthDocIds.has(d.id) || d.category === "Finance" || d.category === "Insurance" || d.category === "Property",
+  );
+  const toggle = (id: string) =>
+    setChosen((p) => {
+      const n = new Set(p);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  const release = async () => {
+    if (!chosen.size || busy) return;
+    setBusy(true);
+    try {
+      const estate = buildEstate(store);
+      const b = new Blob([estate], { type: "text/html" });
+      const u = URL.createObjectURL(b);
+      const a = document.createElement("a");
+      a.href = u;
+      a.download = "SOS_Estate_Summary.html";
+      a.click();
+      URL.revokeObjectURL(u);
+      await buildZip("SOS_Handoff_Documents", wealthDocs);
+      store.releaseHandoff([...chosen]);
+      toast("SOS handoff released · pack downloaded");
+      onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 70,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.coral}55`,
+          borderRadius: 16,
+          width: "min(480px,100%)",
+          maxHeight: "92vh",
+          overflowY: "auto",
+          padding: 22,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <b style={{ color: T.white, fontSize: 18, display: "inline-flex", alignItems: "center", gap: 9 }}>
+            <Siren size={18} color={T.coral} /> SOS handoff
+          </b>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={16} />
+          </button>
+        </div>
+        <p style={{ fontSize: 13, color: T.muted, margin: "0 0 14px", lineHeight: 1.55 }}>
+          For a real emergency. Releases the estate summary, {wealthDocs.length} wealth documents, and every access
+          instruction to the people below, so nothing is locked away when it matters. You can cancel any time and access
+          is revoked.
+        </p>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            color: T.muted,
+            fontFamily: "ui-monospace, monospace",
+            marginBottom: 6,
+          }}
+        >
+          Who steps in
+        </div>
+        {recipients.length === 0 ? (
+          <p style={{ fontSize: 13, color: T.coral }}>
+            No one has Emergency or Full access yet. Set that up in Trust center first.
+          </p>
+        ) : (
+          recipients.map((m) => (
+            <label
+              key={m.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 11,
+                padding: "9px 0",
+                borderTop: `1px solid ${T.border}`,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={chosen.has(m.id)}
+                onChange={() => toggle(m.id)}
+                style={{ accentColor: T.coral }}
+              />
+              <span
+                style={{
+                  display: "grid",
+                  placeItems: "center",
+                  width: 30,
+                  height: 30,
+                  borderRadius: 8,
+                  background: m.color + "26",
+                  color: m.color,
+                  fontWeight: 800,
+                  fontSize: 13,
+                }}
+              >
+                {m.name[0]}
+              </span>
+              <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>
+                {m.name}
+                <span style={{ color: T.muted }}> · {m.relation}</span>
+              </span>
+              <span style={pill(m.access === "Full member" ? T.mint : A.blue)}>{m.access}</span>
+            </label>
+          ))
+        )}
+        <div
+          style={{
+            marginTop: 14,
+            borderRadius: 11,
+            border: `1px solid ${T.border}`,
+            background: T.raised,
+            padding: "11px 13px",
+            fontSize: 12.5,
+            color: T.muted,
+            lineHeight: 1.6,
+          }}
+        >
+          What they receive: the estate summary (assets, liabilities, protection, nominees, where every document lives),
+          the linked documents themselves, and your access instructions per holding.
+        </div>
+        <button
+          disabled={!chosen.size || busy}
+          onClick={release}
+          style={{
+            ...btnGold,
+            width: "100%",
+            justifyContent: "center",
+            marginTop: 16,
+            background: T.coral,
+            opacity: chosen.size && !busy ? 1 : 0.4,
+          }}
+        >
+          <Siren size={15} />{" "}
+          {busy ? "Releasing…" : `Release handoff to ${chosen.size} ${chosen.size === 1 ? "person" : "people"}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TransactionModal({ members, onClose, onSave }: any) {
   const [f, setF] = useState({
     purpose: "",
@@ -2749,7 +2993,7 @@ function TransactionModal({ members, onClose, onSave }: any) {
             opacity: valid && !saving ? 1 : 0.4,
           }}
         >
-          {saving ? "Saving\u2026" : "Save transaction"}
+          {saving ? "Saving…" : "Save transaction"}
         </button>
       </div>
     </div>
@@ -2869,7 +3113,7 @@ function HoldingModal({ holding, members, onClose, onSave, onDelete }: any) {
               style={inp}
               value={f.accountRef}
               onChange={(e) => set("accountRef", e.target.value)}
-              placeholder="\u20224821"
+              placeholder="•4821"
             />
           </div>
         </div>
@@ -2902,6 +3146,28 @@ function HoldingModal({ holding, members, onClose, onSave, onDelete }: any) {
               style={inp}
               value={f.renewalDate || ""}
               onChange={(e) => set("renewalDate", e.target.value)}
+            />
+          </div>
+        )}
+        {f.kind === "asset" && (
+          <div style={{ marginTop: 12 }}>
+            <label style={lbl}>Maturity date (deposits, retirement)</label>
+            <input
+              type="date"
+              style={inp}
+              value={f.maturityDate || ""}
+              onChange={(e) => set("maturityDate", e.target.value)}
+            />
+          </div>
+        )}
+        {canNominee && (
+          <div style={{ marginTop: 12 }}>
+            <label style={lbl}>Access instructions for the family</label>
+            <textarea
+              style={{ ...inp, minHeight: 58, resize: "vertical", fontFamily: "inherit" }}
+              value={f.accessNote || ""}
+              onChange={(e) => set("accessNote", e.target.value)}
+              placeholder="Where it is, who to contact, how to claim (locker no., agent, portal)"
             />
           </div>
         )}
@@ -3107,9 +3373,9 @@ function buildEstate(store: any): string {
   const trusted = store.members.filter((mm: Member) => mm.access === "Full member" || mm.access === "Emergency access");
   const th = (t: string) => `<th style="text-align:left;padding:6px 10px;font-size:11px;color:#6b7280">${t}</th>`;
   const secTable = (title: string, arr: Holding[], showNom: boolean) =>
-    `<h3 style="margin:18px 0 6px;font-size:14px;color:#111827">${title}</h3><table style="width:100%;border-collapse:collapse;font-size:12.5px"><tr style="background:#f3f4f6">${th("Holding")}${th("Type")}${th("Where")}${th("Value")}${showNom ? th("Nominee") : ""}${th("Document")}</tr>${arr.map((h) => `<tr><td style="padding:6px 10px;font-weight:600">${h.name}</td><td style="padding:6px 10px">${h.type}</td><td style="padding:6px 10px;color:#6b7280">${h.institution || ""} ${h.accountRef || ""}</td><td style="padding:6px 10px">${m2(h.value)}</td>${showNom ? `<td style="padding:6px 10px;color:${h.nominee ? "#111827" : "#b91c1c"};font-weight:${h.nominee ? 400 : 700}">${h.nominee ? h.nomineeName || "named" : "NOT NAMED"}</td>` : ""}<td style="padding:6px 10px;color:#6b7280">${dn(h.docId)}</td></tr>`).join("") || `<tr><td colspan="6" style="padding:6px 10px;color:#9ca3af">None</td></tr>`}</table>`;
+    `<h3 style="margin:18px 0 6px;font-size:14px;color:#111827">${title}</h3><table style="width:100%;border-collapse:collapse;font-size:12.5px"><tr style="background:#f3f4f6">${th("Holding")}${th("Type")}${th("Where")}${th("Value")}${showNom ? th("Nominee") : ""}${th("Document")}${th("How to access")}</tr>${arr.map((h) => `<tr><td style="padding:6px 10px;font-weight:600">${h.name}</td><td style="padding:6px 10px">${h.type}</td><td style="padding:6px 10px;color:#6b7280">${h.institution || ""} ${h.accountRef || ""}</td><td style="padding:6px 10px">${m2(h.value)}</td>${showNom ? `<td style="padding:6px 10px;color:${h.nominee ? "#111827" : "#b91c1c"};font-weight:${h.nominee ? 400 : 700}">${h.nominee ? h.nomineeName || "named" : "NOT NAMED"}</td>` : ""}<td style="padding:6px 10px;color:#6b7280">${dn(h.docId)}</td><td style="padding:6px 10px;color:#374151">${h.accessNote || "\u2014"}</td></tr>`).join("") || `<tr><td colspan="6" style="padding:6px 10px;color:#9ca3af">None</td></tr>`}</table>`;
   return `<!doctype html><html><head><meta charset="utf-8"><title>Estate Summary</title></head><body style="font-family:Inter,Arial,sans-serif;color:#111827;max-width:760px;margin:20px auto;padding:0 20px;background:#fff">
-  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8B25A;padding-bottom:12px"><div><div style="font-weight:800;font-size:20px">LifePack \u00B7 Estate Summary</div><div style="color:#6b7280;font-size:13px">What your family would need to find and claim everything</div></div><div style="text-align:right;color:#6b7280;font-size:12px">Prepared ${new Date().toLocaleString()}</div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8B25A;padding-bottom:12px"><div><div style="font-weight:800;font-size:20px">LifePack · Estate Summary</div><div style="color:#6b7280;font-size:13px">What your family would need to find and claim everything</div></div><div style="text-align:right;color:#6b7280;font-size:12px">Prepared ${new Date().toLocaleString()}</div></div>
   <div style="display:flex;gap:26px;margin-top:16px">
     <div><div style="font-size:12px;color:#6b7280">Net worth (documented)</div><div style="font-size:22px;font-weight:800">${m2(net)}</div></div>
     <div><div style="font-size:12px;color:#6b7280">Assets</div><div style="font-size:18px;font-weight:700">${m2(s(A_))}</div></div>
