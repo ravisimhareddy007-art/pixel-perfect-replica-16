@@ -42,8 +42,8 @@ import {
   Paperclip,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import type { Category, Doc, Member, Access, Holding, Transaction } from "@/lib/types";
-import Healthcare from "@/components/Healthcare";
+import type { Category, Doc, Member, Access, Holding, Transaction, Reminder } from "@/lib/types";
+import Healthcare, { METRICS, statusOf, sortR } from "@/components/Healthcare";
 import DocViewer from "@/components/DocViewer";
 
 /* ── theme ── */
@@ -317,34 +317,89 @@ function Home({ store, go, toast }: any) {
   const best = [...scored].sort((a, b) => b.score - a.score)[0];
   const worst = [...scored].sort((a, b) => a.score - b.score)[0];
   const expiring = store.docs.filter((d: Doc) => d.expiry && daysTo(d.expiry) < 60);
-  const dueReminders = store.reminders.filter((r: any) => !r.done && daysTo(r.due) <= 30);
+
+  type Act = { id: string; label: string; who?: string; whoColor?: string; when: string; tone: string; rid?: string };
+  const docActs: Act[] = expiring
+    .sort((a: Doc, b: Doc) => +new Date(a.expiry!) - +new Date(b.expiry!))
+    .map((d: Doc) => {
+      const n = daysTo(d.expiry!);
+      return {
+        id: d.id,
+        label: `${d.docType} \u00B7 ${store.members.find((m: Member) => m.id === d.memberId)?.name.split(" ")[0] || ""}`,
+        when: n < 0 ? "expired" : `${n}d left`,
+        tone: n < 0 ? T.coral : T.gold,
+      };
+    });
+  const healthActs: Act[] = useMemo(() => {
+    const acts: (Act & { urgency: number })[] = [];
+    store.members.forEach((mm: Member) => {
+      const first = mm.name.split(" ")[0];
+      store.reminders
+        .filter((r: Reminder) => r.memberId === mm.id && !r.done && daysTo(r.due) <= 45)
+        .forEach((r: Reminder) => {
+          const dd = daysTo(r.due);
+          acts.push({
+            id: r.id,
+            rid: r.id,
+            label: r.title,
+            who: first,
+            whoColor: mm.color,
+            when: dd < 0 ? `${-dd}d overdue` : dd === 0 ? "today" : `in ${dd}d`,
+            tone: dd < 0 ? T.coral : dd <= 7 ? T.gold : T.muted,
+            urgency: dd < 0 ? -1000 + dd : dd,
+          });
+        });
+      const by: Record<string, any[]> = {};
+      store.labs
+        .filter((l: any) => l.memberId === mm.id && (METRICS as any)[l.metric])
+        .forEach((l: any) => (by[l.metric] ||= []).push(l));
+      Object.keys(by).forEach((k) => {
+        by[k].sort(sortR);
+        if (statusOf(k, by[k]) === "out") {
+          const last = by[k][by[k].length - 1];
+          acts.push({
+            id: mm.id + k,
+            label: `${k} ${(METRICS as any)[k].bp ? `${last.value}/${last.value2}` : last.value} ${(METRICS as any)[k].unit} \u00B7 above range`,
+            who: first,
+            whoColor: mm.color,
+            when: "review",
+            tone: T.coral,
+            urgency: -500,
+          });
+        }
+      });
+    });
+    return acts.sort((a, b) => a.urgency - b.urgency);
+  }, [store.members, store.reminders, store.labs]);
   const nomineeGaps = store.holdings.filter((h: Holding) => (h.kind === "asset" || h.kind === "cover") && !h.nominee);
   const txFollowUps = store.transactions.filter(
     (t: Transaction) => !t.followUpDone && t.followUpOn && daysTo(t.followUpOn) <= 30,
   );
-  const attention = [
+  const wealthActs: Act[] = [
     ...txFollowUps.map((t: Transaction) => ({
-      label: `Follow up${daysTo(t.followUpOn!) <= 0 ? " (due)" : ` in ${daysTo(t.followUpOn!)}d`}: ${t.purpose}${t.followUpNote ? ` \u00B7 ${t.followUpNote}` : ""}`,
-      to: "wealth",
-      tone: A.blue,
+      id: t.id,
+      label: `Follow up: ${t.purpose}${t.followUpNote ? ` \u00B7 ${t.followUpNote}` : ""}`,
+      when: daysTo(t.followUpOn!) <= 0 ? "due" : `in ${daysTo(t.followUpOn!)}d`,
+      tone: daysTo(t.followUpOn!) <= 0 ? T.coral : A.blue,
     })),
-    ...expiring.map((d: Doc) => ({
-      label: `${d.docType} expires in ${daysTo(d.expiry!)} days`,
-      to: "documents",
-      tone: T.gold,
+    ...nomineeGaps.map((h: Holding) => ({
+      id: h.id,
+      label: `${h.name} has no nominee`,
+      when: "fix",
+      tone: T.coral,
     })),
-    ...nomineeGaps.map((h: Holding) => ({ label: `${h.name} has no nominee`, to: "wealth", tone: T.coral })),
-    ...dueReminders.slice(0, 3).map((r: any) => ({
-      label: `${store.members.find((m: Member) => m.id === r.memberId)?.name.split(" ")[0]}: ${r.title} in ${daysTo(r.due)}d`,
-      to: "health",
-      tone: T.mint,
-    })),
-  ].slice(0, 6);
+  ];
+  const groups: { key: string; label: string; icon: any; color: string; to: string; acts: Act[] }[] = [
+    { key: "health", label: "Health", icon: HeartPulse, color: A.green, to: "health", acts: healthActs },
+    { key: "documents", label: "Documents", icon: FolderOpen, color: A.blue, to: "documents", acts: docActs },
+    { key: "wealth", label: "Wealth", icon: Wallet, color: T.gold, to: "wealth", acts: wealthActs },
+  ].filter((g) => g.acts.length > 0);
+  const totalActs = groups.reduce((n, g) => n + g.acts.length, 0);
   const stats = [
     { label: "Documents", value: store.docs.length, icon: FolderOpen, c: A.blue, to: "documents" },
     { label: "Overall readiness", value: `${overall}%`, icon: ShieldCheck, c: A.green, to: "packages" },
     { label: "Expiring < 60d", value: expiring.length, icon: Clock, c: A.gold, to: "documents" },
-    { label: "Needs attention", value: attention.length, icon: Bell, c: A.pink, to: "health" },
+    { label: "Needs attention", value: totalActs, icon: Bell, c: A.pink, to: "health" },
   ];
   return (
     <div>
@@ -395,36 +450,131 @@ function Home({ store, go, toast }: any) {
         ))}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16 }}>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <AlertTriangle size={16} color={T.muted} />
-            <b style={{ color: T.white, fontSize: 15 }}>Needs attention</b>
+        <Card style={{ padding: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px" }}>
+            <AlertTriangle size={16} color={totalActs ? T.gold : T.mint} />
+            <b style={{ color: T.white, fontSize: 15 }}>Action center</b>
+            <span style={{ marginLeft: "auto", ...pill(totalActs ? T.gold : T.mint) }}>{totalActs || "all clear"}</span>
           </div>
-          {attention.length === 0 ? (
-            <p style={{ color: T.muted, fontSize: 13 }}>Nothing pressing. Nicely handled.</p>
+          {totalActs === 0 ? (
+            <p style={{ color: T.muted, fontSize: 13, padding: "0 16px 16px", margin: 0 }}>
+              Nothing pressing across documents, health, or wealth. Nicely handled.
+            </p>
           ) : (
-            attention.map((a, i) => (
-              <button
-                key={i}
-                onClick={() => go(a.to)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "10px 0",
-                  borderTop: i ? `1px solid ${T.border}` : "none",
-                  background: "none",
-                  border: "none",
-                  borderRadius: 0,
-                }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: 9, background: a.tone }} />
-                <span style={{ flex: 1, fontSize: 14, color: T.text }}>{a.label}</span>
-                <ChevronRight size={15} color={T.muted} />
-              </button>
+            groups.map((g) => (
+              <div key={g.key}>
+                <button
+                  onClick={() => go(g.to)}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    padding: "10px 16px",
+                    borderTop: `1px solid ${T.border}`,
+                    background: T.raised + "66",
+                    border: "none",
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  <g.icon size={14} color={g.color} />
+                  <span
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      letterSpacing: 1,
+                      textTransform: "uppercase",
+                      color: T.muted,
+                      fontFamily: "ui-monospace, monospace",
+                    }}
+                  >
+                    {g.label}
+                  </span>
+                  <span style={{ fontSize: 11.5, color: g.color, fontFamily: "ui-monospace, monospace" }}>
+                    {g.acts.length}
+                  </span>
+                  <ChevronRight size={13} color={T.faint} style={{ marginLeft: "auto" }} />
+                </button>
+                {g.acts.slice(0, 4).map((a) => (
+                  <div
+                    key={a.id}
+                    onClick={() => go(g.to)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 11,
+                      padding: "9px 16px",
+                      borderTop: `1px solid ${T.border}`,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: 9, background: a.tone, flexShrink: 0 }} />
+                    {a.who && (
+                      <span
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 66, flexShrink: 0 }}
+                      >
+                        <span style={{ width: 6, height: 6, borderRadius: 9, background: a.whoColor }} />
+                        <span style={{ fontSize: 12, color: T.muted, fontWeight: 600 }}>{a.who}</span>
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: 13.5,
+                        color: T.text,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {a.label}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11.5,
+                        color: a.tone,
+                        fontFamily: "ui-monospace, monospace",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {a.when}
+                    </span>
+                    {a.rid && (
+                      <button
+                        title="Mark done"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          store.completeReminder(a.rid);
+                          toast("Marked done");
+                        }}
+                        style={{ ...btnGhost, padding: 6 }}
+                      >
+                        <CheckCircle2 size={14} color={T.mint} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {g.acts.length > 4 && (
+                  <button
+                    onClick={() => go(g.to)}
+                    style={{
+                      width: "100%",
+                      background: "none",
+                      border: "none",
+                      borderTop: `1px solid ${T.border}`,
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                      fontSize: 12,
+                      color: T.muted,
+                      textAlign: "center",
+                    }}
+                  >
+                    +{g.acts.length - 4} more in {g.label}
+                  </button>
+                )}
+              </div>
             ))
           )}
         </Card>
