@@ -24,6 +24,7 @@ export interface CareProfile {
   medications: string[];
   allergies: string;
   doctor?: string;
+  hospital?: string;
   emergency?: string;
 }
 interface State {
