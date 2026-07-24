@@ -1015,7 +1015,7 @@ function Documents({ store, toast }: any) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 16,
+          columnGap: 16,
           flexWrap: "wrap",
         }}
       >
@@ -1023,7 +1023,7 @@ function Documents({ store, toast }: any) {
           title="Documents"
           sub={`${docs.length} records in your archive. Search, filter, and open any row for full context.`}
         />
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
           <div style={{ position: "relative" }}>
             <button onClick={() => setUpMenu((v) => !v)} style={btnGold}>
               <UploadCloud size={15} /> Upload <ChevronDown size={14} />
@@ -1978,12 +1978,13 @@ function Wealth({ store, go, toast }: any) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 16,
+          columnGap: 16,
+          rowGap: 0,
           flexWrap: "wrap",
         }}
       >
         <SectionHead title="Wealth" sub="Everything you own and owe, read from your documents and ready to hand on." />
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
           <button onClick={() => setEstate(true)} style={btnGold}>
             <FileText size={15} /> Estate summary
           </button>
