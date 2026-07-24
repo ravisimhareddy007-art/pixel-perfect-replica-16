@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import type { Doc, Member, LabLog, Medication, Reminder, Category, Holding } from "./types";
+import type { Doc, Member, LabLog, Medication, Reminder, Category, Holding, Transaction } from "./types";
 import { putBlob, delBlob } from "./idb";
 import { classify } from "./classify";
 
@@ -24,6 +24,7 @@ interface State {
   meds: Medication[];
   reminders: Reminder[];
   holdings: Holding[];
+  transactions: Transaction[];
 }
 
 /* ── members (enterprise-neutral) ── */
@@ -232,6 +233,36 @@ const seedHoldings: Holding[] = [
   },
 ];
 
+/* ── evidenced transactions (document-first money records, not a tracker) ── */
+const seedTransactions: Transaction[] = [
+  {
+    id: id(),
+    memberId: "you",
+    purpose: "Life insurance premium",
+    counterparty: "Aegis Life",
+    direction: "paid",
+    amount: 48000,
+    date: rel(-12),
+    docId: dId("Life Insurance"),
+    followUpOn: rel(6),
+    followUpNote: "Confirm premium receipt reflects on policy portal",
+    followUpDone: false,
+    addedAt: iso(-12),
+  },
+  {
+    id: id(),
+    memberId: "you",
+    purpose: "Property tax payment",
+    counterparty: "Municipal office",
+    direction: "paid",
+    amount: 22500,
+    date: rel(-30),
+    docId: dId("Property Tax"),
+    followUpDone: false,
+    addedAt: iso(-30),
+  },
+];
+
 /* ── health readings ── */
 const L = (memberId: string, metric: string, value: number, unit: string, date: string, value2?: number): LabLog => ({
   id: id(),
@@ -361,6 +392,7 @@ const DEFAULT: State = {
   meds: seedMeds,
   reminders: seedReminders,
   holdings: seedHoldings,
+  transactions: seedTransactions,
 };
 
 function load(): State {
@@ -378,6 +410,7 @@ function load(): State {
         reminders: p.reminders ?? DEFAULT.reminders,
         docs: p.docs ?? DEFAULT.docs,
         holdings: p.holdings ?? DEFAULT.holdings,
+        transactions: p.transactions ?? DEFAULT.transactions,
       };
     }
   } catch {}
@@ -501,10 +534,6 @@ export function useStore() {
     state = { ...state, reminders: state.reminders.filter((x) => x.id !== rid) };
     persist();
   }, []);
-  const addHolding = useCallback((h: Holding) => {
-    state = { ...state, holdings: [...state.holdings, h] };
-    persist();
-  }, []);
   const updateHolding = useCallback((hid: string, patch: Partial<Holding>) => {
     state = { ...state, holdings: state.holdings.map((h) => (h.id === hid ? { ...h, ...patch } : h)) };
     persist();
@@ -542,6 +571,59 @@ export function useStore() {
     };
     persist();
   }, []);
+  const addTransaction = useCallback(async (t: Omit<Transaction, "id" | "addedAt" | "docId">, evidence?: File) => {
+    let docId: string | undefined;
+    if (evidence) {
+      const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
+      try {
+        await putBlob(key, evidence);
+      } catch {}
+      const d: Doc = {
+        id: key,
+        name: evidence.name,
+        category: "Finance",
+        docType: "Transaction Evidence",
+        source: "Upload",
+        mime: evidence.type || "application/octet-stream",
+        sizeKB: Math.max(1, Math.round(evidence.size / 1024)),
+        addedAt: new Date().toISOString(),
+        docDate: t.date,
+        memberId: t.memberId || "you",
+        fileKey: key,
+        notes: t.purpose,
+      };
+      state = { ...state, docs: [d, ...state.docs] };
+      docId = key;
+    }
+    const tx: Transaction = { ...t, id: id(), addedAt: new Date().toISOString(), docId };
+    state = { ...state, transactions: [tx, ...state.transactions] };
+    persist();
+  }, []);
+  const updateTransaction = useCallback((tid: string, patch: Partial<Transaction>) => {
+    state = { ...state, transactions: state.transactions.map((t) => (t.id === tid ? { ...t, ...patch } : t)) };
+    persist();
+  }, []);
+  const removeTransaction = useCallback(async (tid: string) => {
+    const t = state.transactions.find((x) => x.id === tid);
+    if (t?.docId) {
+      const d = state.docs.find((x) => x.id === t.docId);
+      if (d && d.fileKey !== "seed") {
+        try {
+          await delBlob(d.fileKey);
+        } catch {}
+      }
+      state = { ...state, docs: state.docs.filter((x) => x.id !== t.docId) };
+    }
+    state = { ...state, transactions: state.transactions.filter((x) => x.id !== tid) };
+    persist();
+  }, []);
+  const completeFollowUp = useCallback((tid: string) => {
+    state = {
+      ...state,
+      transactions: state.transactions.map((t) => (t.id === tid ? { ...t, followUpDone: true } : t)),
+    };
+    persist();
+  }, []);
   const setOnboarded = useCallback((v: boolean) => {
     state = { ...state, onboarded: v };
     persist();
@@ -567,10 +649,13 @@ export function useStore() {
     addReminder,
     completeReminder,
     removeReminder,
-    addHolding,
     updateHolding,
     removeHolding,
     attachDocToHolding,
+    addTransaction,
+    updateTransaction,
+    removeTransaction,
+    completeFollowUp,
     setOnboarded,
     reset,
   };
