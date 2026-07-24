@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import type { Doc, Member, LabLog, Medication, Reminder, Category, Holding, Transaction } from "./types";
+import type { Doc, Member, LabLog, Medication, Reminder, Category, Holding, Transaction, Handoff } from "./types";
 import { putBlob, delBlob } from "./idb";
 import { classify } from "./classify";
 
@@ -25,6 +25,7 @@ interface State {
   reminders: Reminder[];
   holdings: Holding[];
   transactions: Transaction[];
+  handoff: Handoff | null;
 }
 
 /* ── members (enterprise-neutral) ── */
@@ -182,6 +183,7 @@ const seedHoldings: Holding[] = [
     value: 18500000,
     nominee: true,
     nomineeName: "Jordan Morgan",
+    accessNote: "Original deed in bank locker \u2022114, Meridian MG Road",
     docId: dId("Property Deed"),
   },
   {
@@ -393,7 +395,61 @@ const DEFAULT: State = {
   reminders: seedReminders,
   holdings: seedHoldings,
   transactions: seedTransactions,
+  handoff: null,
 };
+
+/* ── visit-pack selector: the data-layer ("backend") filter for Prepare-for-visit.
+   Given the chosen doctor/appointment, returns the member's relevant real documents,
+   filtered by specialty keywords and recency, sorted by clinical priority then date. ── */
+const MED_PRIORITY: Record<string, number> = { prescription: 0, lab_report: 1, discharge: 2, scan: 3, other: 4 };
+const SPECIALTY_KEYWORDS: [RegExp, string[]][] = [
+  [/endocrin|diabet|thyroid|sugar|glucose/i, ["hba1c", "glucose", "tsh", "thyroid", "metformin", "sugar", "ldl"]],
+  [
+    /cardio|heart|hypertens|pressure|\bbp\b/i,
+    ["pressure", "bp", "ldl", "lipid", "cholesterol", "cardio", "ecg", "echo", "telmisartan", "statin", "atorvastatin"],
+  ],
+  [/pediatr|child/i, ["vaccin", "mmr", "growth", "weight"]],
+  [/ortho|bone|joint/i, ["x-ray", "xray", "mri", "scan", "fracture"]],
+];
+export function selectVisitDocs(docs: Doc[], memberId: string, visitLabel?: string): Doc[] {
+  const when = (d: Doc) => +new Date(d.docDate || d.addedAt);
+  const monthsAgo = (n: number) => Date.now() - n * 30 * 86400000;
+  const mine = docs.filter((d) => d.category === "Medical" && d.memberId === memberId);
+  const insurance = docs.find(
+    (d) => d.docType === "Health Insurance" && (d.memberId === memberId || d.memberId === "you"),
+  );
+  let picked: Doc[];
+  if (!visitLabel) {
+    // general checkup: everything from the last 12 months, plus the latest prescription regardless of age
+    picked = mine.filter((d) => when(d) >= monthsAgo(12));
+    const latestRx = mine.filter((d) => d.medType === "prescription").sort((a, b) => when(b) - when(a))[0];
+    if (latestRx && !picked.includes(latestRx)) picked.push(latestRx);
+  } else {
+    const kw = new Set<string>(
+      visitLabel
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((w) => w.length > 3),
+    );
+    SPECIALTY_KEYWORDS.forEach(([re, words]) => {
+      if (re.test(visitLabel)) words.forEach((w) => kw.add(w));
+    });
+    const matches = (d: Doc) => {
+      const hay = `${d.name} ${d.docType} ${d.notes || ""}`.toLowerCase();
+      return [...kw].some((w) => hay.includes(w));
+    };
+    // specialist visit: recent prescriptions and lab reports always travel; anything keyword-relevant from any age
+    picked = mine.filter(
+      (d) => ((d.medType === "prescription" || d.medType === "lab_report") && when(d) >= monthsAgo(6)) || matches(d),
+    );
+  }
+  if (insurance && !picked.includes(insurance)) picked.push(insurance);
+  return [...new Set(picked)].sort((a, b) => {
+    const pa = MED_PRIORITY[a.medType || "other"] ?? 4;
+    const pb = MED_PRIORITY[b.medType || "other"] ?? 4;
+    return pa !== pb ? pa - pb : when(b) - when(a);
+  });
+}
 
 function load(): State {
   if (typeof window === "undefined") return DEFAULT;
@@ -411,6 +467,7 @@ function load(): State {
         docs: p.docs ?? DEFAULT.docs,
         holdings: p.holdings ?? DEFAULT.holdings,
         transactions: p.transactions ?? DEFAULT.transactions,
+        handoff: p.handoff ?? null,
       };
     }
   } catch {}
@@ -624,6 +681,14 @@ export function useStore() {
     };
     persist();
   }, []);
+  const releaseHandoff = useCallback((recipients: string[]) => {
+    state = { ...state, handoff: { releasedAt: new Date().toISOString(), recipients } };
+    persist();
+  }, []);
+  const cancelHandoff = useCallback(() => {
+    state = { ...state, handoff: null };
+    persist();
+  }, []);
   const setOnboarded = useCallback((v: boolean) => {
     state = { ...state, onboarded: v };
     persist();
@@ -656,6 +721,8 @@ export function useStore() {
     updateTransaction,
     removeTransaction,
     completeFollowUp,
+    releaseHandoff,
+    cancelHandoff,
     setOnboarded,
     reset,
   };
