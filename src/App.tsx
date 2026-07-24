@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access, Holding, Transaction, Reminder } from "@/lib/types";
-import Healthcare, { METRICS, statusOf, sortR } from "@/components/Healthcare";
+import Healthcare from "@/components/Healthcare";
 import { buildZip } from "@/lib/zip";
 import DocViewer from "@/components/DocViewer";
 
@@ -320,7 +320,16 @@ function Home({ store, go, toast }: any) {
   const worst = [...scored].sort((a, b) => a.score - b.score)[0];
   const expiring = store.docs.filter((d: Doc) => d.expiry && daysTo(d.expiry) < 60);
 
-  type Act = { id: string; label: string; who?: string; whoColor?: string; when: string; tone: string; rid?: string };
+  type Act = {
+    id: string;
+    label: string;
+    who?: string;
+    whoColor?: string;
+    when: string;
+    tone: string;
+    rid?: string;
+    txId?: string;
+  };
   const docActs: Act[] = expiring
     .sort((a: Doc, b: Doc) => +new Date(a.expiry!) - +new Date(b.expiry!))
     .map((d: Doc) => {
@@ -351,30 +360,11 @@ function Home({ store, go, toast }: any) {
             urgency: dd < 0 ? -1000 + dd : dd,
           });
         });
-      const by: Record<string, any[]> = {};
-      store.labs
-        .filter((l: any) => l.memberId === mm.id && (METRICS as any)[l.metric])
-        .forEach((l: any) => (by[l.metric] ||= []).push(l));
-      Object.keys(by).forEach((k) => {
-        by[k].sort(sortR);
-        if (statusOf(k, by[k]) === "out") {
-          const last = by[k][by[k].length - 1];
-          acts.push({
-            id: mm.id + k,
-            label: `${k} ${(METRICS as any)[k].bp ? `${last.value}/${last.value2}` : last.value} ${(METRICS as any)[k].unit} · above range`,
-            who: first,
-            whoColor: mm.color,
-            when: "review",
-            tone: T.coral,
-            urgency: -500,
-          });
-        }
-      });
     });
     return acts.sort((a, b) => a.urgency - b.urgency);
   }, [store.members, store.reminders, store.labs]);
   const txFollowUps = store.transactions.filter(
-    (t: Transaction) => !t.followUpDone && t.followUpOn && daysTo(t.followUpOn) <= 30,
+    (t: Transaction) => !t.followUpDone && t.followUpOn && daysTo(t.followUpOn) <= 45,
   );
   const holdingGaps: Act[] = [];
   store.holdings.forEach((h: Holding) => {
@@ -398,6 +388,7 @@ function Home({ store, go, toast }: any) {
   const wealthActs: Act[] = [
     ...txFollowUps.map((t: Transaction) => ({
       id: t.id,
+      txId: t.id,
       label: `Follow up: ${t.purpose}${t.followUpNote ? ` · ${t.followUpNote}` : ""}`,
       when: daysTo(t.followUpOn!) <= 0 ? "due" : `in ${daysTo(t.followUpOn!)}d`,
       tone: daysTo(t.followUpOn!) <= 0 ? T.coral : A.blue,
@@ -556,12 +547,12 @@ function Home({ store, go, toast }: any) {
                     >
                       {a.when}
                     </span>
-                    {a.rid && (
+                    {(a.rid || a.txId) && (
                       <button
                         title="Mark done"
                         onClick={(e) => {
                           e.stopPropagation();
-                          store.completeReminder(a.rid);
+                          a.rid ? store.completeReminder(a.rid) : store.completeFollowUp(a.txId);
                           toast("Marked done");
                         }}
                         style={{ ...btnGhost, padding: 6 }}
@@ -3205,30 +3196,18 @@ function TransactionModal({ members, onClose, onSave }: any) {
           }}
         >
           <ChevronDown size={13} style={{ transform: more ? "rotate(180deg)" : "none", transition: ".15s" }} />
-          {more ? "Fewer details" : "More details (who, whose, follow-up)"}
+          {more ? "Fewer details" : "More details (who, follow-up)"}
         </button>
         {more && (
           <>
-            <div style={{ display: "flex", gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <label style={lbl}>Counterparty</label>
-                <input
-                  style={inp}
-                  value={f.counterparty}
-                  onChange={(e) => setF({ ...f, counterparty: e.target.value })}
-                  placeholder="Person or institution"
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={lbl}>Family member</label>
-                <select style={inp} value={f.memberId} onChange={(e) => setF({ ...f, memberId: e.target.value })}>
-                  {members.map((m: Member) => (
-                    <option key={m.id} value={m.id} style={{ color: "#000" }}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label style={lbl}>Who (any person or institution)</label>
+              <input
+                style={inp}
+                value={f.counterparty}
+                onChange={(e) => setF({ ...f, counterparty: e.target.value })}
+                placeholder="e.g. Ramesh (contractor), Aegis Life, landlord"
+              />
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <div style={{ flex: 1 }}>
