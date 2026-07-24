@@ -33,7 +33,8 @@ import {
   IdCard,
   ChevronDown,
 } from "lucide-react";
-import { useStore } from "../lib/store";
+import { useStore, selectVisitDocs } from "../lib/store";
+import { buildZip } from "../lib/zip";
 import DocViewer from "./DocViewer";
 import type { Doc, Member, LabLog, Medication, ReminderKind } from "../lib/types";
 
@@ -251,10 +252,16 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
     return outs;
   };
   const memberStatus = (mid: string) => {
-    const outs = outMetricsOf(mid);
+    const nextAppt = s.reminders
+      .filter((r) => r.memberId === mid && !r.done && r.kind === "appointment" && daysTo(r.due) >= 0)
+      .sort((a, b) => a.due.localeCompare(b.due))[0];
     const due = s.reminders.filter((r) => r.memberId === mid && !r.done && daysTo(r.due) <= 30).length;
-    if (outs.length) return { txt: `${outs[0].k}${outs.length > 1 ? ` +${outs.length - 1}` : ""} to review`, c: C.red };
+    const newDocs = s.docs.filter(
+      (d) => d.category === "Medical" && d.memberId === mid && (Date.now() - +new Date(d.addedAt)) / 86400000 <= 7,
+    ).length;
+    if (nextAppt && daysTo(nextAppt.due) <= 30) return { txt: `Appointment in ${daysTo(nextAppt.due)}d`, c: C.gold };
     if (due) return { txt: `${due} due soon`, c: C.gold };
+    if (newDocs) return { txt: `${newDocs} new document${newDocs === 1 ? "" : "s"}`, c: C.cyan };
     return { txt: "Up to date", c: C.emerald };
   };
   const familyActions = useMemo(() => {
@@ -297,19 +304,6 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
             rid: r.id,
           });
         });
-      outMetricsOf(mm.id).forEach(({ k, last }) => {
-        acts.push({
-          mid: mm.id,
-          name: first,
-          color: mm.color,
-          icon: Activity,
-          iconC: C.red,
-          label: `${k} ${METRICS[k].bp ? `${last.value}/${last.value2}` : last.value} ${METRICS[k].unit} · above range`,
-          when: "review",
-          urgency: -500,
-          kind: "reading",
-        });
-      });
     });
     return acts.sort((a, b) => a.urgency - b.urgency);
   }, [s.members, s.reminders, s.labs]);
@@ -421,10 +415,6 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
       .join(" ");
   }, [vitals, m]);
 
-  const visitHTML = useMemo(
-    () => buildVisitPack(m, care, meds, vitals, records, s.docs),
-    [m, care, meds, vitals, records, s.docs],
-  );
   const emergHTML = useMemo(() => buildEmergency(m, care, meds, s.docs), [m, care, meds, s.docs]);
   const doExport = (html: string, name: string) => {
     const b = new Blob([html], { type: "text/html" });
@@ -610,6 +600,9 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
               const prev = arr.length > 1 ? arr[arr.length - 2] : null;
               const delta = prev ? l.value - prev.value : 0;
               const Tr = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+              const srcDoc = records
+                .filter((r) => r.medType === "lab_report" && (r.docDate || r.addedAt).slice(0, 10) <= l.date)
+                .sort((a, b) => (b.docDate || b.addedAt).localeCompare(a.docDate || a.addedAt))[0];
               return (
                 <div key={k} className="lh-card" style={{ padding: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -628,6 +621,38 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
                     <Tr size={14} color={delta === 0 ? C.faint : delta > 0 ? C.red : C.emerald} />
                   </div>
                   <MiniChart arr={arr} metric={k} color={SM[st].c === C.faint ? C.cyan : SM[st].c} />
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginTop: 10,
+                      fontSize: 11.5,
+                      color: C.faint,
+                    }}
+                  >
+                    <FlaskConical size={12} color={C.faint} />
+                    {srcDoc ? (
+                      <>
+                        <span
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          Source: {srcDoc.name} · {fmt(srcDoc.docDate || srcDoc.addedAt)}
+                        </span>
+                        <button className="lh-lnk" style={{ fontSize: 11.5 }} onClick={() => setViewDoc(srcDoc)}>
+                          View report
+                        </button>
+                      </>
+                    ) : (
+                      <span>Manually logged · {fmt(l.date)}</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -682,19 +707,67 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
             </div>
             <div className="lh-card" style={{ padding: 20 }}>
               <div className="lh-sechead">
-                <ShieldCheck size={16} color={C.sub} /> Care profile{" "}
+                <ShieldCheck size={16} color={C.sub} /> Medical readiness{" "}
                 <button className="lh-mini" onClick={() => setModal("profile")}>
                   <Edit3 size={12} /> Edit
                 </button>
               </div>
-              <Info2 label="Conditions" val={care.conditions.length ? care.conditions.join(", ") : "None recorded"} />
-              <Info2
-                label="Allergies"
-                val={care.allergies || "None recorded"}
-                warn={!!care.allergies && care.allergies !== "None recorded"}
-              />
-              <Info2 label="Blood group" val={m.bloodGroup || "—"} />
-              <Info2 label="Emergency" val={care.emergency || "—"} />
+              {(() => {
+                const items: [string, boolean][] = [
+                  ["Blood group", !!m.bloodGroup],
+                  ["Allergies recorded", !!care.allergies && care.allergies !== ""],
+                  ["Emergency contact", !!care.emergency],
+                  ["Primary doctor", !!care.doctor],
+                  ["Insurance on file", !!insuranceOf(m, s.docs)],
+                  ["Prescription on file", records.some((r) => r.medType === "prescription")],
+                ];
+                const done = items.filter(([, ok]) => ok).length;
+                const pct = Math.round((done / items.length) * 100);
+                const pc = pct >= 80 ? C.emerald : pct >= 50 ? C.gold : C.red;
+                return (
+                  <>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                      <span
+                        style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 24, fontWeight: 800, color: pc }}
+                      >
+                        {pct}%
+                      </span>
+                      <span style={{ fontSize: 12, color: C.faint }}>document completeness, not a health score</span>
+                    </div>
+                    <div
+                      style={{
+                        height: 6,
+                        borderRadius: 9,
+                        background: "rgba(255,255,255,.07)",
+                        margin: "9px 0 11px",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div style={{ width: `${pct}%`, height: "100%", background: pc, borderRadius: 9 }} />
+                    </div>
+                    {items.map(([label, ok]) => (
+                      <div
+                        key={label}
+                        style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", fontSize: 12.5 }}
+                      >
+                        <span style={{ color: ok ? C.emerald : C.red, fontWeight: 700, width: 14 }}>
+                          {ok ? "✓" : "✗"}
+                        </span>
+                        <span style={{ color: ok ? C.text : C.sub }}>{label}</span>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
+              <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 10, paddingTop: 8 }}>
+                <Info2 label="Conditions" val={care.conditions.length ? care.conditions.join(", ") : "None recorded"} />
+                <Info2
+                  label="Allergies"
+                  val={care.allergies || "None recorded"}
+                  warn={!!care.allergies && care.allergies !== "None recorded"}
+                />
+                <Info2 label="Emergency" val={care.emergency || "—"} />
+              </div>
             </div>
           </div>
         </div>
@@ -740,25 +813,27 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
         </div>
       )}
 
-      {/* ── MEDICATIONS (adherence) ── */}
+      {/* ── MEDICATIONS (document-derived, not an adherence tracker) ── */}
       {tab === "meds" && (
         <div className="lh-pane">
           <div className="lh-card" style={{ padding: 20 }}>
             <div className="lh-sechead">
-              <PillIcon size={16} color={C.sub} /> Medications{" "}
+              <PillIcon size={16} color={C.sub} /> Current medications{" "}
               <button className="lh-mini" onClick={() => setModal("med")}>
                 <Plus size={13} /> Add
               </button>
+            </div>
+            <div style={{ fontSize: 12, color: C.faint, marginBottom: 8 }}>
+              What the latest prescriptions say, not a pill tracker. Refill dates come from the prescription.
             </div>
             {meds.length === 0 ? (
               <Empty t="No medications recorded." />
             ) : (
               meds.map((med) => {
-                const takenToday = (med.taken || []).includes(today());
-                const missedYest =
-                  !(med.taken || []).includes(rel(-1)) && /dai|once|twice|morning|night/i.test(med.freq);
                 const rf = daysTo(med.refillBy);
-                const low = typeof med.remaining === "number" && med.remaining <= 7;
+                const latestRx = records
+                  .filter((r) => r.medType === "prescription")
+                  .sort((a, b) => (b.docDate || b.addedAt).localeCompare(a.docDate || a.addedAt))[0];
                 return (
                   <div key={med.id} className="lh-med">
                     <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
@@ -771,51 +846,28 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
                         </div>
                         <div style={{ fontSize: 12, color: C.faint }}>
                           {med.freq}
-                          {typeof med.remaining === "number" ? ` · ${med.remaining} left` : ""}
-                          {" · refill "}
-                          {fmt(med.refillBy)}
+                          {latestRx
+                            ? ` · source: ${latestRx.docType}, ${fmt(latestRx.docDate || latestRx.addedAt)}`
+                            : ""}
                         </div>
                       </div>
-                      {low && (
-                        <span className="lh-tag" style={{ color: C.gold, background: C.gold + "1f" }}>
-                          low stock
-                        </span>
-                      )}
-                      {rf < 0 && (
-                        <span className="lh-tag" style={{ color: C.red, background: C.red + "1f" }}>
-                          refill due
-                        </span>
-                      )}
-                    </div>
-                    <div className="lh-adhere">
-                      {takenToday ? (
-                        <span className="lh-taken">
-                          <CheckCircle2 size={15} color={C.emerald} /> Taken today
-                        </span>
-                      ) : (
-                        <button
-                          className="lh-take"
-                          onClick={() => {
-                            s.markTaken(med.id);
-                            toast("Logged as taken");
+                      {rf <= 14 && (
+                        <span
+                          className="lh-tag"
+                          style={{
+                            color: rf < 0 ? C.red : C.gold,
+                            background: (rf < 0 ? C.red : C.gold) + "1f",
                           }}
                         >
-                          <Check size={14} /> Mark taken
+                          {rf < 0 ? "refill overdue" : `refill due ${fmt(med.refillBy)}`}
+                        </span>
+                      )}
+                      {latestRx && (
+                        <button className="lh-lnk" onClick={() => setViewDoc(latestRx)}>
+                          Latest prescription
                         </button>
                       )}
-                      {!takenToday && missedYest && (
-                        <span style={{ fontSize: 12, color: C.red }}>missed yesterday</span>
-                      )}
-                      <button
-                        className="lh-lnk"
-                        onClick={() => {
-                          s.refillMed(med.id, 30, 30);
-                          toast("Refill logged");
-                        }}
-                      >
-                        <RefreshCw size={13} /> Refill
-                      </button>
-                      <button className="lh-ib" style={{ marginLeft: "auto" }} onClick={() => s.removeMed(med.id)}>
+                      <button className="lh-ib" onClick={() => s.removeMed(med.id)}>
                         <Trash2 size={14} color={C.faint} />
                       </button>
                     </div>
@@ -835,18 +887,15 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
               <Stethoscope size={16} color={C.sub} /> Records
             </div>
             <div className="lh-uprow">
-              {RECORD_TYPES.map((rt) => (
-                <button
-                  key={rt.label}
-                  className="lh-up"
-                  onClick={() => {
-                    pendingRec.current = { override: rt.override, label: rt.short };
-                    recRef.current?.click();
-                  }}
-                >
-                  <rt.icon size={16} color={rt.c} /> {rt.label}
-                </button>
-              ))}
+              <button
+                className="lh-up"
+                onClick={() => {
+                  pendingRec.current = null;
+                  recRef.current?.click();
+                }}
+              >
+                <Upload size={16} color={C.gold} /> Upload medical record
+              </button>
               <input
                 ref={recRef}
                 type="file"
@@ -865,8 +914,8 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
               />
             </div>
             <div style={{ fontSize: 12, color: C.faint, marginBottom: 6 }}>
-              Pick what it is; LifePack files it and drops a copy into Documents. On mobile you can snap a photo or
-              choose from gallery.
+              Upload anything: LifePack identifies whether it is a prescription, lab report, scan, or discharge summary
+              and files it. A copy lands in Documents too.
             </div>
             {records.length === 0 ? (
               <Empty t="No records yet. Upload, scan, or pick from gallery. Each one also lands in Documents." />
@@ -991,12 +1040,10 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
               .filter((r) => r.memberId === sel && !r.done && r.kind === "appointment")
               .sort((a, b) => a.due.localeCompare(b.due))}
             doctor={care.doctor}
-            build={(ctx: any) => buildVisitPack(m, care, meds, vitals, records, s.docs, ctx)}
-            onExport={(html: string) => {
-              doExport(html, `VisitPack_${m.name}.html`);
-              toast("Visit pack ready");
-            }}
-            onPrint={(html: string) => doPrint(html)}
+            member={m}
+            docs={s.docs}
+            onView={(d: Doc) => setViewDoc(d)}
+            toast={toast}
             onClose={() => setModal(null)}
           />
         )}
@@ -1431,6 +1478,7 @@ function EditProfile({ member, care, onClose, save }: any) {
   const [ci, setCi] = useState("");
   const [allergies, setAll] = useState(care.allergies || "");
   const [doctor, setDoc] = useState(care.doctor || "");
+  const [hospital, setHosp] = useState(care.hospital || "");
   const [emergency, setEm] = useState(care.emergency || "");
   const [blood, setBlood] = useState(member.bloodGroup || "");
   return (
@@ -1496,6 +1544,15 @@ function EditProfile({ member, care, onClose, save }: any) {
         />
       </div>
       <div style={{ marginTop: 12 }}>
+        <Lbl>Preferred hospital</Lbl>
+        <input
+          className="lh-in"
+          value={hospital}
+          onChange={(e) => setHosp(e.target.value)}
+          placeholder="e.g. Apollo, Greams Road"
+        />
+      </div>
+      <div style={{ marginTop: 12 }}>
         <Lbl>Emergency contact</Lbl>
         <input
           className="lh-in"
@@ -1507,7 +1564,9 @@ function EditProfile({ member, care, onClose, save }: any) {
       <button
         className="lh-btn"
         style={{ width: "100%", justifyContent: "center", marginTop: 16 }}
-        onClick={() => save({ conditions: cond, allergies, doctor, emergency }, { bloodGroup: blood || undefined })}
+        onClick={() =>
+          save({ conditions: cond, allergies, doctor, hospital, emergency }, { bloodGroup: blood || undefined })
+        }
       >
         Save profile
       </button>
@@ -1515,21 +1574,46 @@ function EditProfile({ member, care, onClose, save }: any) {
   );
 }
 
-function VisitPrep({ appts, doctor, build, onExport, onPrint, onClose }: any) {
+function VisitPrep({ appts, doctor, member, docs, onView, toast, onClose }: any) {
   const opts = [
     ...appts.map((a: any) => ({ id: a.id, label: a.title, sub: `in ${daysTo(a.due)} days · ${fmt(a.due)}` })),
     ...(doctor ? [{ id: "doc", label: doctor, sub: "primary doctor" }] : []),
-    { id: "general", label: "General checkup", sub: "bring everything" },
+    { id: "general", label: "General checkup", sub: "everything recent" },
   ];
   const [chosen, setChosen] = useState(opts[0]?.id);
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
   const cur = opts.find((o: any) => o.id === chosen) || opts[opts.length - 1];
+  const visitLabel = cur.id === "general" ? undefined : cur.label;
+  const packDocs: Doc[] = useMemo(() => selectVisitDocs(docs, member.id, visitLabel), [docs, member.id, visitLabel]);
+  const included = packDocs.filter((d) => !excluded.has(d.id));
   const foc = focusFor(cur.label);
-  const html = build({ label: cur.label === "General checkup" ? undefined : cur.label, focus: foc });
+  const toggle = (id: string) =>
+    setExcluded((p) => {
+      const n = new Set(p);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  const pick = (id: string) => {
+    setChosen(id);
+    setExcluded(new Set());
+  };
+  const download = async () => {
+    if (!included.length || busy) return;
+    setBusy(true);
+    try {
+      await buildZip(`VisitPack_${member.name.split(" ")[0]}_${cur.label}`, included);
+      toast(`Visit pack with ${included.length} document${included.length === 1 ? "" : "s"} downloaded`);
+      onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className="lh-overlay" onClick={onClose}>
       <motion.div
         className="lh-modal"
-        style={{ width: "min(640px,100%)", maxHeight: "88vh", display: "flex", flexDirection: "column" }}
+        style={{ width: "min(600px,100%)", maxHeight: "88vh", display: "flex", flexDirection: "column" }}
         onClick={(e) => e.stopPropagation()}
         initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -1537,7 +1621,7 @@ function VisitPrep({ appts, doctor, build, onExport, onPrint, onClose }: any) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <div>
             <div className="lh-eyebrow" style={{ marginBottom: 4 }}>
-              One tap · assembled from your archive
+              Your real documents · filtered for this visit
             </div>
             <h3 className="lh-h2" style={{ fontSize: 19 }}>
               Prepare for visit
@@ -1550,7 +1634,7 @@ function VisitPrep({ appts, doctor, build, onExport, onPrint, onClose }: any) {
         <div className="lh-lbl">Preparing for which visit?</div>
         <div className="lh-pick" style={{ marginBottom: 6 }}>
           {opts.map((o: any) => (
-            <button key={o.id} className={"lh-pk" + (chosen === o.id ? " on" : "")} onClick={() => setChosen(o.id)}>
+            <button key={o.id} className={"lh-pk" + (chosen === o.id ? " on" : "")} onClick={() => pick(o.id)}>
               {o.label}
             </button>
           ))}
@@ -1558,96 +1642,91 @@ function VisitPrep({ appts, doctor, build, onExport, onPrint, onClose }: any) {
         <div style={{ fontSize: 12, color: C.faint, marginBottom: 12 }}>
           {cur.sub}
           {foc.length ? ` · prioritizes ${foc.join(", ")}` : ""}
+          {` · ${packDocs.length} matching document${packDocs.length === 1 ? "" : "s"}`}
         </div>
-        <div className="lh-preview" style={{ flex: 1, overflow: "auto" }} dangerouslySetInnerHTML={{ __html: html }} />
-        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-          <button className="lh-btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => onPrint(html)}>
-            <Printer size={16} /> Save as PDF
-          </button>
-          <button className="lh-btn-g" style={{ flex: 1, justifyContent: "center" }} onClick={() => onExport(html)}>
-            <Download size={16} /> Export
-          </button>
+        <div style={{ flex: 1, overflowY: "auto", border: `1px solid ${C.border}`, borderRadius: 12 }}>
+          {packDocs.length === 0 ? (
+            <div style={{ padding: 20, fontSize: 13.5, color: C.faint }}>
+              No matching records on file for this visit. Add prescriptions or reports under the Records tab and they
+              will be picked up here.
+            </div>
+          ) : (
+            packDocs.map((d, i) => {
+              const K = KIND[d.medType || "other"] || KIND.other;
+              const Ic = d.docType === "Health Insurance" ? ShieldCheck : K.icon;
+              const c = d.docType === "Health Insurance" ? C.emerald : K.c;
+              const on = !excluded.has(d.id);
+              return (
+                <div
+                  key={d.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 11,
+                    padding: "10px 13px",
+                    borderTop: i ? `1px solid ${C.border}` : "none",
+                    opacity: on ? 1 : 0.45,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() => toggle(d.id)}
+                    style={{ accentColor: C.gold, cursor: "pointer", flexShrink: 0 }}
+                  />
+                  <span className="lh-ic" style={{ background: c + "22" }}>
+                    <Ic size={15} color={c} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{d.docType}</div>
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        color: C.faint,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {d.name} · {fmt(d.docDate || d.addedAt)}
+                    </div>
+                  </div>
+                  <button className="lh-lnk" onClick={() => onView(d)}>
+                    View
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
+        <button
+          className="lh-btn"
+          style={{
+            width: "100%",
+            justifyContent: "center",
+            marginTop: 14,
+            opacity: included.length && !busy ? 1 : 0.45,
+          }}
+          disabled={!included.length || busy}
+          onClick={download}
+        >
+          <Download size={16} /> {busy ? "Packing…" : `Download visit pack (${included.length})`}
+        </button>
       </motion.div>
     </div>
   );
 }
 
 /* ── printable docs (assembled from the archive) ── */
-function focusTable(focus: string[], vitals: Record<string, LabLog[]>) {
-  const rows = focus
-    .filter((k) => vitals[k]?.length)
-    .map((k) => {
-      const arr = vitals[k];
-      const l = arr[arr.length - 1];
-      const st = METRICS[k].status(l.value, l.value2);
-      const val = METRICS[k].bp ? `${l.value}/${l.value2}` : `${l.value} ${METRICS[k].unit}`;
-      return `<tr><td style="padding:4px 10px">${k}</td><td style="padding:4px 10px;font-weight:700">${val}</td><td style="padding:4px 10px;color:#6b7280">${SM[st].label}</td></tr>`;
-    })
-    .join("");
-  return rows
-    ? `<table style="width:100%;border-collapse:collapse;font-size:13px">${rows}</table>`
-    : `<div style="color:#9ca3af;font-size:13px">No related readings on file</div>`;
-}
 function insuranceOf(member: Member | undefined, docs: Doc[]) {
   return docs.find((d) => d.docType === "Health Insurance" && (d.memberId === member?.id || d.memberId === "you"));
-}
-function buildVisitPack(
-  m: Member | undefined,
-  care: any,
-  meds: Medication[],
-  vitals: Record<string, LabLog[]>,
-  records: Doc[],
-  docs: Doc[],
-  ctx?: { label?: string; focus?: string[] },
-) {
-  if (!m) return "";
-  const a = age(m.dob);
-  const latestRx = records.filter((r) => r.medType === "prescription")[0];
-  const last3Labs = records.filter((r) => r.medType === "lab_report").slice(0, 3);
-  const notes = records.filter((r) => r.medType === "discharge");
-  const scans = records.filter((r) => r.medType === "scan");
-  const ins = insuranceOf(m, docs);
-  const sec = (t: string, body: string) =>
-    `<h3 style="margin:16px 0 6px;font-size:14px;color:#111827">${t}</h3>${body}`;
-  const ul = (items: string[]) =>
-    items.length
-      ? `<ul style="margin:0;padding-left:18px;line-height:1.7;color:#374151;font-size:13px">${items.map((i) => `<li>${i}</li>`).join("")}</ul>`
-      : `<div style="color:#9ca3af;font-size:13px">None on file</div>`;
-  const vitalRows =
-    Object.keys(vitals)
-      .map((k) => {
-        const arr = vitals[k];
-        const l = arr[arr.length - 1];
-        const st = METRICS[k].status(l.value, l.value2);
-        const val = METRICS[k].bp ? `${l.value}/${l.value2}` : `${l.value} ${METRICS[k].unit}`;
-        return `<tr><td style="padding:4px 10px">${k}</td><td style="padding:4px 10px;font-weight:600">${val}</td><td style="padding:4px 10px;color:#6b7280">${fmt(l.date)}</td><td style="padding:4px 10px">${SM[st].label}</td></tr>`;
-      })
-      .join("") || `<tr><td colspan="4" style="padding:6px 10px;color:#9ca3af">No readings</td></tr>`;
-  return `<div style="font-family:Inter,Arial,sans-serif;color:#111827;background:#fff;padding:22px;border-radius:8px">
-  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8B25A;padding-bottom:10px">
-    <div><div style="font-weight:800;font-size:17px">LifePack · Doctor Visit Pack</div><div style="color:#6b7280;font-size:12px">Assembled ${new Date().toLocaleString()}</div></div>
-    <div style="text-align:right"><div style="font-size:18px;font-weight:800">${m.name}</div><div style="color:#6b7280;font-size:12px">${m.relation}${a != null ? ` · ${a}y` : ""}${m.bloodGroup ? ` · Blood ${m.bloodGroup}` : ""}</div></div>
-  </div>
-  ${ctx?.label ? `<div style="margin:10px 0 2px;font-size:13px;color:#374151"><b>Prepared for:</b> ${ctx.label}</div>` : ""}
-  ${ctx?.focus?.length ? sec("Focus for this visit", focusTable(ctx.focus, vitals)) : ""}
-  ${sec("Chronic conditions", ul(care.conditions || []))}
-  ${sec("Allergies", `<div style="font-size:13px;color:${care.allergies && care.allergies !== "None recorded" ? "#b91c1c" : "#374151"};font-weight:${care.allergies && care.allergies !== "None recorded" ? 700 : 400}">${care.allergies || "None recorded"}</div>`)}
-  ${sec("Current medications", ul(meds.map((x) => `${x.name} ${x.dose} — ${x.freq}`)))}
-  ${sec("Latest prescription", latestRx ? `<div style="font-size:13px;color:#374151">${latestRx.name} · ${fmt(latestRx.docDate || latestRx.addedAt)}</div>` : `<div style="color:#9ca3af;font-size:13px">None on file</div>`)}
-  ${sec("Last 3 lab reports", ul(last3Labs.map((r) => `${r.name} · ${fmt(r.docDate || r.addedAt)}`)))}
-  ${sec("Previous consultation notes", ul(notes.map((r) => `${r.name} · ${fmt(r.docDate || r.addedAt)}`)))}
-  ${sec("Relevant scans", ul(scans.map((r) => `${r.name} · ${fmt(r.docDate || r.addedAt)}`)))}
-  ${sec("Insurance", ins ? `<div style="font-size:13px;color:#374151">${ins.docType} — ${ins.name}${ins.expiry ? ` (valid to ${fmt(ins.expiry)})` : ""}</div>` : `<div style="color:#9ca3af;font-size:13px">None on file</div>`)}
-  ${sec("Recent readings", `<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="background:#f3f4f6"><th style="text-align:left;padding:4px 10px">Metric</th><th style="text-align:left;padding:4px 10px">Value</th><th style="text-align:left;padding:4px 10px">Date</th><th style="text-align:left;padding:4px 10px">Vs range</th></tr>${vitalRows}</table>`)}
-  <p style="margin-top:18px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:8px">Assembled by LifePack from records entered by the family. Not a medical document, diagnosis, or advice. Reference ranges are standard published values.</p>
-  </div>`;
 }
 function buildEmergency(m: Member | undefined, care: any, meds: Medication[], docs: Doc[]) {
   if (!m) return "";
   const ins = insuranceOf(m, docs);
+  const medDocs = docs.filter((d) => d.category === "Medical" && d.memberId === m.id).length;
   const row = (a: string, b: string, warn?: boolean) =>
-    `<tr><td style="padding:7px 12px;color:#6b7280;font-size:12px;width:130px">${a}</td><td style="padding:7px 12px;font-weight:700;font-size:14px;color:${warn ? "#b91c1c" : "#111827"}">${b}</td></tr>`;
+    `<tr><td style="padding:7px 12px;color:#6b7280;font-size:12px;width:140px">${a}</td><td style="padding:7px 12px;font-weight:700;font-size:14px;color:${warn ? "#b91c1c" : "#111827"}">${b}</td></tr>`;
   return `<div style="font-family:Inter,Arial,sans-serif;max-width:460px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
   <div style="background:#b91c1c;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
     <div style="font-weight:800;font-size:15px;letter-spacing:1px">EMERGENCY INFO</div><div style="font-size:12px;opacity:.9">LifePack</div>
@@ -1655,13 +1734,16 @@ function buildEmergency(m: Member | undefined, care: any, meds: Medication[], do
   <div style="padding:6px 4px"><table style="width:100%;border-collapse:collapse">
     ${row("Name", m.name)}
     ${row("Blood group", m.bloodGroup || "—")}
-    ${row("Allergies", care.allergies || "None recorded", care.allergies && care.allergies !== "None recorded")}
+    ${row("Critical allergies", care.allergies || "None recorded", care.allergies && care.allergies !== "None recorded")}
     ${row("Conditions", (care.conditions || []).join(", ") || "None recorded")}
     ${row("Current meds", meds.map((x) => `${x.name} ${x.dose}`).join(", ") || "None")}
+    ${row("Primary physician", care.doctor || "—")}
+    ${row("Preferred hospital", care.hospital || "—")}
     ${row("Emergency contact", care.emergency || "—")}
     ${row("Insurance", ins ? ins.name : "—")}
+    ${row("Medical documents", `${medDocs} on file in LifePack`)}
   </table></div>
-  <div style="padding:10px 16px;background:#f9fafb;color:#9ca3af;font-size:11px;border-top:1px solid #e5e7eb">Carry or screenshot this card. Data stays on your device.</div>
+  <div style="padding:10px 16px;background:#f9fafb;color:#9ca3af;font-size:11px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between"><span>Assembled facts only · no diagnosis.</span><span>Generated ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
   </div>`;
 }
 
