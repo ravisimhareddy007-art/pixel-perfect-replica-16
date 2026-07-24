@@ -1855,23 +1855,71 @@ function Wealth({ store, go, toast }: any) {
   const readiness = Math.round(
     (sum(guarded.filter((h) => h.nominee && h.docId && h.accessNote)) / (sum(guarded) || 1)) * 100,
   );
+  const missNom = guarded.filter((h) => !h.nominee).length;
+  const missDoc = guarded.filter((h) => !h.docId).length;
+  const missAcc = guarded.filter((h) => !h.accessNote).length;
+  const fixMins = missNom * 2 + missDoc * 3 + missAcc * 2;
+  const readyColor = readiness >= 80 ? T.mint : readiness >= 50 ? T.gold : T.coral;
   const trusted = store.members.filter((m: Member) => m.access === "Full member" || m.access === "Emergency access");
   const linkedDoc = (h: Holding) => store.docs.find((d: Doc) => d.id === h.docId) || null;
 
-  const gaps: { h: Holding; kind: "nominee" | "doc" | "renewal" | "maturity" | "access"; label: string }[] = [];
+  type Sev = "critical" | "important" | "info";
+  const SEVC: Record<Sev, string> = { critical: T.coral, important: T.gold, info: A.blue };
+  const gaps: {
+    h: Holding;
+    kind: "nominee" | "doc" | "renewal" | "maturity" | "access";
+    sev: Sev;
+    label: string;
+    impact: string;
+  }[] = [];
   H.forEach((h) => {
     const guardedKind = h.kind === "asset" || h.kind === "cover";
-    if (guardedKind && !h.docId) gaps.push({ h, kind: "doc", label: `${h.name} · no document on file` });
+    const v = h.value || 0;
+    if (guardedKind && !h.nominee)
+      gaps.push({
+        h,
+        kind: "nominee",
+        sev: "critical",
+        label: `${h.name} · no nominee named`,
+        impact: "legal heir process instead of a claim · typically 6+ months",
+      });
+    if (guardedKind && !h.docId)
+      gaps.push({
+        h,
+        kind: "doc",
+        sev: v >= 1000000 ? "critical" : "important",
+        label: `${h.name} · no document on file`,
+        impact: `${money(v)} undocumented · claims stall without proof`,
+      });
     if (guardedKind && !h.accessNote)
-      gaps.push({ h, kind: "access", label: `${h.name} · no access instructions for the family` });
-    if (guardedKind && !h.nominee) gaps.push({ h, kind: "nominee", label: `${h.name} · no nominee named` });
+      gaps.push({
+        h,
+        kind: "access",
+        sev: v >= 500000 ? "critical" : "important",
+        label: `${h.name} · no access instructions`,
+        impact: `${money(v)} effectively locked for the family`,
+      });
     if (h.maturityDate && daysTo(h.maturityDate) >= 0 && daysTo(h.maturityDate) < 60)
-      gaps.push({ h, kind: "maturity", label: `${h.name} matures in ${daysTo(h.maturityDate)} days` });
+      gaps.push({
+        h,
+        kind: "maturity",
+        sev: "info",
+        label: `${h.name} matures in ${daysTo(h.maturityDate)} days`,
+        impact: "decide renewal or reinvestment",
+      });
   });
   covers.forEach((c) => {
     if (c.renewalDate && daysTo(c.renewalDate) < 60)
-      gaps.push({ h: c, kind: "renewal", label: `${c.name} renews in ${daysTo(c.renewalDate)} days` });
+      gaps.push({
+        h: c,
+        kind: "renewal",
+        sev: daysTo(c.renewalDate) < 15 ? "critical" : "important",
+        label: `${c.name} renews in ${daysTo(c.renewalDate)} days`,
+        impact: "cover lapses if the premium is missed",
+      });
   });
+  const sevRank: Record<Sev, number> = { critical: 0, important: 1, info: 2 };
+  gaps.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]);
   const txs: Transaction[] = store.transactions;
 
   const attach = (h: Holding) => {
@@ -1895,18 +1943,37 @@ function Wealth({ store, go, toast }: any) {
       </div>
     </Card>
   );
+  const Chip = ({ ok, label }: { ok: boolean; label: string }) => (
+    <span
+      style={{
+        fontSize: 10.5,
+        fontWeight: 700,
+        fontFamily: "ui-monospace, monospace",
+        color: ok ? T.mint : T.coral,
+        background: (ok ? T.mint : T.coral) + "14",
+        border: `1px solid ${ok ? T.mint : T.coral}44`,
+        borderRadius: 6,
+        padding: "2px 7px",
+      }}
+    >
+      {ok ? "✓" : "✗"} {label}
+    </span>
+  );
   const Row = ({ h }: { h: Holding }) => {
     const d = linkedDoc(h);
     const accent = h.kind === "liability" ? T.coral : h.kind === "cover" ? A.teal : T.gold;
     const Ic = h.kind === "liability" ? Landmark : h.kind === "cover" ? ShieldCheck : Coins;
+    const guardedKind = h.kind === "asset" || h.kind === "cover";
     return (
       <div
+        onClick={() => setEdit(h)}
         style={{
           display: "flex",
           alignItems: "center",
           gap: 12,
           padding: "13px 16px",
           borderTop: `1px solid ${T.border}`,
+          cursor: "pointer",
         }}
       >
         <span
@@ -1940,28 +2007,32 @@ function Wealth({ store, go, toast }: any) {
           {h.kind === "liability" ? "\u2212" : ""}
           {money(h.value || 0)}
         </span>
-        {(h.kind === "asset" || h.kind === "cover") &&
-          (h.nominee ? (
-            <span style={pill(T.mint)} title={h.nomineeName || ""}>
-              nominee
+        {guardedKind && (
+          <span style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                d ? setViewDoc(d) : attach(h);
+              }}
+              style={{ cursor: "pointer" }}
+              title={d ? "View document" : "Attach document"}
+            >
+              <Chip ok={!!d} label="Doc" />
             </span>
-          ) : (
-            <button onClick={() => setNomineeFor(h)} style={{ ...pill(T.coral), cursor: "pointer" }}>
-              add nominee
-            </button>
-          ))}
-        {d ? (
-          <button onClick={() => setViewDoc(d)} style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}>
-            View
-          </button>
-        ) : h.kind !== "liability" ? (
-          <button onClick={() => attach(h)} style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}>
-            Attach
-          </button>
-        ) : null}
-        <button onClick={() => setEdit(h)} title="Edit" style={{ ...btnGhost, padding: 7 }}>
-          <Pencil size={14} />
-        </button>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!h.nominee) setNomineeFor(h);
+              }}
+              style={{ cursor: h.nominee ? "default" : "pointer" }}
+              title={h.nominee ? h.nomineeName || "Nominee named" : "Add nominee"}
+            >
+              <Chip ok={!!h.nominee} label="Nominee" />
+            </span>
+            <Chip ok={!!h.accessNote} label="Access" />
+          </span>
+        )}
+        <ChevronRight size={14} color={T.faint} />
       </div>
     );
   };
@@ -1973,13 +2044,13 @@ function Wealth({ store, go, toast }: any) {
 
   return (
     <div>
-      <SectionHead title="Wealth" sub="Everything you own and owe, read from your documents and ready to hand on." />
+      <SectionHead
+        title="Wealth"
+        sub="Not a balance sheet: whether your family could access all of it if something happened to you."
+      />
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "0 0 28px" }}>
-        <button onClick={() => setEstate(true)} style={btnGold}>
-          <FileText size={15} /> Estate summary
-        </button>
         <button onClick={() => setAddTx(true)} style={btnGhost}>
-          <Receipt size={15} /> Add transaction
+          <Receipt size={15} /> Capture proof
         </button>
         <button
           onClick={() => setSos(true)}
@@ -2004,7 +2075,7 @@ function Wealth({ store, go, toast }: any) {
         >
           <Siren size={16} color={T.coral} />
           <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>
-            <b style={{ color: T.coral }}>SOS handoff active</b> since{" "}
+            <b style={{ color: T.coral }}>SOS handoff active</b> ({store.handoff.reason}) since{" "}
             {new Date(store.handoff.releasedAt).toLocaleString("en-US", {
               month: "short",
               day: "numeric",
@@ -2031,15 +2102,114 @@ function Wealth({ store, go, toast }: any) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gridTemplateColumns: "minmax(0, 1.5fr) minmax(250px, 1fr)",
           gap: 14,
-          marginBottom: 24,
+          marginBottom: 16,
         }}
       >
-        {stat("Net worth", money(net), T.white)}
-        {stat("Assets", money(totalAssets), T.mint)}
-        {stat("Liabilities", money(totalLiab), T.coral)}
-        {stat("Protection", money(totalCover), A.teal)}
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <KeyRound size={15} color={T.muted} />
+            <b style={{ color: T.white, fontSize: 14.5 }}>Estate readiness</b>
+            <span style={{ marginLeft: "auto", fontSize: 12, color: T.muted }}>{guarded.length} holdings tracked</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 38, fontWeight: 800, color: readyColor }}>
+              {readiness}%
+            </span>
+            <span style={{ fontSize: 13, color: T.muted }}>of documented value your family could actually reach</span>
+          </div>
+          <div style={{ height: 8, borderRadius: 9, background: T.raised, margin: "12px 0 14px", overflow: "hidden" }}>
+            <div style={{ width: `${readiness}%`, height: "100%", borderRadius: 9, background: readyColor }} />
+          </div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5 }}>
+            <span style={{ color: missNom ? T.coral : T.mint }}>
+              {missNom} missing nominee{missNom === 1 ? "" : "s"}
+            </span>
+            <span style={{ color: missDoc ? T.coral : T.mint }}>
+              {missDoc} missing document{missDoc === 1 ? "" : "s"}
+            </span>
+            <span style={{ color: missAcc ? T.gold : T.mint }}>
+              {missAcc} missing access instruction{missAcc === 1 ? "" : "s"}
+            </span>
+            {fixMins > 0 && (
+              <span style={{ color: T.muted, marginLeft: "auto", fontFamily: "ui-monospace, monospace" }}>
+                ~{fixMins} min to fix
+              </span>
+            )}
+          </div>
+        </Card>
+        <button
+          onClick={() => setEstate(true)}
+          style={{
+            textAlign: "left",
+            cursor: "pointer",
+            border: `1px solid ${T.gold}66`,
+            borderRadius: 14,
+            padding: 18,
+            background: `linear-gradient(160deg, ${T.gold}1f, ${T.panel})`,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <FileText size={16} color={T.gold} />
+              <b style={{ color: T.white, fontSize: 15.5 }}>Estate summary</b>
+            </div>
+            <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6, lineHeight: 1.5 }}>
+              The one document your family opens first: every holding, nominee, location, and the first steps to take.
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, fontWeight: 700, color: readyColor }}>
+              {readiness}% ready for family
+            </span>
+            <span
+              style={{
+                marginLeft: "auto",
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: T.gold,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              Preview <ArrowRight size={14} />
+            </span>
+          </div>
+        </button>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          gap: 22,
+          flexWrap: "wrap",
+          alignItems: "center",
+          padding: "10px 16px",
+          border: `1px solid ${T.border}`,
+          borderRadius: 12,
+          background: T.panel,
+          marginBottom: 24,
+          fontFamily: "ui-monospace, monospace",
+          fontSize: 13.5,
+        }}
+      >
+        <span style={{ color: T.muted }}>
+          Net worth <b style={{ color: T.white }}>{money(net)}</b>
+        </span>
+        <span style={{ color: T.muted }}>
+          Assets <b style={{ color: T.mint }}>{money(totalAssets)}</b>
+        </span>
+        <span style={{ color: T.muted }}>
+          Liabilities <b style={{ color: T.coral }}>{money(totalLiab)}</b>
+        </span>
+        <span style={{ color: T.muted }}>
+          Protection <b style={{ color: A.teal }}>{money(totalCover)}</b>
+        </span>
       </div>
 
       {gaps.length > 0 && (
@@ -2052,52 +2222,50 @@ function Wealth({ store, go, toast }: any) {
           {gaps.map((g, i) => (
             <div
               key={i}
+              onClick={() =>
+                g.kind === "nominee" ? setNomineeFor(g.h) : g.kind === "doc" ? attach(g.h) : setEdit(g.h)
+              }
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
                 padding: "11px 16px",
                 borderTop: `1px solid ${T.border}`,
+                cursor: "pointer",
               }}
             >
               <span
                 style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 9,
-                  background: g.kind === "renewal" ? T.gold : T.coral,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 1,
+                  fontFamily: "ui-monospace, monospace",
+                  color: SEVC[g.sev],
+                  border: `1px solid ${SEVC[g.sev]}55`,
+                  background: SEVC[g.sev] + "14",
+                  borderRadius: 6,
+                  padding: "3px 7px",
                   flexShrink: 0,
+                  width: 86,
+                  textAlign: "center",
                 }}
-              />
-              <span style={{ flex: 1, fontSize: 14, color: T.text }}>{g.label}</span>
-              {g.kind === "nominee" && (
-                <button onClick={() => setNomineeFor(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
-                  Add nominee
-                </button>
-              )}
-              {g.kind === "doc" && (
-                <button onClick={() => attach(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
-                  Attach
-                </button>
-              )}
-              {(g.kind === "access" || g.kind === "maturity") && (
-                <button onClick={() => setEdit(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
-                  {g.kind === "access" ? "Add note" : "Update"}
-                </button>
-              )}
-              {g.kind === "renewal" &&
-                (linkedDoc(g.h) ? (
-                  <button
-                    onClick={() => setViewDoc(linkedDoc(g.h)!)}
-                    style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}
-                  >
-                    View
-                  </button>
-                ) : (
-                  <button onClick={() => setEdit(g.h)} style={{ ...btnGhost, padding: "6px 12px", fontSize: 12.5 }}>
-                    Update
-                  </button>
-                ))}
+              >
+                {g.sev.toUpperCase()}
+              </span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 14, color: T.text, fontWeight: 600 }}>{g.label}</span>
+                <span style={{ display: "block", fontSize: 12, color: T.muted, marginTop: 1 }}>{g.impact}</span>
+              </span>
+              <span style={{ fontSize: 12.5, color: SEVC[g.sev], fontWeight: 700, flexShrink: 0 }}>
+                {g.kind === "nominee"
+                  ? "Add nominee"
+                  : g.kind === "doc"
+                    ? "Attach"
+                    : g.kind === "access"
+                      ? "Add note"
+                      : "Review"}
+              </span>
+              <ChevronRight size={14} color={T.faint} />
             </div>
           ))}
         </Card>
@@ -2130,7 +2298,7 @@ function Wealth({ store, go, toast }: any) {
           <Card style={{ padding: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px" }}>
               <Receipt size={16} color={T.muted} />
-              <b style={{ color: T.white, fontSize: 14.5 }}>Transactions on record</b>
+              <b style={{ color: T.white, fontSize: 14.5 }}>Proof of payments</b>
               <button
                 onClick={() => setAddTx(true)}
                 style={{ ...btnGhost, marginLeft: "auto", padding: "6px 12px", fontSize: 12.5 }}
@@ -2630,6 +2798,10 @@ function SOSHandoffModal({ store, toast, onClose }: any) {
     (m: Member) => m.access === "Emergency access" || m.access === "Full member",
   );
   const [chosen, setChosen] = useState<Set<string>>(new Set(recipients.map((m) => m.id)));
+  const [reason, setReason] = useState<
+    "" | "Medical emergency" | "Travel emergency" | "Death of a family member" | "Temporary incapacity"
+  >("");
+  const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const wealthDocIds = new Set<string>();
   store.holdings.forEach((h: Holding) => h.docId && wealthDocIds.add(h.docId));
@@ -2645,7 +2817,7 @@ function SOSHandoffModal({ store, toast, onClose }: any) {
       return n;
     });
   const release = async () => {
-    if (!chosen.size || busy) return;
+    if (!chosen.size || !reason || !ack || busy) return;
     setBusy(true);
     try {
       const estate = buildEstate(store);
@@ -2657,7 +2829,7 @@ function SOSHandoffModal({ store, toast, onClose }: any) {
       a.click();
       URL.revokeObjectURL(u);
       await buildZip("SOS_Handoff_Documents", wealthDocs);
-      store.releaseHandoff([...chosen]);
+      store.releaseHandoff([...chosen], reason);
       toast("SOS handoff released · pack downloaded");
       onClose();
     } finally {
@@ -2764,21 +2936,81 @@ function SOSHandoffModal({ store, toast, onClose }: any) {
         )}
         <div
           style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            color: T.muted,
+            fontFamily: "ui-monospace, monospace",
+            margin: "16px 0 6px",
+          }}
+        >
+          Why is this being released?
+        </div>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          {(["Medical emergency", "Travel emergency", "Death of a family member", "Temporary incapacity"] as const).map(
+            (r) => (
+              <button
+                key={r}
+                onClick={() => setReason(r)}
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  padding: "7px 12px",
+                  borderRadius: 9,
+                  cursor: "pointer",
+                  border: `1px solid ${reason === r ? T.coral : T.border}`,
+                  background: reason === r ? T.coral + "1f" : "transparent",
+                  color: reason === r ? T.coral : T.muted,
+                }}
+              >
+                {r}
+              </button>
+            ),
+          )}
+        </div>
+        <div
+          style={{
             marginTop: 14,
             borderRadius: 11,
             border: `1px solid ${T.border}`,
             background: T.raised,
             padding: "11px 13px",
             fontSize: 12.5,
-            color: T.muted,
-            lineHeight: 1.6,
+            lineHeight: 1.7,
           }}
         >
-          What they receive: the estate summary (assets, liabilities, protection, nominees, where every document lives),
-          the linked documents themselves, and your access instructions per holding.
+          <div style={{ color: T.text, fontWeight: 700, marginBottom: 4 }}>They receive</div>
+          <div style={{ color: T.mint }}>✓ Estate summary with first steps for the family</div>
+          <div style={{ color: T.mint }}>✓ {wealthDocs.length} wealth documents (deeds, policies, statements)</div>
+          <div style={{ color: T.mint }}>✓ Access instructions per holding</div>
+          <div style={{ color: T.muted, marginTop: 4 }}>
+            ✗ Health records · ✗ personal notes · ✗ anything outside Wealth
+          </div>
         </div>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 9,
+            marginTop: 12,
+            fontSize: 12.5,
+            color: T.muted,
+            cursor: "pointer",
+            lineHeight: 1.5,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={ack}
+            onChange={(e) => setAck(e.target.checked)}
+            style={{ accentColor: T.coral, marginTop: 2 }}
+          />
+          I understand this shares my financial documents with the selected people now, and that I can cancel and revoke
+          access at any time.
+        </label>
         <button
-          disabled={!chosen.size || busy}
+          disabled={!chosen.size || !reason || !ack || busy}
           onClick={release}
           style={{
             ...btnGold,
@@ -2786,7 +3018,7 @@ function SOSHandoffModal({ store, toast, onClose }: any) {
             justifyContent: "center",
             marginTop: 16,
             background: T.coral,
-            opacity: chosen.size && !busy ? 1 : 0.4,
+            opacity: chosen.size && reason && ack && !busy ? 1 : 0.4,
           }}
         >
           <Siren size={15} />{" "}
@@ -2798,6 +3030,9 @@ function SOSHandoffModal({ store, toast, onClose }: any) {
 }
 
 function TransactionModal({ members, onClose, onSave }: any) {
+  const [evidence, setEvidence] = useState<File | null>(null);
+  const [more, setMore] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [f, setF] = useState({
     purpose: "",
     counterparty: "",
@@ -2808,8 +3043,18 @@ function TransactionModal({ members, onClose, onSave }: any) {
     followUpOn: "",
     followUpNote: "",
   });
-  const [evidence, setEvidence] = useState<File | null>(null);
-  const [saving, setSaving] = useState(false);
+  const onProof = (file: File | null) => {
+    setEvidence(file);
+    if (file && !f.purpose) {
+      const guess = file.name
+        .replace(/\.[a-z0-9]+$/i, "")
+        .replace(/[_-]+/g, " ")
+        .replace(/\b(img|scan|screenshot|receipt|wa|photo)\b/gi, "")
+        .replace(/\d{6,}/g, "")
+        .trim();
+      if (guess) setF((p) => ({ ...p, purpose: guess.charAt(0).toUpperCase() + guess.slice(1) }));
+    }
+  };
   const valid = f.purpose.trim() && Number(f.amount) > 0;
   const inp: CSSProperties = {
     width: "100%",
@@ -2851,31 +3096,80 @@ function TransactionModal({ members, onClose, onSave }: any) {
           background: T.panel,
           border: `1px solid ${T.border}`,
           borderRadius: 16,
-          width: "min(460px,100%)",
+          width: "min(440px,100%)",
           maxHeight: "92vh",
           overflowY: "auto",
           padding: 22,
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-          <b style={{ color: T.white, fontSize: 18 }}>Add a transaction</b>
+          <b style={{ color: T.white, fontSize: 18 }}>Capture proof</b>
           <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
             <X size={16} />
           </button>
         </div>
-        <p style={{ fontSize: 12.5, color: T.muted, margin: 0 }}>
-          A record with evidence, not a ledger. Attach the screenshot or receipt so it lives with your documents.
+        <p style={{ fontSize: 12.5, color: T.muted, margin: "0 0 14px" }}>
+          "I paid this." Attach the screenshot or receipt, confirm three details, done.
         </p>
-        <label style={lbl}>What was it for</label>
+        <label
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
+            padding: evidence ? "14px" : "22px 14px",
+            borderRadius: 12,
+            border: `1.5px dashed ${evidence ? T.mint + "77" : T.border}`,
+            background: evidence ? T.mint + "0d" : T.raised + "66",
+            cursor: "pointer",
+            textAlign: "center",
+          }}
+        >
+          {evidence ? (
+            <>
+              <CheckCircle2 size={20} color={T.mint} />
+              <span style={{ fontSize: 13, color: T.text, fontWeight: 600, wordBreak: "break-all" }}>
+                {evidence.name}
+              </span>
+              <span style={{ fontSize: 11.5, color: T.muted }}>Tap to replace</span>
+            </>
+          ) : (
+            <>
+              <Paperclip size={20} color={T.gold} />
+              <span style={{ fontSize: 13.5, color: T.text, fontWeight: 600 }}>Photo · screenshot · receipt · PDF</span>
+              <span style={{ fontSize: 11.5, color: T.muted }}>
+                The proof is the record; it files into Documents too
+              </span>
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            hidden
+            onChange={(e) => onProof(e.target.files?.[0] || null)}
+          />
+        </label>
+        <label style={lbl}>What was it</label>
         <input
           style={inp}
           value={f.purpose}
           onChange={(e) => setF({ ...f, purpose: e.target.value })}
-          placeholder="e.g. Advance to contractor, LIC premium"
+          placeholder="e.g. LIC premium, advance to contractor"
         />
         <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1.2 }}>
+            <label style={lbl}>Amount</label>
+            <input
+              style={inp}
+              type="number"
+              min="0"
+              value={f.amount}
+              onChange={(e) => setF({ ...f, amount: e.target.value })}
+              placeholder="0"
+            />
+          </div>
           <div style={{ flex: 1 }}>
-            <label style={lbl}>Paid or received</label>
+            <label style={lbl}>Direction</label>
             <select
               style={inp}
               value={f.direction}
@@ -2890,78 +3184,74 @@ function TransactionModal({ members, onClose, onSave }: any) {
             </select>
           </div>
           <div style={{ flex: 1 }}>
-            <label style={lbl}>Amount</label>
-            <input
-              style={inp}
-              type="number"
-              min="0"
-              value={f.amount}
-              onChange={(e) => setF({ ...f, amount: e.target.value })}
-              placeholder="0"
-            />
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <label style={lbl}>Counterparty</label>
-            <input
-              style={inp}
-              value={f.counterparty}
-              onChange={(e) => setF({ ...f, counterparty: e.target.value })}
-              placeholder="Person or institution"
-            />
-          </div>
-          <div style={{ flex: 1 }}>
             <label style={lbl}>Date</label>
             <input style={inp} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
           </div>
         </div>
-        <label style={lbl}>Family member</label>
-        <select style={inp} value={f.memberId} onChange={(e) => setF({ ...f, memberId: e.target.value })}>
-          {members.map((m: Member) => (
-            <option key={m.id} value={m.id} style={{ color: "#000" }}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-        <label style={lbl}>Evidence (screenshot or receipt)</label>
-        <label
+        <button
+          onClick={() => setMore((v) => !v)}
           style={{
-            ...btnGhost,
+            background: "none",
+            border: "none",
             cursor: "pointer",
-            width: "100%",
-            justifyContent: "center",
-            borderStyle: "dashed",
+            color: T.muted,
+            fontSize: 12.5,
+            fontWeight: 600,
+            padding: 0,
+            marginTop: 12,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
           }}
         >
-          <Paperclip size={14} /> {evidence ? evidence.name : "Attach a file"}
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            hidden
-            onChange={(e) => setEvidence(e.target.files?.[0] || null)}
-          />
-        </label>
-        <div style={{ display: "flex", gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <label style={lbl}>Follow up on (optional)</label>
-            <input
-              style={inp}
-              type="date"
-              value={f.followUpOn}
-              onChange={(e) => setF({ ...f, followUpOn: e.target.value })}
-            />
-          </div>
-          <div style={{ flex: 1.4 }}>
-            <label style={lbl}>Follow-up note</label>
-            <input
-              style={inp}
-              value={f.followUpNote}
-              onChange={(e) => setF({ ...f, followUpNote: e.target.value })}
-              placeholder="e.g. check if cheque cleared"
-            />
-          </div>
-        </div>
+          <ChevronDown size={13} style={{ transform: more ? "rotate(180deg)" : "none", transition: ".15s" }} />
+          {more ? "Fewer details" : "More details (who, whose, follow-up)"}
+        </button>
+        {more && (
+          <>
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Counterparty</label>
+                <input
+                  style={inp}
+                  value={f.counterparty}
+                  onChange={(e) => setF({ ...f, counterparty: e.target.value })}
+                  placeholder="Person or institution"
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Family member</label>
+                <select style={inp} value={f.memberId} onChange={(e) => setF({ ...f, memberId: e.target.value })}>
+                  {members.map((m: Member) => (
+                    <option key={m.id} value={m.id} style={{ color: "#000" }}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>Follow up on</label>
+                <input
+                  style={inp}
+                  type="date"
+                  value={f.followUpOn}
+                  onChange={(e) => setF({ ...f, followUpOn: e.target.value })}
+                />
+              </div>
+              <div style={{ flex: 1.4 }}>
+                <label style={lbl}>Follow-up note</label>
+                <input
+                  style={inp}
+                  value={f.followUpNote}
+                  onChange={(e) => setF({ ...f, followUpNote: e.target.value })}
+                  placeholder="e.g. check if cheque cleared"
+                />
+              </div>
+            </div>
+          </>
+        )}
         <button
           disabled={!valid || saving}
           onClick={async () => {
@@ -2986,11 +3276,11 @@ function TransactionModal({ members, onClose, onSave }: any) {
             ...btnGold,
             width: "100%",
             justifyContent: "center",
-            marginTop: 18,
+            marginTop: 16,
             opacity: valid && !saving ? 1 : 0.4,
           }}
         >
-          {saving ? "Saving…" : "Save transaction"}
+          {saving ? "Saving…" : "Confirm"}
         </button>
       </div>
     </div>
@@ -3382,6 +3672,20 @@ function buildEstate(store: any): string {
   ${secTable("Assets", A_, true)}
   ${secTable("Liabilities", L_, false)}
   ${secTable("Insurance & protection", C_, true)}
+  <h3 style="margin:18px 0 6px;font-size:14px;color:#111827">If something happens: first steps for the family</h3>
+  <ol style="margin:0;padding-left:18px;line-height:1.8;color:#374151;font-size:13px">
+    ${C_.map((c) => `<li>File the ${c.type.toLowerCase()} claim with <b>${c.institution || "the insurer"}</b>${c.accessNote ? ` — ${c.accessNote}` : ""}${c.nominee ? ` (nominee: ${c.nomineeName || "named"})` : ` <span style="color:#b91c1c;font-weight:700">(no nominee — expect a legal-heir process)</span>`}</li>`).join("")}
+    ${[...new Set(A_.map((h) => h.institution).filter(Boolean))].map((inst) => `<li>Visit or contact <b>${inst}</b> with the death certificate, ID proof, and the account references above</li>`).join("")}
+    <li>Documents attached in the handoff pack: ${A_.concat(C_).filter((h) => h.docId).length} of ${A_.concat(C_).length} holdings have proof on file${
+      A_.concat(C_).filter((h) => !h.docId).length
+        ? ` — <span style="color:#b91c1c;font-weight:700">${A_.concat(C_)
+            .filter((h) => !h.docId)
+            .map((h) => h.name)
+            .join(", ")} missing</span>`
+        : ""
+    }</li>
+    ${L_.length ? `<li>Outstanding liabilities to settle or transfer: ${L_.map((l) => `${l.name} (${l.institution || ""})`).join(", ")}</li>` : ""}
+  </ol>
   <h3 style="margin:18px 0 6px;font-size:14px;color:#111827">Who can help</h3><ul style="margin:0;padding-left:18px;line-height:1.7;color:#374151;font-size:13px">${trusted.map((mm: Member) => `<li>${mm.name} \u2014 ${mm.relation} (${mm.access})</li>`).join("") || "<li>No trusted contacts set</li>"}</ul>
   <p style="margin-top:22px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:10px">Prepared by LifePack from your own records. Account references are masked. This is an organizational summary \u2014 not a will, and not legal, tax, or financial advice. Confirm nominee and succession details with each institution and a professional.</p>
   </body></html>`;
