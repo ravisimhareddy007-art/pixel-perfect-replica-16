@@ -1041,6 +1041,10 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
               .sort((a, b) => a.due.localeCompare(b.due))}
             doctor={care.doctor}
             member={m}
+            care={care}
+            meds={meds}
+            vitals={vitals}
+            records={records}
             docs={s.docs}
             onView={(d: Doc) => setViewDoc(d)}
             toast={toast}
@@ -1574,7 +1578,44 @@ function EditProfile({ member, care, onClose, save }: any) {
   );
 }
 
-function VisitPrep({ appts, doctor, member, docs, onView, toast, onClose }: any) {
+function buildVisitCover(
+  m: Member,
+  care: any,
+  meds: Medication[],
+  vitals: Record<string, LabLog[]>,
+  records: Doc[],
+  included: Doc[],
+  visitLabel: string,
+) {
+  const a = age(m.dob);
+  const srcFor = (date: string) =>
+    records
+      .filter((r) => r.medType === "lab_report" && (r.docDate || r.addedAt).slice(0, 10) <= date)
+      .sort((x, y) => (y.docDate || y.addedAt).localeCompare(x.docDate || x.addedAt))[0];
+  const readingRows = Object.keys(vitals)
+    .map((k) => {
+      const l = vitals[k][vitals[k].length - 1];
+      const val = METRICS[k].bp ? `${l.value}/${l.value2}` : `${l.value}`;
+      const src = srcFor(l.date);
+      return `<tr><td style="padding:5px 10px">${k}</td><td style="padding:5px 10px;font-weight:700">${val} ${METRICS[k].unit}</td><td style="padding:5px 10px;color:#6b7280">${fmt(l.date)}</td><td style="padding:5px 10px;color:#6b7280">${src ? src.name : "manually logged"}</td></tr>`;
+    })
+    .join("");
+  const sec = (t: string, body: string) =>
+    `<h3 style="margin:16px 0 6px;font-size:13.5px;color:#111827">${t}</h3>${body}`;
+  return `<div style="font-family:Inter,Arial,sans-serif;color:#111827;background:#fff;padding:24px;max-width:680px;margin:0 auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8B25A;padding-bottom:10px">
+    <div><div style="font-weight:800;font-size:18px">LifePack · Visit Pack</div><div style="color:#6b7280;font-size:12.5px">${visitLabel}</div></div>
+    <div style="text-align:right"><div style="font-weight:800;font-size:15px">${m.name}</div><div style="color:#6b7280;font-size:12px">${m.relation}${a != null ? ` · ${a}y` : ""}${m.bloodGroup ? ` · ${m.bloodGroup}` : ""}</div></div>
+  </div>
+  ${sec("Critical", `<div style="font-size:13px;line-height:1.7"><b style="color:#b91c1c">Allergies:</b> ${care.allergies || "None recorded"}<br/><b>Conditions:</b> ${(care.conditions || []).join(", ") || "None recorded"}<br/><b>Primary physician:</b> ${care.doctor || "—"}${care.hospital ? `<br/><b>Preferred hospital:</b> ${care.hospital}` : ""}</div>`)}
+  ${sec("Current medications", meds.length ? `<ul style="margin:0;padding-left:18px;line-height:1.7;font-size:13px">${meds.map((x) => `<li>${x.name} ${x.dose} · ${x.freq} · refill by ${fmt(x.refillBy)}</li>`).join("")}</ul>` : `<div style="color:#9ca3af;font-size:13px">None recorded</div>`)}
+  ${sec("Latest readings (with source document)", readingRows ? `<table style="width:100%;border-collapse:collapse;font-size:12.5px"><tr style="background:#f3f4f6"><th style="text-align:left;padding:5px 10px;font-size:11px;color:#6b7280">Metric</th><th style="text-align:left;padding:5px 10px;font-size:11px;color:#6b7280">Value</th><th style="text-align:left;padding:5px 10px;font-size:11px;color:#6b7280">Date</th><th style="text-align:left;padding:5px 10px;font-size:11px;color:#6b7280">Source</th></tr>${readingRows}</table>` : `<div style="color:#9ca3af;font-size:13px">No readings tracked</div>`)}
+  ${sec(`Documents in this pack (${included.length})`, included.length ? `<ol style="margin:0;padding-left:18px;line-height:1.7;font-size:13px">${included.map((d) => `<li>${d.docType} · ${d.name} · ${fmt(d.docDate || d.addedAt)}</li>`).join("")}</ol>` : `<div style="color:#9ca3af;font-size:13px">None selected</div>`)}
+  <p style="margin-top:20px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:9px">Assembled from ${m.name.split(" ")[0]}'s own records on ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}. Facts only — no diagnosis, no medical advice.</p>
+  </div>`;
+}
+
+function VisitPrep({ appts, doctor, member, care, meds, vitals, records, docs, onView, toast, onClose }: any) {
   const opts = [
     ...appts.map((a: any) => ({ id: a.id, label: a.title, sub: `in ${daysTo(a.due)} days · ${fmt(a.due)}` })),
     ...(doctor ? [{ id: "doc", label: doctor, sub: "primary doctor" }] : []),
@@ -1598,12 +1639,19 @@ function VisitPrep({ appts, doctor, member, docs, onView, toast, onClose }: any)
     setChosen(id);
     setExcluded(new Set());
   };
+  const coverHTML = () => buildVisitCover(member, care, meds, vitals, records, included, cur.label);
+  const previewCover = () => {
+    const b = new Blob([coverHTML()], { type: "text/html" });
+    window.open(URL.createObjectURL(b), "_blank");
+  };
   const download = async () => {
-    if (!included.length || busy) return;
+    if (busy) return;
     setBusy(true);
     try {
-      await buildZip(`VisitPack_${member.name.split(" ")[0]}_${cur.label}`, included);
-      toast(`Visit pack with ${included.length} document${included.length === 1 ? "" : "s"} downloaded`);
+      await buildZip(`VisitPack_${member.name.split(" ")[0]}_${cur.label}`, included, [
+        { name: "00_Visit_Cover_Sheet.html", content: coverHTML() },
+      ]);
+      toast(`Visit pack downloaded: cover sheet + ${included.length} document${included.length === 1 ? "" : "s"}`);
       onClose();
     } finally {
       setBusy(false);
@@ -1646,9 +1694,10 @@ function VisitPrep({ appts, doctor, member, docs, onView, toast, onClose }: any)
         </div>
         <div style={{ flex: 1, overflowY: "auto", border: `1px solid ${C.border}`, borderRadius: 12 }}>
           {packDocs.length === 0 ? (
-            <div style={{ padding: 20, fontSize: 13.5, color: C.faint }}>
-              No matching records on file for this visit. Add prescriptions or reports under the Records tab and they
-              will be picked up here.
+            <div style={{ padding: 20, fontSize: 13.5, color: C.faint, lineHeight: 1.6 }}>
+              {member.name.split(" ")[0]} has no matching medical records on file yet. The cover sheet still carries
+              allergies, conditions, medications, readings, and physician details, so the pack is useful on its own. Add
+              prescriptions or reports under Records and they will be picked up here.
             </div>
           ) : (
             packDocs.map((d, i) => {
@@ -1699,18 +1748,37 @@ function VisitPrep({ appts, doctor, member, docs, onView, toast, onClose }: any)
             })
           )}
         </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            marginTop: 12,
+            padding: "10px 13px",
+            borderRadius: 11,
+            border: `1px solid ${C.border}`,
+            background: "rgba(216,178,90,.06)",
+            fontSize: 12.5,
+            color: C.sub,
+          }}
+        >
+          <ClipboardList size={14} color={C.gold} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>
+            The pack opens with a cover sheet: {member.name.split(" ")[0]}'s allergies, conditions, medications, latest
+            readings with sources, and the document list · then the {included.length} selected file
+            {included.length === 1 ? "" : "s"}.
+          </span>
+          <button className="lh-lnk" style={{ flexShrink: 0 }} onClick={previewCover}>
+            Preview cover
+          </button>
+        </div>
         <button
           className="lh-btn"
-          style={{
-            width: "100%",
-            justifyContent: "center",
-            marginTop: 14,
-            opacity: included.length && !busy ? 1 : 0.45,
-          }}
-          disabled={!included.length || busy}
+          style={{ width: "100%", justifyContent: "center", marginTop: 12, opacity: busy ? 0.45 : 1 }}
+          disabled={busy}
           onClick={download}
         >
-          <Download size={16} /> {busy ? "Packing…" : `Download visit pack (${included.length})`}
+          <Download size={16} /> {busy ? "Packing…" : `Download visit pack (cover + ${included.length})`}
         </button>
       </motion.div>
     </div>
