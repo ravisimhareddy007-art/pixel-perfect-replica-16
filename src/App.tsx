@@ -41,6 +41,8 @@ import {
   Receipt,
   Paperclip,
   Siren,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access, Holding, Transaction, Reminder } from "@/lib/types";
@@ -65,6 +67,14 @@ const T = {
 };
 const A = { blue: "#5B8DEF", purple: "#9B7BE8", teal: "#3FB9C7", pink: "#E86A9B", green: "#4FCB95", gold: "#D9B86A" };
 
+const APPCSS = `
+.lp-main{flex:1;min-width:0;padding:24px 34px 40px;max-width:1160px;margin:0 auto;width:100%}
+.lp-cols2{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.lp-hero2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(250px,1fr);gap:14px}
+@media(max-width:1020px){.lp-cols2{grid-template-columns:1fr}}
+@media(max-width:880px){.lp-hero2{grid-template-columns:1fr}}
+@media(max-width:760px){.lp-main{padding:16px 14px 30px}}
+`;
 /* ── helpers ── */
 const fmtDays = (expiry?: string) => {
   if (!expiry) return "-";
@@ -414,7 +424,14 @@ function Home({ store, go, toast }: any) {
         title={`Good evening, ${(store.members[0]?.name || "there").split(" ")[0]}`}
         sub="Your archive at a glance, and what needs attention today."
       />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 20 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
         {stats.map((s) => (
           <button
             key={s.label}
@@ -455,7 +472,7 @@ function Home({ store, go, toast }: any) {
           </button>
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16 }}>
+      <div className="lp-cols2">
         <Card style={{ padding: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "14px 16px" }}>
             <AlertTriangle size={16} color={totalActs ? T.gold : T.mint} />
@@ -669,7 +686,7 @@ function Packages({ store, toast }: any) {
           style={{ flex: 1, background: "none", border: "none", outline: "none", color: T.text, fontSize: 14 }}
         />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 12 }}>
         {list.map((e) => {
           const { score, got, total } = evalEvent(e, have);
           return (
@@ -1254,147 +1271,151 @@ function Documents({ store, toast }: any) {
         </div>
       )}
 
-      <Card style={{ padding: 0 }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: GRID,
-            gap: 10,
-            alignItems: "center",
-            padding: "12px 16px",
-            fontSize: 11,
-            fontWeight: 700,
-            color: T.muted,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            fontFamily: "ui-monospace, monospace",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={allSel}
-            onChange={toggleAll}
-            style={{ accentColor: T.gold, cursor: "pointer" }}
-          />
-          <span>Document</span>
-          <span>Person</span>
-          <span>Category</span>
-          <span>Source</span>
-          <span>Added</span>
-          <span>Expiry</span>
-          <span />
-        </div>
-        {filtered.length === 0 ? (
-          <div style={{ padding: "40px 16px", textAlign: "center" }}>
-            <FolderOpen size={30} color={T.faint} style={{ margin: "0 auto 10px", display: "block" }} />
-            <div style={{ color: T.text, fontWeight: 600, fontSize: 14.5 }}>
-              {docs.length === 0 ? "Nothing here yet" : "No documents match these filters"}
+      <Card style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <div style={{ minWidth: 780 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: GRID,
+                gap: 10,
+                alignItems: "center",
+                padding: "12px 16px",
+                fontSize: 11,
+                fontWeight: 700,
+                color: T.muted,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                fontFamily: "ui-monospace, monospace",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={allSel}
+                onChange={toggleAll}
+                style={{ accentColor: T.gold, cursor: "pointer" }}
+              />
+              <span>Document</span>
+              <span>Person</span>
+              <span>Category</span>
+              <span>Source</span>
+              <span>Added</span>
+              <span>Expiry</span>
+              <span />
             </div>
-            <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
-              {docs.length === 0
-                ? "Upload a file and it files itself."
-                : "Try clearing the search or switching a filter."}
-            </div>
-          </div>
-        ) : (
-          filtered.map((d) => {
-            const Ic = CAT_META[d.category].icon;
-            const col = CAT_META[d.category].color;
-            const active = open?.id === d.id;
-            return (
-              <div
-                key={d.id}
-                onClick={() => setOpen(d)}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: GRID,
-                  gap: 10,
-                  alignItems: "center",
-                  padding: "11px 16px",
-                  borderTop: `1px solid ${T.border}`,
-                  cursor: "pointer",
-                  background: active ? T.raised : sel.has(d.id) ? T.raised + "88" : "transparent",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={sel.has(d.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  onChange={() => toggle(d.id)}
-                  style={{ accentColor: T.gold, cursor: "pointer" }}
-                />
-                <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                  <span
+            {filtered.length === 0 ? (
+              <div style={{ padding: "40px 16px", textAlign: "center" }}>
+                <FolderOpen size={30} color={T.faint} style={{ margin: "0 auto 10px", display: "block" }} />
+                <div style={{ color: T.text, fontWeight: 600, fontSize: 14.5 }}>
+                  {docs.length === 0 ? "Nothing here yet" : "No documents match these filters"}
+                </div>
+                <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
+                  {docs.length === 0
+                    ? "Upload a file and it files itself."
+                    : "Try clearing the search or switching a filter."}
+                </div>
+              </div>
+            ) : (
+              filtered.map((d) => {
+                const Ic = CAT_META[d.category].icon;
+                const col = CAT_META[d.category].color;
+                const active = open?.id === d.id;
+                return (
+                  <div
+                    key={d.id}
+                    onClick={() => setOpen(d)}
                     style={{
                       display: "grid",
-                      placeItems: "center",
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
-                      background: col + "22",
-                      flexShrink: 0,
+                      gridTemplateColumns: GRID,
+                      gap: 10,
+                      alignItems: "center",
+                      padding: "11px 16px",
+                      borderTop: `1px solid ${T.border}`,
+                      cursor: "pointer",
+                      background: active ? T.raised : sel.has(d.id) ? T.raised + "88" : "transparent",
                     }}
                   >
-                    <Ic size={14} color={col} />
-                  </span>
-                  <span style={{ minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: T.white,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {d.docType}
+                    <input
+                      type="checkbox"
+                      checked={sel.has(d.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={() => toggle(d.id)}
+                      style={{ accentColor: T.gold, cursor: "pointer" }}
+                    />
+                    <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <span
+                        style={{
+                          display: "grid",
+                          placeItems: "center",
+                          width: 30,
+                          height: 30,
+                          borderRadius: 8,
+                          background: col + "22",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Ic size={14} color={col} />
+                      </span>
+                      <span style={{ minWidth: 0 }}>
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: T.white,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {d.docType}
+                        </span>
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: 11.5,
+                            color: T.faint,
+                            fontFamily: "ui-monospace, monospace",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {d.name}
+                        </span>
+                      </span>
                     </span>
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: 11.5,
-                        color: T.faint,
-                        fontFamily: "ui-monospace, monospace",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {d.name}
+                    <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                      <span
+                        style={{ width: 8, height: 8, borderRadius: 9, background: colorOf(d.memberId), flexShrink: 0 }}
+                      />
+                      <span
+                        style={{
+                          fontSize: 13,
+                          color: T.text,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {nameOf(d.memberId)}
+                      </span>
                     </span>
-                  </span>
-                </span>
-                <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                  <span
-                    style={{ width: 8, height: 8, borderRadius: 9, background: colorOf(d.memberId), flexShrink: 0 }}
-                  />
-                  <span
-                    style={{
-                      fontSize: 13,
-                      color: T.text,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {nameOf(d.memberId)}
-                  </span>
-                </span>
-                <span>
-                  <span style={pill(col)}>{d.category}</span>
-                </span>
-                <span style={{ fontSize: 12.5, color: T.muted }}>{d.source}</span>
-                <span style={{ fontSize: 12.5, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
-                  {fdate(d.addedAt)}
-                </span>
-                <span style={{ fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{expiryCell(d)}</span>
-                <ChevronRight size={15} color={active ? T.gold : T.faint} />
-              </div>
-            );
-          })
-        )}
+                    <span>
+                      <span style={pill(col)}>{d.category}</span>
+                    </span>
+                    <span style={{ fontSize: 12.5, color: T.muted }}>{d.source}</span>
+                    <span style={{ fontSize: 12.5, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
+                      {fdate(d.addedAt)}
+                    </span>
+                    <span style={{ fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{expiryCell(d)}</span>
+                    <ChevronRight size={15} color={active ? T.gold : T.faint} />
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
       </Card>
 
       {open && (
@@ -2090,14 +2111,7 @@ function Wealth({ store, go, toast }: any) {
           </button>
         </div>
       )}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1.5fr) minmax(250px, 1fr)",
-          gap: 14,
-          marginBottom: 16,
-        }}
-      >
+      <div className="lp-hero2" style={{ marginBottom: 16 }}>
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
             <KeyRound size={15} color={T.muted} />
@@ -2262,7 +2276,7 @@ function Wealth({ store, go, toast }: any) {
         </Card>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16, alignItems: "start" }}>
+      <div className="lp-cols2">
         <div style={{ display: "grid", gap: 16 }}>
           {groups.map(([label, arr]) =>
             arr.length > 0 ? (
@@ -2514,7 +2528,14 @@ function Trust({ store, toast }: any) {
         title="Trust center"
         sub="In plain language: what is protected, who is in your archive, and what each person can reach."
       />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 20 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
         {[
           { icon: Lock, t: "Encrypted on device", s: "Your archive is encrypted locally. Even we cannot read it." },
           { icon: FolderOpen, t: `${store.docs.length} documents`, s: "All stored in one private, searchable graph." },
@@ -3673,6 +3694,7 @@ function buildEstate(store: any): string {
 export default function App() {
   const store = useStore();
   const [route, setRoute] = useState("home");
+  const [navOpen, setNavOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth > 760));
   const [query, setQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toast = (m: string) => {
@@ -3692,20 +3714,31 @@ export default function App() {
         color: T.text,
       }}
     >
+      <style>{APPCSS}</style>
       <aside
         style={{
-          width: 232,
+          width: navOpen ? 232 : 68,
           flexShrink: 0,
           borderRight: `1px solid ${T.border}`,
-          padding: 16,
+          padding: navOpen ? 16 : "16px 10px",
           position: "sticky",
           top: 0,
           height: "100vh",
           display: "flex",
           flexDirection: "column",
+          transition: "width .18s ease, padding .18s ease",
+          overflow: "hidden",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "6px 8px 22px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 11,
+            padding: navOpen ? "6px 8px 18px" : "6px 0 18px",
+            justifyContent: navOpen ? "flex-start" : "center",
+          }}
+        >
           <span
             style={{
               display: "grid",
@@ -3714,18 +3747,29 @@ export default function App() {
               height: 40,
               borderRadius: 11,
               background: `linear-gradient(135deg, ${T.gold}, ${T.goldBright})`,
+              flexShrink: 0,
             }}
           >
             <FileText size={20} color="#10182A" />
           </span>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: T.white }}>
-              LifePack <span style={{ color: T.gold }}>AI</span>
+          {navOpen && (
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: T.white, whiteSpace: "nowrap" }}>
+                LifePack <span style={{ color: T.gold }}>AI</span>
+              </div>
+              <div
+                style={{
+                  fontSize: 10,
+                  letterSpacing: 2,
+                  color: T.muted,
+                  fontFamily: "ui-monospace, monospace",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                LIVING ARCHIVE
+              </div>
             </div>
-            <div style={{ fontSize: 10, letterSpacing: 2, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
-              LIVING ARCHIVE
-            </div>
-          </div>
+          )}
         </div>
         <nav style={{ display: "grid", gap: 3 }}>
           {NAV.map(([key, label, Ic]) => {
@@ -3734,11 +3778,13 @@ export default function App() {
               <button
                 key={key}
                 onClick={() => setRoute(key)}
+                title={label}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 12,
-                  padding: "10px 12px",
+                  justifyContent: navOpen ? "flex-start" : "center",
+                  gap: navOpen ? 12 : 0,
+                  padding: navOpen ? "10px 12px" : "10px 0",
                   borderRadius: 10,
                   fontSize: 14,
                   fontWeight: 600,
@@ -3747,34 +3793,44 @@ export default function App() {
                   border: on ? `1px solid ${T.border}` : "1px solid transparent",
                   background: on ? T.raised : "transparent",
                   color: on ? T.white : T.muted,
+                  whiteSpace: "nowrap",
                 }}
               >
-                <Ic size={18} color={on ? T.gold : T.muted} /> {label}
+                <Ic size={18} color={on ? T.gold : T.muted} style={{ flexShrink: 0 }} /> {navOpen ? label : ""}
               </button>
             );
           })}
         </nav>
-        <div style={{ marginTop: "auto" }}>
-          <div
-            style={{
-              background: T.panel,
-              border: `1px solid ${T.border}`,
-              borderRadius: 12,
-              padding: 12,
-              display: "flex",
-              gap: 9,
-              alignItems: "flex-start",
-            }}
-          >
-            <ShieldCheck size={15} color={T.mint} style={{ marginTop: 1, flexShrink: 0 }} />
-            <span style={{ fontSize: 11.5, color: T.muted, lineHeight: 1.5 }}>
-              Encrypted on your device. Even we cannot read your archive.
-            </span>
-          </div>
-        </div>
+        <button
+          onClick={() => setNavOpen((v) => !v)}
+          title={navOpen ? "Collapse menu" : "Expand menu"}
+          style={{
+            marginTop: "auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            padding: "9px 0",
+            borderRadius: 10,
+            border: `1px solid ${T.border}`,
+            background: T.panel,
+            color: T.muted,
+            cursor: "pointer",
+            fontSize: 12.5,
+            fontWeight: 600,
+          }}
+        >
+          {navOpen ? (
+            <>
+              <ChevronsLeft size={16} /> Collapse
+            </>
+          ) : (
+            <ChevronsRight size={16} />
+          )}
+        </button>
       </aside>
 
-      <main style={{ flex: 1, minWidth: 0, padding: "24px 34px 40px", maxWidth: 1160, margin: "0 auto" }}>
+      <main className="lp-main">
         <div
           style={{
             display: route === "documents" ? "none" : "flex",
