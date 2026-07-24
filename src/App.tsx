@@ -1973,31 +1973,20 @@ function Wealth({ store, go, toast }: any) {
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          columnGap: 16,
-          rowGap: 0,
-          flexWrap: "wrap",
-        }}
-      >
-        <SectionHead title="Wealth" sub="Everything you own and owe, read from your documents and ready to hand on." />
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 18 }}>
-          <button onClick={() => setEstate(true)} style={btnGold}>
-            <FileText size={15} /> Estate summary
-          </button>
-          <button onClick={() => setAddTx(true)} style={btnGhost}>
-            <Receipt size={15} /> Add transaction
-          </button>
-          <button
-            onClick={() => setSos(true)}
-            style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "66", fontWeight: 700 }}
-          >
-            <Siren size={15} /> SOS handoff
-          </button>
-        </div>
+      <SectionHead title="Wealth" sub="Everything you own and owe, read from your documents and ready to hand on." />
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "-4px 0 20px" }}>
+        <button onClick={() => setEstate(true)} style={btnGold}>
+          <FileText size={15} /> Estate summary
+        </button>
+        <button onClick={() => setAddTx(true)} style={btnGhost}>
+          <Receipt size={15} /> Add transaction
+        </button>
+        <button
+          onClick={() => setSos(true)}
+          style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "66", fontWeight: 700 }}
+        >
+          <Siren size={15} /> SOS handoff
+        </button>
       </div>
 
       {store.handoff && (
