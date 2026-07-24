@@ -185,6 +185,7 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
   >(null);
   const [printHTML, setPrintHTML] = useState("");
   const [insightOpen, setInsightOpen] = useState(false);
+  const [showAllActs, setShowAllActs] = useState(false);
   const [viewDoc, setViewDoc] = useState<Doc | null>(null);
   const recRef = useRef<HTMLInputElement>(null);
   const pendingRec = useRef<{ override: Partial<Doc>; label: string } | null>(null);
@@ -240,28 +241,79 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
     return ev.sort((a, b) => b.date.localeCompare(a.date));
   }, [s.labs, records, sel]);
 
-  const attentionOf = (mid: string) => {
-    let n = 0;
-    s.reminders.forEach((r) => {
-      if (r.memberId === mid && !r.done && daysTo(r.due) <= 30) n++;
+  const outMetricsOf = (mid: string) => {
+    const by: Record<string, LabLog[]> = {};
+    s.labs.filter((l) => l.memberId === mid && METRICS[l.metric]).forEach((l) => (by[l.metric] ||= []).push(l));
+    const outs: { k: string; last: LabLog }[] = [];
+    Object.keys(by).forEach((k) => {
+      by[k].sort(sortR);
+      if (statusOf(k, by[k]) === "out") outs.push({ k, last: by[k][by[k].length - 1] });
     });
-    const byM: Record<string, LabLog[]> = {};
-    s.labs.filter((l) => l.memberId === mid && METRICS[l.metric]).forEach((l) => (byM[l.metric] ||= []).push(l));
-    Object.keys(byM).forEach((k) => {
-      byM[k].sort(sortR);
-      if (statusOf(k, byM[k]) === "out") n++;
-    });
-    return n;
+    return outs;
   };
-  const totalAttention = s.members.reduce((t, mm) => t + attentionOf(mm.id), 0);
-  const familyAttn = s.members
-    .map((mm) => {
-      const r = s.reminders
-        .filter((x) => x.memberId === mm.id && !x.done && daysTo(x.due) <= 30)
-        .sort((a, b) => a.due.localeCompare(b.due))[0];
-      return r ? { mm, txt: `${r.title} in ${daysTo(r.due)}d` } : null;
-    })
-    .filter(Boolean) as { mm: Member; txt: string }[];
+  const memberStatus = (mid: string) => {
+    const outs = outMetricsOf(mid);
+    const due = s.reminders.filter((r) => r.memberId === mid && !r.done && daysTo(r.due) <= 30).length;
+    if (outs.length) return { txt: `${outs[0].k}${outs.length > 1 ? ` +${outs.length - 1}` : ""} to review`, c: C.red };
+    if (due) return { txt: `${due} due soon`, c: C.gold };
+    return { txt: "Up to date", c: C.emerald };
+  };
+  const familyActions = useMemo(() => {
+    type Act = {
+      mid: string;
+      name: string;
+      color: string;
+      icon: any;
+      iconC: string;
+      label: string;
+      when: string;
+      urgency: number;
+      kind: "reminder" | "reading";
+      rid?: string;
+    };
+    const acts: Act[] = [];
+    const RIC: any = {
+      refill: RefreshCw,
+      appointment: CalendarClock,
+      insurance: ShieldCheck,
+      vaccination: Syringe,
+      other: Bell,
+    };
+    s.members.forEach((mm) => {
+      const first = mm.name.split(" ")[0];
+      s.reminders
+        .filter((r) => r.memberId === mm.id && !r.done && daysTo(r.due) <= 45)
+        .forEach((r) => {
+          const dd = daysTo(r.due);
+          acts.push({
+            mid: mm.id,
+            name: first,
+            color: mm.color,
+            icon: RIC[r.kind] || Bell,
+            iconC: dd < 0 ? C.red : dd <= 7 ? C.gold : C.sub,
+            label: r.title,
+            when: dd < 0 ? `${-dd}d overdue` : dd === 0 ? "today" : `in ${dd}d`,
+            urgency: dd < 0 ? -1000 + dd : dd,
+            kind: "reminder",
+            rid: r.id,
+          });
+        });
+      outMetricsOf(mm.id).forEach(({ k, last }) => {
+        acts.push({
+          mid: mm.id,
+          name: first,
+          color: mm.color,
+          icon: Activity,
+          iconC: C.red,
+          label: `${k} ${METRICS[k].bp ? `${last.value}/${last.value2}` : last.value} ${METRICS[k].unit} · above range`,
+          when: "review",
+          urgency: -500,
+          kind: "reading",
+        });
+      });
+    });
+    return acts.sort((a, b) => a.urgency - b.urgency);
+  }, [s.members, s.reminders, s.labs]);
 
   const summary = useMemo(() => {
     let visits = 0,
@@ -403,11 +455,11 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
       <div className="lh-head">
         <div className="lh-headrow">
           <h1 className="lh-h1">Health</h1>
-          <span className="lh-famsum">
-            <Users size={13} color={C.sub} style={{ verticalAlign: "-2px", marginRight: 6 }} />
-            {summary.actions
-              ? `${summary.actions} to handle · ${summary.upToDate} of ${summary.count} up to date`
-              : "everyone up to date"}
+          <span className="lh-famsum" style={{ color: familyActions.length ? C.gold : C.emerald }}>
+            <Users size={13} style={{ verticalAlign: "-2px", marginRight: 6 }} />
+            {familyActions.length
+              ? `${familyActions.length} thing${familyActions.length === 1 ? "" : "s"} need attention`
+              : "Everyone is up to date"}
           </span>
         </div>
         <p style={{ color: C.sub, fontSize: 14, marginTop: 3 }}>
@@ -415,28 +467,126 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
         </p>
       </div>
 
-      {/* member switcher — name pills */}
-      <div className="lh-switch">
+      {/* family action list — the takeaway, before anything else */}
+      <div className="lh-card lh-actcard">
+        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "13px 16px" }}>
+          <Bell size={15} color={familyActions.length ? C.gold : C.emerald} />
+          <b style={{ fontSize: 14.5, color: C.text }}>What needs doing</b>
+          <span className="lh-tc" style={{ marginLeft: "auto", color: familyActions.length ? C.gold : C.emerald }}>
+            {familyActions.length || "all clear"}
+          </span>
+        </div>
+        {familyActions.length === 0 ? (
+          <div style={{ padding: "0 16px 14px", fontSize: 13.5, color: C.sub }}>
+            Nothing due across the family in the next six weeks, and every tracked reading is in range.
+          </div>
+        ) : (
+          <>
+            {(showAllActs ? familyActions : familyActions.slice(0, 6)).map((a, i) => {
+              const Ic = a.icon;
+              return (
+                <div
+                  key={i}
+                  className="lh-actrow"
+                  onClick={() => {
+                    setSel(a.mid);
+                    setTab("overview");
+                  }}
+                >
+                  <span className="lh-ic" style={{ background: a.iconC + "1f" }}>
+                    <Ic size={15} color={a.iconC} />
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, minWidth: 76, flexShrink: 0 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 9, background: a.color }} />
+                    <span style={{ fontSize: 12.5, color: C.sub, fontWeight: 600 }}>{a.name}</span>
+                  </span>
+                  <span
+                    style={{
+                      flex: 1,
+                      fontSize: 13.5,
+                      color: C.text,
+                      fontWeight: 600,
+                      minWidth: 0,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {a.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: a.iconC,
+                      fontFamily: "'JetBrains Mono',monospace",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {a.when}
+                  </span>
+                  {a.kind === "reminder" && (
+                    <button
+                      className="lh-ib"
+                      title="Mark done"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        s.completeReminder(a.rid!);
+                        toast("Marked done");
+                      }}
+                    >
+                      <CheckCircle2 size={15} color={C.emerald} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            {familyActions.length > 6 && (
+              <div className="lh-actrow" style={{ justifyContent: "center" }} onClick={() => setShowAllActs((v) => !v)}>
+                <span style={{ fontSize: 12.5, color: C.sub, fontWeight: 600 }}>
+                  {showAllActs ? "Show less" : `Show ${familyActions.length - 6} more`}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* member switcher — status cards, not bare pills */}
+      <div className="lh-famgrid">
         {s.members.map((mm) => {
-          const a = attentionOf(mm.id),
-            on = sel === mm.id;
+          const st = memberStatus(mm.id);
+          const on = sel === mm.id;
           return (
             <button
               key={mm.id}
-              className={"lh-pillm" + (on ? " on" : "")}
+              className={"lh-famcard" + (on ? " on" : "")}
               onClick={() => {
                 setSel(mm.id);
                 setTab("overview");
               }}
             >
-              <span className="lh-cdot" style={{ background: mm.color }} />
-              {mm.name.split(" ")[0]}
-              {a > 0 && <span className="lh-attndot" />}
+              <span
+                className="lh-famav"
+                style={{ background: mm.color + "26", color: mm.color, border: `1.5px solid ${mm.color}55` }}
+              >
+                {mm.name[0]}
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span className="lh-famnm">{mm.name.split(" ")[0]}</span>
+                <span className="lh-famst" style={{ color: st.c }}>
+                  {st.txt}
+                </span>
+              </span>
             </button>
           );
         })}
-        <button className="lh-pillm lh-addpill" onClick={() => setModal("member")}>
-          <UserPlus size={14} color={C.gold} /> Add
+        <button
+          className="lh-famcard"
+          style={{ borderStyle: "dashed", justifyContent: "center" }}
+          onClick={() => setModal("member")}
+        >
+          <UserPlus size={15} color={C.gold} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.gold }}>Add</span>
         </button>
       </div>
 
@@ -1687,6 +1837,16 @@ const CSS = `
 .lh-cond{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:${C.text};background:${C.panel2};border:1px solid ${C.border};border-radius:20px;padding:4px 10px}
 .lh-cond button{background:0;border:0;color:${C.faint};cursor:pointer;display:inline-flex}
 .lh-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:80;background:#111524;border:1px solid ${C.border};color:${C.text};padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 16px 50px rgba(0,0,0,.5)}
+.lh-actcard{margin-bottom:16px;padding:0}
+.lh-actrow{display:flex;align-items:center;gap:11px;border-top:1px solid ${C.border};padding:10px 16px;cursor:pointer}
+.lh-actrow:hover{background:rgba(255,255,255,.04)}
+.lh-famgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px;margin-bottom:18px}
+.lh-famcard{display:flex;align-items:center;gap:10px;text-align:left;background:${C.panel};border:1px solid ${C.border};border-radius:13px;padding:11px 12px;cursor:pointer;font-family:inherit;transition:.15s}
+.lh-famcard:hover{background:${C.panel2}}
+.lh-famcard.on{border-color:${C.gold}77;background:linear-gradient(180deg,rgba(216,178,90,.08),${C.panel})}
+.lh-famav{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-weight:700;font-size:15px;font-family:'Space Grotesk';flex-shrink:0}
+.lh-famnm{display:block;font-size:13.5px;font-weight:700;color:${C.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lh-famst{display:block;font-size:11.5px;font-weight:600;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #lh-print{display:none}
 @media(max-width:900px){.lh-grid3{grid-template-columns:1fr}.lh-grid-2-1{grid-template-columns:1fr}.lh-vgrid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
