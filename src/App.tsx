@@ -754,117 +754,306 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
 
 /* ═══════════════ DOCUMENTS ═══════════════ */
 function Documents({ store, toast }: any) {
-  const cats = Object.keys(CAT_META) as Category[];
-  const [view, setView] = useState<Doc | null>(null);
+  const [q, setQ] = useState("");
+  const [cat, setCat] = useState<string>("All");
+  const [person, setPerson] = useState<string>("All");
+  const [source, setSource] = useState<string>("All");
+  const [quick, setQuick] = useState<"all" | "expiring" | "expired" | "recent">("all");
+  const [sort, setSort] = useState<"newest" | "oldest" | "name" | "expiry">("newest");
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState<Doc | null>(null);
+  const [preview, setPreview] = useState<Doc | null>(null);
+
+  const nameOf = (mid?: string) => store.members.find((m: Member) => m.id === mid)?.name || "Unassigned";
+  const colorOf = (mid?: string) => store.members.find((m: Member) => m.id === mid)?.color || T.faint;
+  const fdate = (s?: string) =>
+    s ? new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" }) : "—";
+
+  const docs: Doc[] = store.docs;
+  const expiring = docs.filter((d) => d.expiry && daysTo(d.expiry) >= 0 && daysTo(d.expiry) < 60);
+  const expired = docs.filter((d) => d.expiry && daysTo(d.expiry) < 0);
+  const recent = docs.filter((d) => (Date.now() - +new Date(d.addedAt)) / 86400000 <= 7);
+
+  const filtered = useMemo(() => {
+    let list = docs;
+    if (quick === "expiring") list = list.filter((d) => d.expiry && daysTo(d.expiry) >= 0 && daysTo(d.expiry) < 60);
+    if (quick === "expired") list = list.filter((d) => d.expiry && daysTo(d.expiry) < 0);
+    if (quick === "recent") list = list.filter((d) => (Date.now() - +new Date(d.addedAt)) / 86400000 <= 7);
+    if (cat !== "All") list = list.filter((d) => d.category === cat);
+    if (person !== "All") list = list.filter((d) => (d.memberId || "") === person);
+    if (source !== "All") list = list.filter((d) => d.source === source);
+    const needle = q.trim().toLowerCase();
+    if (needle)
+      list = list.filter((d) =>
+        `${d.docType} ${d.name} ${d.category} ${nameOf(d.memberId)} ${d.source} ${d.notes || ""}`
+          .toLowerCase()
+          .includes(needle),
+      );
+    const by: Record<string, (a: Doc, b: Doc) => number> = {
+      newest: (a, b) => +new Date(b.addedAt) - +new Date(a.addedAt),
+      oldest: (a, b) => +new Date(a.addedAt) - +new Date(b.addedAt),
+      name: (a, b) => a.docType.localeCompare(b.docType),
+      expiry: (a, b) => (a.expiry ? +new Date(a.expiry) : Infinity) - (b.expiry ? +new Date(b.expiry) : Infinity),
+    };
+    return [...list].sort(by[sort]);
+  }, [docs, quick, cat, person, source, q, sort, store.members]);
+
+  const allSel = filtered.length > 0 && filtered.every((d) => sel.has(d.id));
+  const toggleAll = () => setSel(allSel ? new Set() : new Set(filtered.map((d) => d.id)));
+  const toggle = (id: string) =>
+    setSel((p) => {
+      const n = new Set(p);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  const clearSel = () => setSel(new Set());
+  const bulkDelete = async () => {
+    for (const id of sel) await store.removeDoc(id);
+    toast(`${sel.size} document(s) removed`);
+    clearSel();
+  };
+  const bulkAssign = (mid: string) => {
+    sel.forEach((id) => store.updateDoc(id, { memberId: mid }));
+    toast(`${sel.size} document(s) assigned to ${nameOf(mid)}`);
+    clearSel();
+  };
+
+  const selStyle: CSSProperties = {
+    background: T.raised,
+    color: T.text,
+    border: `1px solid ${T.border}`,
+    borderRadius: 9,
+    padding: "8px 10px",
+    fontSize: 13,
+    outline: "none",
+  };
+  const expiryCell = (d: Doc) => {
+    if (!d.expiry) return <span style={{ color: T.faint }}>—</span>;
+    const n = daysTo(d.expiry);
+    const c = n < 0 ? T.coral : n < 60 ? T.gold : T.muted;
+    return <span style={{ color: c, fontWeight: n < 60 ? 700 : 400 }}>{n < 0 ? "expired" : `${n}d`}</span>;
+  };
+  const quickChips: { k: typeof quick; label: string; n: number; tone?: string }[] = [
+    { k: "all", label: "All", n: docs.length },
+    { k: "expiring", label: "Expiring soon", n: expiring.length, tone: T.gold },
+    { k: "expired", label: "Expired", n: expired.length, tone: T.coral },
+    { k: "recent", label: "Added this week", n: recent.length, tone: T.mint },
+  ];
+  const GRID = "26px 2.1fr 1.15fr 0.95fr 0.85fr 0.75fr 0.65fr 30px";
+
   return (
     <div>
-      <SectionHead
-        title="Documents"
-        sub="Everything files itself. Connect a source, LifePack reads and sorts each one."
-      />
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-        {["Email", "Drive", "DigiLocker"].map((c) => (
-          <span
-            key={c}
-            style={{
-              ...pill(T.mint),
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "8px 12px",
-              fontSize: 13,
-            }}
-          >
-            <Check size={13} /> {c}
-          </span>
-        ))}
-        <label style={{ ...btnGhost, cursor: "pointer" }}>
-          <UploadCloud size={15} /> Upload
-          <input
-            type="file"
-            multiple
-            hidden
-            onChange={(e) => {
-              if (e.target.files?.length) {
-                store.addFiles(e.target.files);
-                toast(`${e.target.files.length} document(s) classified`);
-              }
-              e.currentTarget.value = "";
-            }}
-          />
-        </label>
-        <label style={{ ...btnGhost, cursor: "pointer" }}>
-          <Camera size={15} /> Scan
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            hidden
-            onChange={(e) => {
-              if (e.target.files?.length) {
-                store.addFiles(e.target.files);
-                toast("Scan captured and classified");
-              }
-              e.currentTarget.value = "";
-            }}
-          />
-        </label>
-        <label style={{ ...btnGhost, cursor: "pointer" }}>
-          <ImageIcon size={15} /> Gallery
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            hidden
-            onChange={(e) => {
-              if (e.target.files?.length) {
-                store.addFiles(e.target.files);
-                toast(`${e.target.files.length} image(s) added`);
-              }
-              e.currentTarget.value = "";
-            }}
-          />
-        </label>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <SectionHead
+          title="Documents"
+          sub={`${docs.length} records in your archive. Search, filter, and open any row for full context.`}
+        />
+        <div style={{ display: "flex", gap: 10 }}>
+          <label style={{ ...btnGold, cursor: "pointer" }}>
+            <UploadCloud size={15} /> Upload
+            <input
+              type="file"
+              multiple
+              hidden
+              onChange={(e) => {
+                if (e.target.files?.length) {
+                  store.addFiles(e.target.files);
+                  toast(`${e.target.files.length} document(s) classified`);
+                }
+                e.currentTarget.value = "";
+              }}
+            />
+          </label>
+          <label style={{ ...btnGhost, cursor: "pointer" }}>
+            <Camera size={15} /> Scan
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              onChange={(e) => {
+                if (e.target.files?.length) {
+                  store.addFiles(e.target.files);
+                  toast("Scan captured and classified");
+                }
+                e.currentTarget.value = "";
+              }}
+            />
+          </label>
+          <label style={{ ...btnGhost, cursor: "pointer" }}>
+            <ImageIcon size={15} /> Gallery
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                if (e.target.files?.length) {
+                  store.addFiles(e.target.files);
+                  toast(`${e.target.files.length} image(s) added`);
+                }
+                e.currentTarget.value = "";
+              }}
+            />
+          </label>
+        </div>
       </div>
-      <Eyebrow>Your document graph</Eyebrow>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 22 }}>
-        {cats.map((cat) => {
-          const items = store.docs.filter((d: Doc) => d.category === cat);
-          const latest = items[0]?.addedAt;
-          const Ic = CAT_META[cat].icon,
-            col = CAT_META[cat].color;
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        {quickChips.map((c) => {
+          const on = quick === c.k;
           return (
-            <Card key={cat} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span
-                style={{
-                  display: "grid",
-                  placeItems: "center",
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: col + "22",
-                }}
-              >
-                <Ic size={18} color={col} />
+            <button
+              key={c.k}
+              onClick={() => setQuick(c.k)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 7,
+                padding: "8px 13px",
+                borderRadius: 99,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: `1px solid ${on ? T.gold + "77" : T.border}`,
+                background: on ? T.raised : "transparent",
+                color: on ? T.white : T.muted,
+              }}
+            >
+              {c.tone && <span style={{ width: 7, height: 7, borderRadius: 9, background: c.tone }} />}
+              {c.label}
+              <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, color: on ? T.gold : T.faint }}>
+                {c.n}
               </span>
-              <div style={{ fontSize: 15.5, fontWeight: 700, color: T.white, marginTop: 10 }}>{cat}</div>
-              <div style={{ fontSize: 12.5, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
-                {items.length} document{items.length === 1 ? "" : "s"} on file
-                {latest
-                  ? ` · latest ${new Date(latest).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                  : ""}
-              </div>
-            </Card>
+            </button>
           );
         })}
       </div>
+
+      <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: T.panel,
+            border: `1px solid ${q ? T.gold + "66" : T.border}`,
+            borderRadius: 10,
+            padding: "8px 12px",
+            flex: "1 1 220px",
+            minWidth: 200,
+          }}
+        >
+          <Search size={15} color={T.muted} />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search type, file, person, notes…"
+            style={{ flex: 1, background: "none", border: "none", outline: "none", color: T.text, fontSize: 13.5 }}
+          />
+          {q && (
+            <button
+              onClick={() => setQ("")}
+              style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex" }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <select style={selStyle} value={cat} onChange={(e) => setCat(e.target.value)}>
+          <option style={{ color: "#000" }}>All</option>
+          {(Object.keys(CAT_META) as Category[]).map((c) => (
+            <option key={c} style={{ color: "#000" }}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <select style={selStyle} value={person} onChange={(e) => setPerson(e.target.value)}>
+          <option value="All" style={{ color: "#000" }}>
+            Everyone
+          </option>
+          {store.members.map((m: Member) => (
+            <option key={m.id} value={m.id} style={{ color: "#000" }}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <select style={selStyle} value={source} onChange={(e) => setSource(e.target.value)}>
+          {["All", "Upload", "Email", "Drive", "DigiLocker"].map((sName) => (
+            <option key={sName} style={{ color: "#000" }}>
+              {sName}
+            </option>
+          ))}
+        </select>
+        <select style={selStyle} value={sort} onChange={(e) => setSort(e.target.value as any)}>
+          <option value="newest" style={{ color: "#000" }}>
+            Newest first
+          </option>
+          <option value="oldest" style={{ color: "#000" }}>
+            Oldest first
+          </option>
+          <option value="name" style={{ color: "#000" }}>
+            Type A–Z
+          </option>
+          <option value="expiry" style={{ color: "#000" }}>
+            Expiry soonest
+          </option>
+        </select>
+      </div>
+
+      {sel.size > 0 && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            background: T.raised,
+            border: `1px solid ${T.gold}55`,
+            borderRadius: 12,
+            padding: "10px 14px",
+            marginBottom: 12,
+          }}
+        >
+          <b style={{ color: T.white, fontSize: 13.5 }}>{sel.size} selected</b>
+          <select style={selStyle} defaultValue="" onChange={(e) => e.target.value && bulkAssign(e.target.value)}>
+            <option value="" disabled style={{ color: "#000" }}>
+              Assign to…
+            </option>
+            {store.members.map((m: Member) => (
+              <option key={m.id} value={m.id} style={{ color: "#000" }}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={bulkDelete}
+            style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "55", padding: "7px 12px", fontSize: 12.5 }}
+          >
+            <Trash2 size={13} /> Delete
+          </button>
+          <button onClick={clearSel} style={{ ...btnGhost, marginLeft: "auto", padding: "7px 12px", fontSize: 12.5 }}>
+            Clear
+          </button>
+        </div>
+      )}
+
       <Card style={{ padding: 0 }}>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "2fr 1fr 1fr 0.8fr",
+            gridTemplateColumns: GRID,
+            gap: 10,
+            alignItems: "center",
             padding: "12px 16px",
-            fontSize: 11.5,
+            fontSize: 11,
             fontWeight: 700,
             color: T.muted,
             textTransform: "uppercase",
@@ -872,48 +1061,422 @@ function Documents({ store, toast }: any) {
             fontFamily: "ui-monospace, monospace",
           }}
         >
+          <input
+            type="checkbox"
+            checked={allSel}
+            onChange={toggleAll}
+            style={{ accentColor: T.gold, cursor: "pointer" }}
+          />
           <span>Document</span>
+          <span>Person</span>
           <span>Category</span>
           <span>Source</span>
-          <span style={{ textAlign: "right" }}>Expiry</span>
+          <span>Added</span>
+          <span>Expiry</span>
+          <span />
         </div>
-        {store.docs.map((d: Doc) => (
-          <button
-            key={d.id}
-            onClick={() => setView(d)}
+        {filtered.length === 0 ? (
+          <div style={{ padding: "40px 16px", textAlign: "center" }}>
+            <FolderOpen size={30} color={T.faint} style={{ margin: "0 auto 10px", display: "block" }} />
+            <div style={{ color: T.text, fontWeight: 600, fontSize: 14.5 }}>
+              {docs.length === 0 ? "Nothing here yet" : "No documents match these filters"}
+            </div>
+            <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
+              {docs.length === 0
+                ? "Upload a file and it files itself."
+                : "Try clearing the search or switching a filter."}
+            </div>
+          </div>
+        ) : (
+          filtered.map((d) => {
+            const Ic = CAT_META[d.category].icon;
+            const col = CAT_META[d.category].color;
+            const active = open?.id === d.id;
+            return (
+              <div
+                key={d.id}
+                onClick={() => setOpen(d)}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: GRID,
+                  gap: 10,
+                  alignItems: "center",
+                  padding: "11px 16px",
+                  borderTop: `1px solid ${T.border}`,
+                  cursor: "pointer",
+                  background: active ? T.raised : sel.has(d.id) ? T.raised + "88" : "transparent",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={sel.has(d.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={() => toggle(d.id)}
+                  style={{ accentColor: T.gold, cursor: "pointer" }}
+                />
+                <span style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                  <span
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      background: col + "22",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Ic size={14} color={col} />
+                  </span>
+                  <span style={{ minWidth: 0 }}>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: T.white,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {d.docType}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: 11.5,
+                        color: T.faint,
+                        fontFamily: "ui-monospace, monospace",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {d.name}
+                    </span>
+                  </span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span
+                    style={{ width: 8, height: 8, borderRadius: 9, background: colorOf(d.memberId), flexShrink: 0 }}
+                  />
+                  <span
+                    style={{
+                      fontSize: 13,
+                      color: T.text,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {nameOf(d.memberId)}
+                  </span>
+                </span>
+                <span>
+                  <span style={pill(col)}>{d.category}</span>
+                </span>
+                <span style={{ fontSize: 12.5, color: T.muted }}>{d.source}</span>
+                <span style={{ fontSize: 12.5, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
+                  {fdate(d.addedAt)}
+                </span>
+                <span style={{ fontSize: 12.5, fontFamily: "ui-monospace, monospace" }}>{expiryCell(d)}</span>
+                <ChevronRight size={15} color={active ? T.gold : T.faint} />
+              </div>
+            );
+          })
+        )}
+      </Card>
+
+      {open && (
+        <DocContextPanel
+          key={open.id}
+          d={store.docs.find((x: Doc) => x.id === open.id) || open}
+          store={store}
+          toast={toast}
+          onClose={() => setOpen(null)}
+          onPreview={() => setPreview(store.docs.find((x: Doc) => x.id === open.id) || open)}
+          onDeleted={() => setOpen(null)}
+        />
+      )}
+      {preview && <DocViewer doc={preview} store={store} onClose={() => setPreview(null)} />}
+    </div>
+  );
+}
+
+/* ── document context drawer ── */
+function DocContextPanel({ d, store, toast, onClose, onPreview, onDeleted }: any) {
+  const [notes, setNotes] = useState(d.notes || "");
+  const Ic = CAT_META[d.category as Category].icon;
+  const col = CAT_META[d.category as Category].color;
+  const nameOf = (mid?: string) => store.members.find((m: Member) => m.id === mid)?.name || "Unassigned";
+  const usedIn = EVENTS.filter((e) => e.reqs.includes(d.docType));
+  const holdings = store.holdings.filter((h: Holding) => h.docId === d.id);
+  const txs = store.transactions.filter((t: Transaction) => t.docId === d.id);
+  const days = d.expiry ? daysTo(d.expiry) : null;
+
+  const lbl: CSSProperties = {
+    fontSize: 10.5,
+    fontWeight: 700,
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    color: T.muted,
+    fontFamily: "ui-monospace, monospace",
+    margin: "16px 0 7px",
+    display: "block",
+  };
+  const inp: CSSProperties = {
+    width: "100%",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 9,
+    padding: "8px 10px",
+    color: T.text,
+    fontSize: 13.5,
+    outline: "none",
+  };
+  const fact = (label: string, value: ReactNode) => (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 10,
+        padding: "7px 0",
+        borderTop: `1px solid ${T.border}`,
+      }}
+    >
+      <span style={{ fontSize: 12.5, color: T.muted }}>{label}</span>
+      <span style={{ fontSize: 12.5, color: T.text, fontFamily: "ui-monospace, monospace", textAlign: "right" }}>
+        {value}
+      </span>
+    </div>
+  );
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(4,7,15,.5)" }} />
+      <aside
+        style={{
+          position: "fixed",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: "min(430px, 94vw)",
+          zIndex: 65,
+          background: T.navy,
+          borderLeft: `1px solid ${T.border}`,
+          boxShadow: "-30px 0 80px rgba(0,0,0,.55)",
+          display: "flex",
+          flexDirection: "column",
+          animation: "lpSlideIn .22s ease",
+        }}
+      >
+        <style>{`@keyframes lpSlideIn { from { transform: translateX(40px); opacity: 0 } to { transform: none; opacity: 1 } }`}</style>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "18px 20px",
+            borderBottom: `1px solid ${T.border}`,
+          }}
+        >
+          <span
             style={{
-              width: "100%",
-              textAlign: "left",
-              cursor: "pointer",
-              background: "none",
-              border: "none",
-              borderTop: `1px solid ${T.border}`,
               display: "grid",
-              gridTemplateColumns: "2fr 1fr 1fr 0.8fr",
-              padding: "12px 16px",
-              alignItems: "center",
+              placeItems: "center",
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: col + "22",
+              flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{d.docType}</span>
-            <span style={{ fontSize: 13, color: T.muted }}>{d.category}</span>
-            <span>
-              <span style={pill(A.blue)}>{d.source}</span>
-            </span>
-            <span
+            <Ic size={18} color={col} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 16.5, fontWeight: 700, color: T.white }}>{d.docType}</div>
+            <div
               style={{
-                textAlign: "right",
-                fontSize: 13,
-                color: d.expiry && daysTo(d.expiry) < 60 ? T.gold : T.muted,
+                fontSize: 11.5,
+                color: T.faint,
                 fontFamily: "ui-monospace, monospace",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
             >
-              {fmtDays(d.expiry)}
-            </span>
+              {d.name}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={16} />
           </button>
-        ))}
-      </Card>
-      {view && <DocViewer doc={view} store={store} onClose={() => setView(null)} />}
-    </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "4px 20px 20px" }}>
+          {d.expiry && (
+            <div
+              style={{
+                marginTop: 16,
+                borderRadius: 12,
+                border: `1px solid ${(days! < 0 ? T.coral : days! < 60 ? T.gold : T.mint) + "55"}`,
+                background: (days! < 0 ? T.coral : days! < 60 ? T.gold : T.mint) + "14",
+                padding: "11px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <Clock size={15} color={days! < 0 ? T.coral : days! < 60 ? T.gold : T.mint} />
+              <span style={{ fontSize: 13, color: T.text }}>
+                {days! < 0 ? `Expired ${-days!} days ago` : `Valid · expires in ${days} days`}
+              </span>
+            </div>
+          )}
+
+          <span style={lbl}>Details</span>
+          <div>
+            {fact("Category", d.category)}
+            {fact("Source", d.source)}
+            {fact(
+              "Added",
+              new Date(d.addedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+            )}
+            {d.docDate &&
+              fact(
+                "Document date",
+                new Date(d.docDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+              )}
+            {fact("Size", `${d.sizeKB} KB`)}
+          </div>
+
+          <span style={lbl}>Belongs to</span>
+          <select
+            style={inp}
+            value={d.memberId || ""}
+            onChange={(e) => {
+              store.updateDoc(d.id, { memberId: e.target.value || undefined });
+              toast(`Assigned to ${nameOf(e.target.value)}`);
+            }}
+          >
+            <option value="" style={{ color: "#000" }}>
+              Unassigned
+            </option>
+            {store.members.map((m: Member) => (
+              <option key={m.id} value={m.id} style={{ color: "#000" }}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+
+          <span style={lbl}>Expiry</span>
+          <input
+            style={inp}
+            type="date"
+            value={d.expiry ? d.expiry.slice(0, 10) : ""}
+            onChange={(e) => {
+              store.updateDoc(d.id, { expiry: e.target.value || undefined });
+              toast(e.target.value ? "Expiry updated" : "Expiry cleared");
+            }}
+          />
+
+          <span style={lbl}>Used in packages</span>
+          {usedIn.length === 0 ? (
+            <p style={{ fontSize: 12.5, color: T.faint, margin: 0 }}>No life-event package requires a {d.docType}.</p>
+          ) : (
+            usedIn.map((e) => (
+              <div
+                key={e.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "8px 0",
+                  borderTop: `1px solid ${T.border}`,
+                }}
+              >
+                <e.icon size={14} color={e.accent} />
+                <span style={{ flex: 1, fontSize: 13, color: T.text }}>{e.name}</span>
+                <span style={pill(T.mint)}>required</span>
+              </div>
+            ))
+          )}
+
+          {(holdings.length > 0 || txs.length > 0) && (
+            <>
+              <span style={lbl}>Cited as evidence</span>
+              {holdings.map((h: Holding) => (
+                <div
+                  key={h.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 0",
+                    borderTop: `1px solid ${T.border}`,
+                  }}
+                >
+                  <Coins size={14} color={T.gold} />
+                  <span style={{ flex: 1, fontSize: 13, color: T.text }}>{h.name}</span>
+                  <span style={{ fontSize: 12, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
+                    {money(h.value || 0)}
+                  </span>
+                </div>
+              ))}
+              {txs.map((t: Transaction) => (
+                <div
+                  key={t.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 0",
+                    borderTop: `1px solid ${T.border}`,
+                  }}
+                >
+                  <Receipt size={14} color={t.direction === "paid" ? T.coral : T.mint} />
+                  <span style={{ flex: 1, fontSize: 13, color: T.text }}>{t.purpose}</span>
+                  <span style={{ fontSize: 12, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
+                    {money(t.amount)}
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+
+          <span style={lbl}>Notes</span>
+          <textarea
+            style={{ ...inp, minHeight: 70, resize: "vertical", fontFamily: "inherit" }}
+            value={notes}
+            placeholder="Anything your family should know about this document…"
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={() => {
+              if ((d.notes || "") !== notes) {
+                store.updateDoc(d.id, { notes: notes || undefined });
+                toast("Notes saved");
+              }
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: 10, padding: "14px 20px", borderTop: `1px solid ${T.border}` }}>
+          <button onClick={onPreview} style={{ ...btnGold, flex: 1, justifyContent: "center" }}>
+            <FileText size={15} /> Preview
+          </button>
+          <button
+            onClick={async () => {
+              await store.removeDoc(d.id);
+              toast("Document removed");
+              onDeleted();
+            }}
+            style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "55" }}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
 
