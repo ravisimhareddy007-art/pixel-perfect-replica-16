@@ -1974,7 +1974,7 @@ function Wealth({ store, go, toast }: any) {
   return (
     <div>
       <SectionHead title="Wealth" sub="Everything you own and owe, read from your documents and ready to hand on." />
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "-4px 0 20px" }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "0 0 28px" }}>
         <button onClick={() => setEstate(true)} style={btnGold}>
           <FileText size={15} /> Estate summary
         </button>
@@ -2028,7 +2028,14 @@ function Wealth({ store, go, toast }: any) {
           </button>
         </div>
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 18 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 14,
+          marginBottom: 24,
+        }}
+      >
         {stat("Net worth", money(net), T.white)}
         {stat("Assets", money(totalAssets), T.mint)}
         {stat("Liabilities", money(totalLiab), T.coral)}
