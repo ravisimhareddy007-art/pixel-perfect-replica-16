@@ -86,6 +86,19 @@ export interface Holding {
   nominee?: boolean; // beneficiary named
   nomineeName?: string;
   renewalDate?: string; // ISO, for policies
+  maturityDate?: string; // ISO, for deposits/retirement instruments
+  accessNote?: string; // how/where to access or claim — the thing families actually lack
   docId?: string; // linked document
   notes?: string;
+}
+
+export type HandoffReason =
+  | "Medical emergency"
+  | "Travel emergency"
+  | "Death of a family member"
+  | "Temporary incapacity";
+export interface Handoff {
+  releasedAt: string; // ISO
+  recipients: string[]; // member ids with access granted
+  reason: HandoffReason;
 }
