@@ -37,9 +37,11 @@ import {
   Pencil,
   Coins,
   Trash2,
+  Receipt,
+  Paperclip,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
-import type { Category, Doc, Member, Access, Holding } from "@/lib/types";
+import type { Category, Doc, Member, Access, Holding, Transaction } from "@/lib/types";
 import Healthcare from "@/components/Healthcare";
 import DocViewer from "@/components/DocViewer";
 
@@ -71,15 +73,6 @@ const money = (v: number) =>
   v >= 1e6 ? `$${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v / 1e3).toFixed(0)}K` : `$${v}`;
 const toneFor = (n: number) => (n >= 90 ? T.mint : n >= 70 ? T.gold : T.coral);
 
-/* ── expected key documents per category (the denominator) ── */
-const EXPECTED: Record<Category, string[]> = {
-  Identity: ["Passport", "National ID", "Tax ID", "Driver's License"],
-  Employment: ["Employment Offer", "Payslip", "Relieving Letter"],
-  Finance: ["Tax Return", "Bank Statement", "Investment Statement"],
-  Insurance: ["Health Insurance", "Life Insurance", "Auto Insurance"],
-  Property: ["Property Deed", "Property Tax", "Lease Agreement"],
-  Medical: ["Prescription", "Lab Report"],
-};
 const CAT_META: Record<Category, { icon: any; color: string }> = {
   Identity: { icon: Fingerprint, color: A.blue },
   Employment: { icon: Briefcase, color: A.purple },
@@ -325,20 +318,26 @@ function Home({ store, go, toast }: any) {
   const expiring = store.docs.filter((d: Doc) => d.expiry && daysTo(d.expiry) < 60);
   const dueReminders = store.reminders.filter((r: any) => !r.done && daysTo(r.due) <= 30);
   const nomineeGaps = store.holdings.filter((h: Holding) => (h.kind === "asset" || h.kind === "cover") && !h.nominee);
+  const txFollowUps = store.transactions.filter(
+    (t: Transaction) => !t.followUpDone && t.followUpOn && daysTo(t.followUpOn) <= 30,
+  );
   const attention = [
+    ...txFollowUps.map((t: Transaction) => ({
+      label: `Follow up${daysTo(t.followUpOn!) <= 0 ? " (due)" : ` in ${daysTo(t.followUpOn!)}d`}: ${t.purpose}${t.followUpNote ? ` \u00B7 ${t.followUpNote}` : ""}`,
+      to: "wealth",
+      tone: A.blue,
+    })),
     ...expiring.map((d: Doc) => ({
       label: `${d.docType} expires in ${daysTo(d.expiry!)} days`,
       to: "documents",
       tone: T.gold,
     })),
     ...nomineeGaps.map((h: Holding) => ({ label: `${h.name} has no nominee`, to: "wealth", tone: T.coral })),
-    ...dueReminders
-      .slice(0, 3)
-      .map((r: any) => ({
-        label: `${store.members.find((m: Member) => m.id === r.memberId)?.name.split(" ")[0]}: ${r.title} in ${daysTo(r.due)}d`,
-        to: "health",
-        tone: T.mint,
-      })),
+    ...dueReminders.slice(0, 3).map((r: any) => ({
+      label: `${store.members.find((m: Member) => m.id === r.memberId)?.name.split(" ")[0]}: ${r.title} in ${daysTo(r.due)}d`,
+      to: "health",
+      tone: T.mint,
+    })),
   ].slice(0, 6);
   const stats = [
     { label: "Documents", value: store.docs.length, icon: FolderOpen, c: A.blue, to: "documents" },
@@ -755,7 +754,7 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
 
 /* ═══════════════ DOCUMENTS ═══════════════ */
 function Documents({ store, toast }: any) {
-  const cats = Object.keys(EXPECTED) as Category[];
+  const cats = Object.keys(CAT_META) as Category[];
   const [view, setView] = useState<Doc | null>(null);
   return (
     <div>
@@ -831,30 +830,29 @@ function Documents({ store, toast }: any) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 22 }}>
         {cats.map((cat) => {
           const items = store.docs.filter((d: Doc) => d.category === cat);
-          const present = EXPECTED[cat].filter((t) => items.some((d: Doc) => d.docType === t)).length;
-          const pct = Math.round((present / EXPECTED[cat].length) * 100);
+          const latest = items[0]?.addedAt;
           const Ic = CAT_META[cat].icon,
             col = CAT_META[cat].color;
           return (
             <Card key={cat} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <span
-                  style={{
-                    display: "grid",
-                    placeItems: "center",
-                    width: 38,
-                    height: 38,
-                    borderRadius: 10,
-                    background: col + "22",
-                  }}
-                >
-                  <Ic size={18} color={col} />
-                </span>
-                <Ring score={pct} size={44} color={col} />
-              </div>
+              <span
+                style={{
+                  display: "grid",
+                  placeItems: "center",
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: col + "22",
+                }}
+              >
+                <Ic size={18} color={col} />
+              </span>
               <div style={{ fontSize: 15.5, fontWeight: 700, color: T.white, marginTop: 10 }}>{cat}</div>
               <div style={{ fontSize: 12.5, color: T.muted, fontFamily: "ui-monospace, monospace" }}>
-                {present} of {EXPECTED[cat].length} key documents · {items.length} on file
+                {items.length} document{items.length === 1 ? "" : "s"} on file
+                {latest
+                  ? ` · latest ${new Date(latest).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                  : ""}
               </div>
             </Card>
           );
@@ -1053,9 +1051,10 @@ function AddMember({ onClose, save }: any) {
 }
 
 /* ═══════════════ WEALTH (derived from documents with value) ═══════════════ */
-function Wealth({ store, toast }: any) {
+function Wealth({ store, go, toast }: any) {
   const [viewDoc, setViewDoc] = useState<Doc | null>(null);
-  const [edit, setEdit] = useState<Holding | "new" | null>(null);
+  const [edit, setEdit] = useState<Holding | null>(null);
+  const [addTx, setAddTx] = useState(false);
   const [nomineeFor, setNomineeFor] = useState<Holding | null>(null);
   const [estate, setEstate] = useState(false);
   const attachRef = useRef<HTMLInputElement>(null);
@@ -1088,6 +1087,7 @@ function Wealth({ store, toast }: any) {
     if (c.renewalDate && daysTo(c.renewalDate) < 60)
       gaps.push({ h: c, kind: "renewal", label: `${c.name} renews in ${daysTo(c.renewalDate)} days` });
   });
+  const txs: Transaction[] = store.transactions;
 
   const attach = (h: Holding) => {
     pending.current = h;
@@ -1202,8 +1202,8 @@ function Wealth({ store, toast }: any) {
           <button onClick={() => setEstate(true)} style={btnGold}>
             <FileText size={15} /> Estate summary
           </button>
-          <button onClick={() => setEdit("new")} style={btnGhost}>
-            <Plus size={15} /> Add holding
+          <button onClick={() => setAddTx(true)} style={btnGhost}>
+            <Receipt size={15} /> Add transaction
           </button>
         </div>
       </div>
@@ -1295,12 +1295,112 @@ function Wealth({ store, toast }: any) {
               </Card>
             ) : null,
           )}
+          <Card style={{ padding: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px" }}>
+              <Receipt size={16} color={T.muted} />
+              <b style={{ color: T.white, fontSize: 14.5 }}>Transactions on record</b>
+              <button
+                onClick={() => setAddTx(true)}
+                style={{ ...btnGhost, marginLeft: "auto", padding: "6px 12px", fontSize: 12.5 }}
+              >
+                <Plus size={13} /> Add
+              </button>
+            </div>
+            {txs.length === 0 ? (
+              <p style={{ color: T.muted, fontSize: 13, padding: "0 16px 14px" }}>
+                Record a payment or receipt with its evidence attached, and a follow-up if one is needed.
+              </p>
+            ) : (
+              txs.map((t) => {
+                const ev = store.docs.find((d: Doc) => d.id === t.docId);
+                const overdueFu = t.followUpOn && !t.followUpDone;
+                return (
+                  <div
+                    key={t.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: "12px 16px",
+                      borderTop: `1px solid ${T.border}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "grid",
+                        placeItems: "center",
+                        width: 34,
+                        height: 34,
+                        borderRadius: 9,
+                        background: (t.direction === "paid" ? T.coral : T.mint) + "22",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Receipt size={15} color={t.direction === "paid" ? T.coral : T.mint} />
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: T.white }}>{t.purpose}</div>
+                      <div style={{ fontSize: 12.5, color: T.muted }}>
+                        {t.counterparty ? `${t.counterparty} · ` : ""}
+                        {new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        {overdueFu
+                          ? ` · follow up ${daysTo(t.followUpOn!) <= 0 ? "today" : `in ${daysTo(t.followUpOn!)}d`}${t.followUpNote ? `: ${t.followUpNote}` : ""}`
+                          : ""}
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        fontSize: 14.5,
+                        fontWeight: 700,
+                        color: t.direction === "paid" ? T.coral : T.mint,
+                      }}
+                    >
+                      {t.direction === "paid" ? "\u2212" : "+"}
+                      {money(t.amount)}
+                    </span>
+                    {ev ? (
+                      <button onClick={() => setViewDoc(ev)} style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}>
+                        <Paperclip size={12} /> Evidence
+                      </button>
+                    ) : (
+                      <span style={pill(T.gold)}>no evidence</span>
+                    )}
+                    {overdueFu && (
+                      <button
+                        onClick={() => {
+                          store.completeFollowUp(t.id);
+                          toast("Follow-up done");
+                        }}
+                        style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}
+                      >
+                        <Check size={12} /> Done
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        store.removeTransaction(t.id);
+                        toast("Transaction removed");
+                      }}
+                      title="Remove"
+                      style={{ ...btnGhost, padding: 7 }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </Card>
         </div>
         <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <KeyRound size={16} color={T.muted} />
-            <b style={{ color: T.white, fontSize: 15 }}>Ready to hand on</b>
+            <b style={{ color: T.white, fontSize: 15 }}>Legacy handoff</b>
           </div>
+          <p style={{ fontSize: 12.5, color: T.muted, margin: "0 0 14px" }}>
+            Who steps in, and whether nothing is lost if you are gone.
+          </p>
           <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 14 }}>
             <Ring score={readiness} size={54} color={readiness >= 80 ? T.mint : readiness >= 50 ? T.gold : T.coral} />
             <div style={{ fontSize: 13, color: T.muted }}>of documented value has a nominee and a document on file</div>
@@ -1341,6 +1441,12 @@ function Wealth({ store, toast }: any) {
           >
             <FileText size={15} /> Prepare estate summary
           </button>
+          <button
+            onClick={() => go("trust")}
+            style={{ ...btnGhost, width: "100%", justifyContent: "center", marginTop: 8 }}
+          >
+            Manage trusted people <ArrowRight size={14} />
+          </button>
         </Card>
       </div>
 
@@ -1355,23 +1461,30 @@ function Wealth({ store, toast }: any) {
       />
       {edit && (
         <HoldingModal
-          holding={edit === "new" ? null : edit}
+          holding={edit}
           members={store.members}
           onClose={() => setEdit(null)}
           onSave={(h: Holding) => {
-            edit === "new" ? store.addHolding(h) : store.updateHolding(h.id, h);
-            toast(edit === "new" ? "Holding added" : "Holding updated");
+            store.updateHolding(h.id, h);
+            toast("Holding updated");
             setEdit(null);
           }}
-          onDelete={
-            edit !== "new"
-              ? () => {
-                  store.removeHolding((edit as Holding).id);
-                  toast("Holding removed");
-                  setEdit(null);
-                }
-              : undefined
-          }
+          onDelete={() => {
+            store.removeHolding(edit.id);
+            toast("Holding removed");
+            setEdit(null);
+          }}
+        />
+      )}
+      {addTx && (
+        <TransactionModal
+          members={store.members}
+          onClose={() => setAddTx(false)}
+          onSave={async (t: Omit<Transaction, "id" | "addedAt" | "docId">, evidence?: File) => {
+            await store.addTransaction(t, evidence);
+            toast(evidence ? "Transaction saved with evidence" : "Transaction saved");
+            setAddTx(false);
+          }}
         />
       )}
       {nomineeFor && (
@@ -1387,98 +1500,6 @@ function Wealth({ store, toast }: any) {
       )}
       {estate && <EstateSheet store={store} onClose={() => setEstate(false)} toast={toast} />}
       {viewDoc && <DocViewer doc={viewDoc} store={store} onClose={() => setViewDoc(null)} />}
-    </div>
-  );
-}
-
-/* ═══════════════ LEGACY ═══════════════ */
-function Legacy({ store, go }: any) {
-  const trusted = store.members.filter((m: Member) => m.access === "Full member" || m.access === "Emergency access");
-  const gaps = store.holdings.filter((h: Holding) => (h.kind === "asset" || h.kind === "cover") && !h.nominee);
-  return (
-    <div>
-      <SectionHead
-        title="Legacy handoff"
-        sub="Make sure nothing is lost if you are gone, without giving it away early."
-      />
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16 }}>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <Users size={16} color={T.muted} />
-            <b style={{ color: T.white, fontSize: 15 }}>Who steps in</b>
-          </div>
-          {trusted.map((m: Member, i: number) => (
-            <div
-              key={m.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "11px 0",
-                borderTop: i ? `1px solid ${T.border}` : "none",
-              }}
-            >
-              <span
-                style={{
-                  display: "grid",
-                  placeItems: "center",
-                  width: 36,
-                  height: 36,
-                  borderRadius: 9,
-                  background: m.color + "26",
-                  color: m.color,
-                  fontWeight: 800,
-                }}
-              >
-                {m.name[0]}
-              </span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 600, color: T.white }}>{m.name}</div>
-                <div style={{ fontSize: 12.5, color: T.muted }}>{m.relation}</div>
-              </div>
-              <span style={pill(m.access === "Full member" ? T.mint : A.blue)}>{m.access}</span>
-            </div>
-          ))}
-          <button
-            onClick={() => go("trust")}
-            style={{ ...btnGhost, width: "100%", justifyContent: "center", marginTop: 12 }}
-          >
-            Manage trusted people <ArrowRight size={14} />
-          </button>
-        </Card>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <AlertTriangle size={16} color={T.muted} />
-            <b style={{ color: T.white, fontSize: 15 }}>Before handoff</b>
-          </div>
-          {gaps.length === 0 ? (
-            <p style={{ color: T.muted, fontSize: 13 }}>Every valued holding has a nominee. You are covered.</p>
-          ) : (
-            gaps.map((h: Holding) => (
-              <button
-                key={h.id}
-                onClick={() => go("wealth")}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "9px 0",
-                  borderTop: `1px solid ${T.border}`,
-                }}
-              >
-                <span style={{ width: 8, height: 8, borderRadius: 9, background: T.coral }} />
-                <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>{h.name} has no nominee</span>
-                <ChevronRight size={14} color={T.muted} />
-              </button>
-            ))
-          )}
-        </Card>
-      </div>
     </div>
   );
 }
@@ -1618,11 +1639,10 @@ function Trust({ store, toast }: any) {
 /* ═══════════════ SHELL ═══════════════ */
 const NAV: [string, string, any][] = [
   ["home", "Home", LayoutGrid],
-  ["packages", "Packages", Plane],
   ["documents", "Documents", FolderOpen],
+  ["packages", "Packages", Plane],
   ["health", "Health", HeartPulse],
   ["wealth", "Wealth", Wallet],
-  ["legacy", "Legacy handoff", KeyRound],
   ["trust", "Trust center", ShieldCheck],
 ];
 
@@ -1766,6 +1786,206 @@ function SearchResults({ store, query, go }: any) {
           />
         ))}
       </Group>
+    </div>
+  );
+}
+
+function TransactionModal({ members, onClose, onSave }: any) {
+  const [f, setF] = useState({
+    purpose: "",
+    counterparty: "",
+    direction: "paid" as "paid" | "received",
+    amount: "",
+    date: new Date().toISOString().slice(0, 10),
+    memberId: "you",
+    followUpOn: "",
+    followUpNote: "",
+  });
+  const [evidence, setEvidence] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const valid = f.purpose.trim() && Number(f.amount) > 0;
+  const inp: CSSProperties = {
+    width: "100%",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 9,
+    padding: "9px 11px",
+    color: T.text,
+    fontSize: 14,
+    outline: "none",
+  };
+  const lbl: CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: T.muted,
+    fontFamily: "ui-monospace, monospace",
+    margin: "12px 0 5px",
+    display: "block",
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 70,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(460px,100%)",
+          maxHeight: "92vh",
+          overflowY: "auto",
+          padding: 22,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <b style={{ color: T.white, fontSize: 18 }}>Add a transaction</b>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={16} />
+          </button>
+        </div>
+        <p style={{ fontSize: 12.5, color: T.muted, margin: 0 }}>
+          A record with evidence, not a ledger. Attach the screenshot or receipt so it lives with your documents.
+        </p>
+        <label style={lbl}>What was it for</label>
+        <input
+          style={inp}
+          value={f.purpose}
+          onChange={(e) => setF({ ...f, purpose: e.target.value })}
+          placeholder="e.g. Advance to contractor, LIC premium"
+        />
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Paid or received</label>
+            <select
+              style={inp}
+              value={f.direction}
+              onChange={(e) => setF({ ...f, direction: e.target.value as "paid" | "received" })}
+            >
+              <option value="paid" style={{ color: "#000" }}>
+                Paid
+              </option>
+              <option value="received" style={{ color: "#000" }}>
+                Received
+              </option>
+            </select>
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Amount</label>
+            <input
+              style={inp}
+              type="number"
+              min="0"
+              value={f.amount}
+              onChange={(e) => setF({ ...f, amount: e.target.value })}
+              placeholder="0"
+            />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Counterparty</label>
+            <input
+              style={inp}
+              value={f.counterparty}
+              onChange={(e) => setF({ ...f, counterparty: e.target.value })}
+              placeholder="Person or institution"
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Date</label>
+            <input style={inp} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} />
+          </div>
+        </div>
+        <label style={lbl}>Family member</label>
+        <select style={inp} value={f.memberId} onChange={(e) => setF({ ...f, memberId: e.target.value })}>
+          {members.map((m: Member) => (
+            <option key={m.id} value={m.id} style={{ color: "#000" }}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <label style={lbl}>Evidence (screenshot or receipt)</label>
+        <label
+          style={{
+            ...btnGhost,
+            cursor: "pointer",
+            width: "100%",
+            justifyContent: "center",
+            borderStyle: "dashed",
+          }}
+        >
+          <Paperclip size={14} /> {evidence ? evidence.name : "Attach a file"}
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            hidden
+            onChange={(e) => setEvidence(e.target.files?.[0] || null)}
+          />
+        </label>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label style={lbl}>Follow up on (optional)</label>
+            <input
+              style={inp}
+              type="date"
+              value={f.followUpOn}
+              onChange={(e) => setF({ ...f, followUpOn: e.target.value })}
+            />
+          </div>
+          <div style={{ flex: 1.4 }}>
+            <label style={lbl}>Follow-up note</label>
+            <input
+              style={inp}
+              value={f.followUpNote}
+              onChange={(e) => setF({ ...f, followUpNote: e.target.value })}
+              placeholder="e.g. check if cheque cleared"
+            />
+          </div>
+        </div>
+        <button
+          disabled={!valid || saving}
+          onClick={async () => {
+            if (!valid) return;
+            setSaving(true);
+            await onSave(
+              {
+                purpose: f.purpose.trim(),
+                counterparty: f.counterparty.trim() || undefined,
+                direction: f.direction,
+                amount: Number(f.amount),
+                date: f.date,
+                memberId: f.memberId,
+                followUpOn: f.followUpOn || undefined,
+                followUpNote: f.followUpNote.trim() || undefined,
+                followUpDone: false,
+              },
+              evidence || undefined,
+            );
+          }}
+          style={{
+            ...btnGold,
+            width: "100%",
+            justifyContent: "center",
+            marginTop: 18,
+            opacity: valid && !saving ? 1 : 0.4,
+          }}
+        >
+          {saving ? "Saving\u2026" : "Save transaction"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -2307,8 +2527,7 @@ export default function App() {
         {route === "packages" && <Packages store={store} toast={toast} />}
         {route === "documents" && <Documents store={store} toast={toast} />}
         {route === "health" && <Healthcare toast={toast} />}
-        {route === "wealth" && <Wealth store={store} toast={toast} />}
-        {route === "legacy" && <Legacy store={store} go={go} />}
+        {route === "wealth" && <Wealth store={store} go={go} toast={toast} />}
         {route === "trust" && <Trust store={store} toast={toast} />}
       </main>
       {query.trim() && <div onClick={() => setQuery("")} style={{ position: "fixed", inset: 0, zIndex: 30 }} />}
