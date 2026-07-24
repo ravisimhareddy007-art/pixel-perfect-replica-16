@@ -62,8 +62,8 @@ const daysTo = (s: string) => Math.ceil((+new Date(s) - Date.now()) / 86400000);
 const age = (dob?: string) => (dob ? Math.floor((Date.now() - +new Date(dob)) / (365.25 * 86400000)) : null);
 
 /* ── reference ranges (standard published values) ── */
-type Status = "in" | "watch" | "out" | "none";
-const METRICS: Record<
+export type Status = "in" | "watch" | "out" | "none";
+export const METRICS: Record<
   string,
   { unit: string; bp?: boolean; ref: string; band?: [number, number]; status: (a: number, b?: number) => Status }
 > = {
@@ -120,8 +120,8 @@ const KIND: Record<string, { icon: any; c: string; label: string }> = {
   scan: { icon: ClipboardList, c: C.gold, label: "Scan" },
   other: { icon: ClipboardList, c: C.faint, label: "Record" },
 };
-const sortR = (a: LabLog, b: LabLog) => a.date.localeCompare(b.date);
-const statusOf = (metric: string, r: LabLog[]): Status => {
+export const sortR = (a: LabLog, b: LabLog) => a.date.localeCompare(b.date);
+export const statusOf = (metric: string, r: LabLog[]): Status => {
   if (!r.length) return "none";
   const l = r[r.length - 1];
   return METRICS[metric].status(l.value, l.value2);
@@ -185,7 +185,6 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
   >(null);
   const [printHTML, setPrintHTML] = useState("");
   const [insightOpen, setInsightOpen] = useState(false);
-  const [showAllActs, setShowAllActs] = useState(false);
   const [viewDoc, setViewDoc] = useState<Doc | null>(null);
   const recRef = useRef<HTMLInputElement>(null);
   const pendingRec = useRef<{ override: Partial<Doc>; label: string } | null>(null);
@@ -467,90 +466,6 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
         </p>
       </div>
 
-      {/* family action list — the takeaway, before anything else */}
-      <div className="lh-card lh-actcard">
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "13px 16px" }}>
-          <Bell size={15} color={familyActions.length ? C.gold : C.emerald} />
-          <b style={{ fontSize: 14.5, color: C.text }}>What needs doing</b>
-          <span className="lh-tc" style={{ marginLeft: "auto", color: familyActions.length ? C.gold : C.emerald }}>
-            {familyActions.length || "all clear"}
-          </span>
-        </div>
-        {familyActions.length === 0 ? (
-          <div style={{ padding: "0 16px 14px", fontSize: 13.5, color: C.sub }}>
-            Nothing due across the family in the next six weeks, and every tracked reading is in range.
-          </div>
-        ) : (
-          <>
-            {(showAllActs ? familyActions : familyActions.slice(0, 6)).map((a, i) => {
-              const Ic = a.icon;
-              return (
-                <div
-                  key={i}
-                  className="lh-actrow"
-                  onClick={() => {
-                    setSel(a.mid);
-                    setTab("overview");
-                  }}
-                >
-                  <span className="lh-ic" style={{ background: a.iconC + "1f" }}>
-                    <Ic size={15} color={a.iconC} />
-                  </span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, minWidth: 76, flexShrink: 0 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: 9, background: a.color }} />
-                    <span style={{ fontSize: 12.5, color: C.sub, fontWeight: 600 }}>{a.name}</span>
-                  </span>
-                  <span
-                    style={{
-                      flex: 1,
-                      fontSize: 13.5,
-                      color: C.text,
-                      fontWeight: 600,
-                      minWidth: 0,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {a.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: a.iconC,
-                      fontFamily: "'JetBrains Mono',monospace",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {a.when}
-                  </span>
-                  {a.kind === "reminder" && (
-                    <button
-                      className="lh-ib"
-                      title="Mark done"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        s.completeReminder(a.rid!);
-                        toast("Marked done");
-                      }}
-                    >
-                      <CheckCircle2 size={15} color={C.emerald} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-            {familyActions.length > 6 && (
-              <div className="lh-actrow" style={{ justifyContent: "center" }} onClick={() => setShowAllActs((v) => !v)}>
-                <span style={{ fontSize: 12.5, color: C.sub, fontWeight: 600 }}>
-                  {showAllActs ? "Show less" : `Show ${familyActions.length - 6} more`}
-                </span>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
       {/* member switcher — status cards, not bare pills */}
       <div className="lh-famgrid">
         {s.members.map((mm) => {
@@ -590,55 +505,28 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
         </button>
       </div>
 
-      {/* selected member — visit companion hero */}
-      <div className="lh-hero">
-        <div className="lh-herotop">
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <span
-              className="lh-av lg"
-              style={{ background: m.color + "26", color: m.color, borderColor: m.color + "55" }}
-            >
-              {m.name[0]}
-            </span>
-            <div>
-              <h2 className="lh-h2" style={{ fontSize: 21 }}>
-                {m.name}
-              </h2>
-              <div style={{ fontSize: 13, color: C.sub, display: "flex", gap: 8, flexWrap: "wrap", marginTop: 3 }}>
-                <span>{m.relation}</span>
-                {age(m.dob) != null && <span>· {age(m.dob)}</span>}
-                {m.bloodGroup && <span>· {m.bloodGroup}</span>}
-                {care.doctor && <span>· {care.doctor}</span>}
-              </div>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 9, flexWrap: "wrap" }}>
-            <button className="lh-btn" onClick={() => setModal("visit")}>
-              <ClipboardList size={16} /> Prepare for visit
-            </button>
-            <button className="lh-btn-g" onClick={() => setModal("emergency")}>
-              <IdCard size={16} /> Emergency card
-            </button>
-            <button className="lh-btn-g" onClick={() => setModal("reading")}>
-              <Plus size={16} /> Log reading
-            </button>
+      {/* selected member — slim identity bar; actions live with their context */}
+      <div className="lh-pbar">
+        <span className="lh-av" style={{ background: m.color + "26", color: m.color, borderColor: m.color + "55" }}>
+          {m.name[0]}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 className="lh-h2" style={{ fontSize: 18 }}>
+            {m.name}
+          </h2>
+          <div style={{ fontSize: 12.5, color: C.sub, display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+            <span>{m.relation}</span>
+            {age(m.dob) != null && <span>· {age(m.dob)}</span>}
+            {m.bloodGroup && <span>· {m.bloodGroup}</span>}
+            {care.doctor && <span>· {care.doctor}</span>}
           </div>
         </div>
-        <div className="lh-heronext">
-          <CalendarClock size={15} color={C.gold} />
-          <span style={{ fontSize: 14, color: C.text }}>
-            <b style={{ fontWeight: 600 }}>
-              {nextVisit ? `${nextVisit.title} · in ${daysTo(nextVisit.due)} days` : "No visit scheduled"}
-            </b>
-            {nextVisit ? ` · ${fmt(nextVisit.due)}` : ""}
-          </span>
-        </div>
-        <div className="lh-herometa">
-          Bring {meds.length} medication{meds.length !== 1 ? "s" : ""},{" "}
-          {records.filter((r) => r.medType === "lab_report").length} recent report
-          {records.filter((r) => r.medType === "lab_report").length !== 1 ? "s" : ""}
-          {insuranceOf(m, s.docs) ? ", insurance card" : ""} · {changedLine}
-        </div>
+        <button className="lh-btn-g" onClick={() => setModal("emergency")}>
+          <IdCard size={15} /> Emergency card
+        </button>
+        <button className="lh-btn-g" onClick={() => setModal("reading")}>
+          <Plus size={15} /> Log reading
+        </button>
       </div>
 
       {/* tabs */}
@@ -662,6 +550,35 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
       {/* ── OVERVIEW ── */}
       {tab === "overview" && (
         <div className="lh-pane">
+          <div
+            className="lh-card"
+            style={{
+              padding: "14px 16px",
+              marginBottom: 16,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <CalendarClock size={16} color={C.gold} />
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>
+                {nextVisit
+                  ? `${nextVisit.title} · in ${daysTo(nextVisit.due)} days · ${fmt(nextVisit.due)}`
+                  : "No visit scheduled"}
+              </div>
+              <div style={{ fontSize: 12.5, color: C.sub, marginTop: 2 }}>
+                Bring {meds.length} medication{meds.length !== 1 ? "s" : ""},{" "}
+                {records.filter((r) => r.medType === "lab_report").length} recent report
+                {records.filter((r) => r.medType === "lab_report").length !== 1 ? "s" : ""}
+                {insuranceOf(m, s.docs) ? ", insurance card" : ""} · {changedLine}
+              </div>
+            </div>
+            <button className="lh-btn" onClick={() => setModal("visit")}>
+              <ClipboardList size={15} /> Prepare for visit
+            </button>
+          </div>
           <button className="lh-infobar" onClick={() => setInsightOpen((o) => !o)}>
             <Info size={15} color={C.gold} />
             <span className="lh-infoshort">{shortInsight}</span>
@@ -1837,6 +1754,7 @@ const CSS = `
 .lh-cond{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:${C.text};background:${C.panel2};border:1px solid ${C.border};border-radius:20px;padding:4px 10px}
 .lh-cond button{background:0;border:0;color:${C.faint};cursor:pointer;display:inline-flex}
 .lh-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:80;background:#111524;border:1px solid ${C.border};color:${C.text};padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 16px 50px rgba(0,0,0,.5)}
+.lh-pbar{display:flex;align-items:center;gap:13px;flex-wrap:wrap;margin-bottom:14px;padding:2px}
 .lh-actcard{margin-bottom:16px;padding:0}
 .lh-actrow{display:flex;align-items:center;gap:11px;border-top:1px solid ${C.border};padding:10px 16px;cursor:pointer}
 .lh-actrow:hover{background:rgba(255,255,255,.04)}
