@@ -26,6 +26,7 @@ import {
   Clock,
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
   UploadCloud,
   Lock,
   Bell,
@@ -763,6 +764,7 @@ function Documents({ store, toast }: any) {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<Doc | null>(null);
   const [preview, setPreview] = useState<Doc | null>(null);
+  const [upMenu, setUpMenu] = useState(false);
 
   const nameOf = (mid?: string) => store.members.find((m: Member) => m.id === mid)?.name || "Unassigned";
   const colorOf = (mid?: string) => store.members.find((m: Member) => m.id === mid)?.color || T.faint;
@@ -857,21 +859,88 @@ function Documents({ store, toast }: any) {
           sub={`${docs.length} records in your archive. Search, filter, and open any row for full context.`}
         />
         <div style={{ display: "flex", gap: 10 }}>
-          <label style={{ ...btnGold, cursor: "pointer" }}>
-            <UploadCloud size={15} /> Upload
-            <input
-              type="file"
-              multiple
-              hidden
-              onChange={(e) => {
-                if (e.target.files?.length) {
-                  store.addFiles(e.target.files);
-                  toast(`${e.target.files.length} document(s) classified`);
-                }
-                e.currentTarget.value = "";
-              }}
-            />
-          </label>
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setUpMenu((v) => !v)} style={btnGold}>
+              <UploadCloud size={15} /> Upload <ChevronDown size={14} />
+            </button>
+            {upMenu && (
+              <>
+                <div onClick={() => setUpMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 45 }} />
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 6px)",
+                    right: 0,
+                    zIndex: 46,
+                    width: 190,
+                    background: T.panel,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 12,
+                    padding: 6,
+                    boxShadow: "0 20px 60px rgba(0,0,0,.5)",
+                  }}
+                >
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "9px 11px",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: T.text,
+                    }}
+                  >
+                    <FileText size={15} color={T.muted} /> Upload files
+                    <input
+                      type="file"
+                      multiple
+                      hidden
+                      onChange={(e) => {
+                        if (e.target.files?.length) {
+                          store.addFiles(e.target.files);
+                          toast(`${e.target.files.length} document(s) classified`);
+                        }
+                        e.currentTarget.value = "";
+                        setUpMenu(false);
+                      }}
+                    />
+                  </label>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "9px 11px",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: T.text,
+                    }}
+                  >
+                    <ImageIcon size={15} color={T.muted} /> From gallery
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      hidden
+                      onChange={(e) => {
+                        if (e.target.files?.length) {
+                          store.addFiles(e.target.files);
+                          toast(`${e.target.files.length} image(s) added`);
+                        }
+                        e.currentTarget.value = "";
+                        setUpMenu(false);
+                      }}
+                    />
+                  </label>
+                </div>
+              </>
+            )}
+          </div>
           <label style={{ ...btnGhost, cursor: "pointer" }}>
             <Camera size={15} /> Scan
             <input
@@ -883,22 +952,6 @@ function Documents({ store, toast }: any) {
                 if (e.target.files?.length) {
                   store.addFiles(e.target.files);
                   toast("Scan captured and classified");
-                }
-                e.currentTarget.value = "";
-              }}
-            />
-          </label>
-          <label style={{ ...btnGhost, cursor: "pointer" }}>
-            <ImageIcon size={15} /> Gallery
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={(e) => {
-                if (e.target.files?.length) {
-                  store.addFiles(e.target.files);
-                  toast(`${e.target.files.length} image(s) added`);
                 }
                 e.currentTarget.value = "";
               }}
@@ -3027,7 +3080,13 @@ export default function App() {
 
       <main style={{ flex: 1, minWidth: 0, padding: "24px 34px 40px", maxWidth: 1160, margin: "0 auto" }}>
         <div
-          style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20, position: "relative", zIndex: 40 }}
+          style={{
+            display: route === "documents" ? "none" : "flex",
+            justifyContent: "flex-end",
+            marginBottom: 20,
+            position: "relative",
+            zIndex: 40,
+          }}
         >
           <div style={{ position: "relative", width: 300, maxWidth: "100%" }}>
             <div
