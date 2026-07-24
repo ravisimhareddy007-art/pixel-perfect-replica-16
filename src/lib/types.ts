@@ -58,6 +58,21 @@ export interface Reminder {
   done: boolean;
 }
 
+export interface Transaction {
+  id: string;
+  memberId?: string;
+  purpose: string; // "Advance to contractor", "LIC premium paid"
+  counterparty?: string; // person/institution on the other side
+  direction: "paid" | "received";
+  amount: number;
+  date: string; // ISO date of the transaction
+  docId?: string; // evidence (screenshot/receipt) stored as a Doc — single source of truth
+  followUpOn?: string; // ISO date to follow up
+  followUpNote?: string; // "check if cheque cleared"
+  followUpDone?: boolean;
+  addedAt: string;
+}
+
 export type HoldingKind = "asset" | "liability" | "cover";
 export interface Holding {
   id: string;
