@@ -106,39 +106,51 @@ const doc = (name: string, category: Category, docType: string, x: Partial<Doc> 
   ...x,
 });
 const seedDocs: Doc[] = [
-  doc("Passport_AlexMorgan", "Identity", "Passport", { source: "DigiLocker", expiry: rel(264) }),
-  doc("National_ID", "Identity", "National ID", { source: "DigiLocker" }),
-  doc("Tax_ID", "Identity", "Tax ID", { source: "DigiLocker" }),
-  doc("Drivers_License", "Identity", "Driver's License", { source: "DigiLocker", expiry: rel(147) }),
-  doc("Employment_Offer", "Employment", "Employment Offer", { source: "Email" }),
-  doc("Payslip_current", "Employment", "Payslip", { source: "Email", docDate: iso(-20) }),
-  doc("Tax_Return_2025", "Finance", "Tax Return", { source: "Drive" }),
-  doc("Bank_Statement_Q1", "Finance", "Bank Statement", { source: "Email" }),
-  doc("Investment_Statement", "Finance", "Investment Statement", { source: "Drive", value: 4200000, nominee: true }),
-  doc("Health_Insurance", "Insurance", "Health Insurance", { source: "Email", expiry: rel(230), nominee: true }),
-  doc("Life_Insurance", "Insurance", "Life Insurance", { source: "Drive", value: 10000000, nominee: false }),
-  doc("Auto_Insurance", "Insurance", "Auto Insurance", { source: "Email", expiry: rel(40) }),
-  doc("Property_Deed", "Property", "Property Deed", { source: "Drive", value: 18500000, nominee: true }),
-  doc("Property_Tax", "Property", "Property Tax", { source: "Upload" }),
-  doc("Prescription_Cardio", "Medical", "Prescription", {
+  doc("Passport_Z4732911_AlexMorgan", "Identity", "Passport", { source: "DigiLocker", expiry: rel(264) }),
+  doc("Aadhaar_XXXX-XXXX-4821_AlexMorgan", "Identity", "Aadhaar Card", { source: "DigiLocker" }),
+  doc("PAN_AZKPM4821L_AlexMorgan", "Identity", "PAN Card", { source: "DigiLocker" }),
+  doc("DrivingLicence_KA05-2019-0031847", "Identity", "Driving License", { source: "DigiLocker", expiry: rel(147) }),
+  doc("OfferLetter_SeniorEngineer_Jan2024", "Employment", "Employment Offer", { source: "Email" }),
+  doc("SalarySlip_Jun2026", "Employment", "Payslip", { source: "Email", docDate: iso(-20) }),
+  doc("ITR-V_Acknowledgement_AY2025-26", "Finance", "ITR Acknowledgement", { source: "Drive" }),
+  doc("MeridianBank_Statement_Jan-Jun2026", "Finance", "Bank Statement", { source: "Email", docDate: iso(-24) }),
+  doc("BeaconWealth_HoldingStatement_Jun2026", "Finance", "Investment Statement", {
+    source: "Drive",
+    value: 4200000,
+    nominee: true,
+  }),
+  doc("AegisHealth_FamilyFloater_Policy_88231", "Insurance", "Health Insurance", {
+    source: "Email",
+    expiry: rel(230),
+    nominee: true,
+  }),
+  doc("AegisLife_TermPolicy_5567", "Insurance", "Life Insurance", { source: "Drive", value: 10000000, nominee: false }),
+  doc("MotorPolicy_KA05MJ4412_2026", "Insurance", "Auto Insurance", { source: "Email", expiry: rel(40) }),
+  doc("SaleDeed_Reg4417-2019_LakeviewApts", "Property", "Property Deed", {
+    source: "Drive",
+    value: 18500000,
+    nominee: true,
+  }),
+  doc("PropertyTax_Receipt_FY2026-27", "Property", "Property Tax", { source: "Upload" }),
+  doc("Prescription_DrBennett_Metformin_Jul2026", "Medical", "Prescription", {
     source: "Upload",
     memberId: "father",
     medType: "prescription",
     docDate: iso(-8),
   }),
-  doc("LabReport_HbA1c", "Medical", "Lab Report", {
+  doc("LabReport_HbA1c_FastingGlucose_Jul2026", "Medical", "Lab Report", {
     source: "Upload",
     memberId: "father",
     medType: "lab_report",
     docDate: iso(-8),
   }),
-  doc("Prescription_Thyroid", "Medical", "Prescription", {
+  doc("Prescription_Levothyroxine_Jun2026", "Medical", "Prescription", {
     source: "Upload",
     memberId: "mother",
     medType: "prescription",
     docDate: iso(-30),
   }),
-  doc("LabReport_TSH", "Medical", "Lab Report", {
+  doc("LabReport_ThyroidPanel_Jun2026", "Medical", "Lab Report", {
     source: "Upload",
     memberId: "mother",
     medType: "lab_report",
