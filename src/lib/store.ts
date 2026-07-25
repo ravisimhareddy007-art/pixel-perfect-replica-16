@@ -10,6 +10,7 @@ import type {
   Transaction,
   Handoff,
   HandoffReason,
+  CustomPack,
 } from "./types";
 import { putBlob, delBlob } from "./idb";
 import { classify } from "./classify";
@@ -38,6 +39,7 @@ interface State {
   holdings: Holding[];
   transactions: Transaction[];
   handoff: Handoff | null;
+  customPacks: CustomPack[];
 }
 
 /* ── members (enterprise-neutral) ── */
@@ -408,6 +410,7 @@ const DEFAULT: State = {
   holdings: seedHoldings,
   transactions: seedTransactions,
   handoff: null,
+  customPacks: [],
 };
 
 /* ── visit-pack selector: the data-layer ("backend") filter for Prepare-for-visit.
@@ -480,6 +483,7 @@ function load(): State {
         holdings: p.holdings ?? DEFAULT.holdings,
         transactions: p.transactions ?? DEFAULT.transactions,
         handoff: p.handoff ?? null,
+        customPacks: p.customPacks ?? [],
       };
     }
   } catch {}
@@ -693,6 +697,18 @@ export function useStore() {
     };
     persist();
   }, []);
+  const addCustomPack = useCallback((cp: Omit<CustomPack, "id" | "createdAt">) => {
+    state = { ...state, customPacks: [...state.customPacks, { ...cp, id: id(), createdAt: new Date().toISOString() }] };
+    persist();
+  }, []);
+  const updateCustomPack = useCallback((cid: string, patch: Partial<CustomPack>) => {
+    state = { ...state, customPacks: state.customPacks.map((c) => (c.id === cid ? { ...c, ...patch } : c)) };
+    persist();
+  }, []);
+  const removeCustomPack = useCallback((cid: string) => {
+    state = { ...state, customPacks: state.customPacks.filter((c) => c.id !== cid) };
+    persist();
+  }, []);
   const releaseHandoff = useCallback((recipients: string[], reason: HandoffReason) => {
     state = { ...state, handoff: { releasedAt: new Date().toISOString(), recipients, reason } };
     persist();
@@ -733,6 +749,9 @@ export function useStore() {
     updateTransaction,
     removeTransaction,
     completeFollowUp,
+    addCustomPack,
+    updateCustomPack,
+    removeCustomPack,
     releaseHandoff,
     cancelHandoff,
     setOnboarded,
