@@ -98,6 +98,43 @@ const CAT_META: Record<Category, { icon: any; color: string }> = {
 };
 
 /* ── life-event packages ── */
+/* ── document ontology: capability requirements and the real documents that satisfy them.
+   This is the single matching truth — evalEvent, the drawer, exports, and dashboard insights all use it,
+   so a requirement can never read "available" in one pack and "missing" in another. ── */
+const SATISFIES: Record<string, string[]> = {
+  "Identity Proof": ["Aadhaar Card", "PAN Card", "Passport", "Voter ID", "Driving License"],
+  "Address Proof": [
+    "Aadhaar Card",
+    "Passport",
+    "Utility Bill",
+    "Rental Agreement",
+    "Voter ID",
+    "Driving License",
+    "Bank Statement",
+  ],
+  "Date of Birth Proof": ["Birth Certificate", "Aadhaar Card", "Passport", "PAN Card"],
+  "Photo ID": ["Aadhaar Card", "Passport", "PAN Card", "Driving License", "Voter ID"],
+  "Income Proof": ["Payslip", "Form 16", "ITR Acknowledgement", "Salary Certificate"],
+  "Employment Proof": ["Employment Offer", "Salary Certificate", "Payslip"],
+  "Proof of Funds": ["Bank Statement", "Investment Statement"],
+  "Accommodation Proof": ["Hotel Booking", "Rental Agreement", "Invitation Letter"],
+  "Travel Itinerary": ["Flight Reservation"],
+  "Property Ownership Proof": ["Property Deed", "Sale Agreement"],
+};
+const satisfies = (req: string, have: Set<string>): string | null => {
+  if (have.has(req)) return req;
+  for (const t of SATISFIES[req] || []) if (have.has(t)) return t;
+  return null;
+};
+const satisfyingDoc = (req: string, docs: Doc[]): Doc | undefined => {
+  const direct = docs.find((d) => d.docType === req);
+  if (direct) return direct;
+  for (const t of SATISFIES[req] || []) {
+    const d = docs.find((x) => x.docType === t);
+    if (d) return d;
+  }
+  return undefined;
+};
 /* ── curated catalog: the documented life of an educated adult, 100 high-frequency situations ── */
 const PACK_CAT_META: Record<string, { color: string; icon: any; source: string }> = {
   "Travel & Immigration": { color: A.blue, icon: Plane, source: "Official published requirements" },
@@ -117,6 +154,7 @@ const P = (
   reqs: string[],
   conditional?: string[],
   icon?: any,
+  source?: string,
 ) => ({
   id,
   name,
@@ -126,97 +164,168 @@ const P = (
   conditional,
   accent: PACK_CAT_META[cat].color,
   icon: icon || PACK_CAT_META[cat].icon,
-  source: PACK_CAT_META[cat].source,
-  lastChecked: "Jul 24, 2026",
+  source: source || PACK_CAT_META[cat].source,
+  lastChecked: "Jul 25, 2026",
 });
 const EVENTS = [
-  /* Travel & Immigration (12) */
+  /* Travel & Immigration (12) — flagship visas verified against published consular checklists */
   P(
     "schengen",
     "Travel & Immigration",
     "Schengen visa",
-    "Tourist visa, Europe",
+    "Short-stay tourist, Europe",
     [
       "Passport",
-      "Payslip",
-      "Bank Statement",
-      "Tax Return",
-      "Employment Offer",
+      "Visa Application Form",
+      "Passport Photos",
       "Travel Insurance",
       "Flight Reservation",
-      "Hotel Booking",
+      "Accommodation Proof",
+      "Proof of Funds",
+      "Employment Proof",
+      "ITR Acknowledgement",
+      "Payslip",
     ],
-    ["Travel Insurance"],
+    ["ITR Acknowledgement"],
+    undefined,
+    "EU Visa Code (Reg. 810/2009) via VFS consular checklists",
   ),
-  P("us", "Travel & Immigration", "US B1/B2 visa", "Business or tourist", [
-    "Passport",
-    "Bank Statement",
-    "Payslip",
-    "Employment Offer",
-    "Tax Return",
-    "DS-160 Confirmation",
-  ]),
+  P(
+    "us",
+    "Travel & Immigration",
+    "US B1/B2 visa",
+    "Business or tourist",
+    [
+      "Passport",
+      "DS-160 Confirmation",
+      "Passport Photos",
+      "Interview Appointment Letter",
+      "Proof of Funds",
+      "Employment Proof",
+      "ITR Acknowledgement",
+    ],
+    ["ITR Acknowledgement"],
+    undefined,
+    "US Dept. of State visitor visa requirements",
+  ),
   P(
     "uk",
     "Travel & Immigration",
     "UK visa",
     "Standard visitor",
-    ["Passport", "Bank Statement", "Payslip", "Employment Offer", "Accommodation Proof", "Travel Itinerary"],
+    [
+      "Passport",
+      "Visa Application Form",
+      "Bank Statement",
+      "Employment Proof",
+      "Payslip",
+      "Accommodation Proof",
+      "Travel Itinerary",
+    ],
     ["Accommodation Proof"],
+    undefined,
+    "UK Home Office standard visitor guidance",
   ),
   P(
     "canada",
     "Travel & Immigration",
     "Canada visa",
     "Visitor visa",
-    ["Passport", "Bank Statement", "Tax Return", "Employment Offer", "Invitation Letter", "Biometrics"],
+    [
+      "Passport",
+      "Proof of Funds",
+      "ITR Acknowledgement",
+      "Employment Proof",
+      "Invitation Letter",
+      "Biometrics Confirmation",
+    ],
     ["Invitation Letter"],
+    undefined,
+    "IRCC visitor visa document checklist",
   ),
   P(
     "australia",
     "Travel & Immigration",
     "Australia visitor visa",
-    "Subclass visitor",
-    ["Passport", "Bank Statement", "Payslip", "Employment Offer", "Travel Itinerary"],
+    "Subclass 600",
+    ["Passport", "Proof of Funds", "Payslip", "Employment Proof", "Travel Itinerary"],
     ["Invitation Letter"],
+    undefined,
+    "Dept. of Home Affairs subclass 600 checklist",
   ),
-  P("japan", "Travel & Immigration", "Japan tourist visa", "Short stay", [
-    "Passport",
-    "Bank Statement",
-    "Flight Reservation",
-    "Hotel Booking",
-    "Travel Itinerary",
-  ]),
+  P(
+    "japan",
+    "Travel & Immigration",
+    "Japan tourist visa",
+    "Short stay",
+    [
+      "Passport",
+      "Visa Application Form",
+      "Passport Photos",
+      "Bank Statement",
+      "Flight Reservation",
+      "Travel Itinerary",
+    ],
+    undefined,
+    undefined,
+    "Embassy of Japan published checklist",
+  ),
   P(
     "singapore",
     "Travel & Immigration",
     "Singapore visa",
     "Tourist entry",
-    ["Passport", "Passport Photos", "Bank Statement", "Flight Reservation"],
+    ["Passport", "Visa Application Form", "Passport Photos", "Proof of Funds"],
     ["Invitation Letter"],
+    undefined,
+    "ICA Singapore authorized-agent checklist",
   ),
-  P("uae", "Travel & Immigration", "UAE visit visa", "Tourist or family visit", [
-    "Passport",
-    "Passport Photos",
-    "Flight Reservation",
-    "Hotel Booking",
-    "Bank Statement",
-  ]),
-  P("h1b-stamp", "Travel & Immigration", "US H-1B stamping", "Work visa interview", [
-    "Passport",
-    "Employment Offer",
-    "Payslip",
-    "Tax Return",
-    "Education Certificate",
-    "Approval Notice",
-  ]),
-  P("f1-visa", "Travel & Immigration", "US F-1 student visa", "Study in the US", [
-    "Passport",
-    "Admission Letter",
-    "Bank Statement",
-    "Language Test Scorecard",
-    "Education Certificate",
-  ]),
+  P(
+    "uae",
+    "Travel & Immigration",
+    "UAE visit visa",
+    "Tourist or family visit",
+    ["Passport", "Passport Photos", "Flight Reservation", "Hotel Booking", "Bank Statement"],
+    undefined,
+    undefined,
+    "UAE ICP / airline visa-desk checklists",
+  ),
+  P(
+    "h1b-stamp",
+    "Travel & Immigration",
+    "US H-1B stamping",
+    "Work visa interview",
+    [
+      "Passport",
+      "DS-160 Confirmation",
+      "Approval Notice",
+      "Employment Offer",
+      "Payslip",
+      "ITR Acknowledgement",
+      "Degree Certificate",
+    ],
+    undefined,
+    undefined,
+    "US Dept. of State petition-based visa checklist",
+  ),
+  P(
+    "f1-visa",
+    "Travel & Immigration",
+    "US F-1 student visa",
+    "Study in the US",
+    [
+      "Passport",
+      "DS-160 Confirmation",
+      "I-20 Form",
+      "Admission Letter",
+      "Proof of Funds",
+      "Language Test Scorecard",
+      "Degree Certificate",
+    ],
+    undefined,
+    undefined,
+    "US Dept. of State student visa checklist",
+  ),
   P(
     "intl-dl",
     "Travel & Immigration",
@@ -225,60 +334,88 @@ const EVENTS = [
     ["Driving License", "Passport", "Passport Photos", "Address Proof"],
     undefined,
     Car,
+    "RTO international driving permit checklist",
   ),
-  P("minor-travel", "Travel & Immigration", "Minor travel consent", "Child travelling", [
-    "Birth Certificate",
-    "Passport",
-    "National ID",
-    "Consent Letter",
-  ]),
-  /* Identity & Civic (14) */
-  P("passport-new", "Identity & Civic", "New passport", "First-time application", [
-    "National ID",
-    "Address Proof",
-    "Birth Certificate",
-    "Passport Photos",
-  ]),
-  P("passport-renew", "Identity & Civic", "Passport renewal", "Expiring passport", [
-    "Passport",
-    "National ID",
-    "Address Proof",
-    "Passport Photos",
-  ]),
-  P("minor-passport", "Identity & Civic", "Passport for a minor", "Child's first passport", [
-    "Birth Certificate",
-    "National ID",
-    "Address Proof",
-    "Passport Photos",
-  ]),
-  P("tax-id", "Identity & Civic", "Tax ID application", "New or corrected", [
-    "National ID",
-    "Address Proof",
-    "Passport Photos",
-    "Birth Certificate",
-  ]),
+  P(
+    "minor-travel",
+    "Travel & Immigration",
+    "Minor travel consent",
+    "Child travelling",
+    ["Birth Certificate", "Passport", "Identity Proof", "Consent Letter"],
+    undefined,
+    undefined,
+    "Airline and immigration guidance for minors",
+  ),
+  /* Identity & Civic (14) — phrased exactly as government checklists phrase them */
+  P(
+    "passport-new",
+    "Identity & Civic",
+    "New passport",
+    "First-time application",
+    ["Identity Proof", "Address Proof", "Date of Birth Proof", "Passport Photos"],
+    undefined,
+    undefined,
+    "Passport Seva (MEA) document advisor",
+  ),
+  P(
+    "passport-renew",
+    "Identity & Civic",
+    "Passport renewal",
+    "Reissue of passport",
+    ["Passport", "Address Proof", "Passport Photos"],
+    ["Date of Birth Proof"],
+    undefined,
+    "Passport Seva (MEA) reissue advisor",
+  ),
+  P(
+    "minor-passport",
+    "Identity & Civic",
+    "Passport for a minor",
+    "Child's first passport",
+    ["Birth Certificate", "Identity Proof", "Address Proof", "Passport Photos", "Annexure D Declaration"],
+    undefined,
+    undefined,
+    "Passport Seva (MEA) minor checklist",
+  ),
+  P(
+    "tax-id",
+    "Identity & Civic",
+    "PAN card application",
+    "Form 49A",
+    ["Identity Proof", "Address Proof", "Date of Birth Proof", "Passport Photos"],
+    undefined,
+    undefined,
+    "Income Tax Dept. Form 49A requirements",
+  ),
   P(
     "id-update",
     "Identity & Civic",
-    "National ID update",
+    "Aadhaar update",
     "Name or address change",
-    ["National ID", "Address Proof"],
+    ["Aadhaar Card", "Address Proof"],
     ["Marriage Certificate"],
+    undefined,
+    "UIDAI update document list",
   ),
-  P("voter-id", "Identity & Civic", "Voter ID application", "New registration", [
-    "National ID",
-    "Address Proof",
-    "Passport Photos",
-    "Birth Certificate",
-  ]),
+  P(
+    "voter-id",
+    "Identity & Civic",
+    "Voter ID application",
+    "Form 6 registration",
+    ["Identity Proof", "Address Proof", "Date of Birth Proof", "Passport Photos"],
+    undefined,
+    undefined,
+    "Election Commission Form 6 requirements",
+  ),
   P(
     "dl-new",
     "Identity & Civic",
     "Driving license",
-    "New license",
-    ["National ID", "Address Proof", "Passport Photos", "Medical Fitness Certificate"],
+    "New license (Sarathi)",
+    ["Identity Proof", "Address Proof", "Date of Birth Proof", "Passport Photos", "Medical Fitness Certificate"],
     ["Medical Fitness Certificate"],
     Car,
+    "Parivahan Sarathi document list",
   ),
   P(
     "dl-renew",
@@ -288,545 +425,801 @@ const EVENTS = [
     ["Driving License", "Address Proof", "Passport Photos"],
     ["Medical Fitness Certificate"],
     Car,
+    "Parivahan Sarathi renewal list",
   ),
   P(
     "vehicle-reg",
     "Identity & Civic",
     "Vehicle registration",
-    "New vehicle",
-    ["Sale Invoice", "Vehicle Insurance", "National ID", "Address Proof"],
+    "New vehicle (Form 20)",
+    ["Sale Invoice", "Vehicle Insurance", "Identity Proof", "Address Proof"],
     ["PUC Certificate"],
     Car,
+    "RTO Form 20 registration checklist",
   ),
   P(
     "vehicle-transfer",
     "Identity & Civic",
     "Vehicle ownership transfer",
-    "Selling or buying used",
-    ["Vehicle RC", "Vehicle Insurance", "National ID", "Address Proof"],
+    "Form 29/30",
+    ["Vehicle RC", "Vehicle Insurance", "Identity Proof", "Address Proof"],
     ["NOC"],
     Car,
+    "RTO Form 29/30 transfer checklist",
   ),
-  P("pcc", "Identity & Civic", "Police clearance certificate", "For jobs or visas", [
-    "Passport",
-    "National ID",
-    "Address Proof",
-    "Passport Photos",
-  ]),
-  P("name-change", "Identity & Civic", "Legal name change", "Gazette route", [
-    "Affidavit",
-    "National ID",
-    "Passport Photos",
-    "Address Proof",
-  ]),
+  P(
+    "pcc",
+    "Identity & Civic",
+    "Police clearance certificate",
+    "For jobs or visas",
+    ["Passport", "Identity Proof", "Address Proof", "Passport Photos"],
+    undefined,
+    undefined,
+    "Passport Seva PCC checklist",
+  ),
+  P(
+    "name-change",
+    "Identity & Civic",
+    "Legal name change",
+    "Gazette route",
+    ["Affidavit", "Identity Proof", "Passport Photos", "Newspaper Publication"],
+    undefined,
+    undefined,
+    "Dept. of Publication gazette procedure",
+  ),
   P(
     "income-cert",
     "Identity & Civic",
     "Income certificate",
     "For schemes and fees",
-    ["National ID", "Address Proof", "Salary Certificate"],
-    ["Tax Return"],
+    ["Identity Proof", "Address Proof", "Salary Certificate"],
+    ["ITR Acknowledgement"],
+    undefined,
+    "State revenue department checklists",
   ),
   P(
     "domicile-cert",
     "Identity & Civic",
     "Domicile certificate",
     "State residency proof",
-    ["National ID", "Address Proof", "Birth Certificate"],
-    ["Education Certificate"],
+    ["Identity Proof", "Address Proof", "Date of Birth Proof"],
+    ["Degree Certificate"],
+    undefined,
+    "State revenue department checklists",
   ),
-  /* Money & Tax (14) */
+  /* Money & Tax (14) — loans verified against SBI/HDFC published salaried checklists */
   P(
     "tax",
     "Money & Tax",
-    "Tax filing",
+    "Income tax filing",
     "Annual return",
-    ["Tax ID", "Tax Return", "Bank Statement", "Investment Statement", "Payslip"],
+    ["PAN Card", "Form 16", "Bank Statement", "Investment Statement", "Payslip"],
     ["Investment Statement"],
     FileText,
+    "Income Tax Dept. e-filing requirements",
   ),
   P(
     "carloan",
     "Money & Tax",
     "Car loan",
     "Vehicle finance",
-    ["National ID", "Tax ID", "Payslip", "Bank Statement", "Auto Quotation"],
+    ["PAN Card", "Identity Proof", "Income Proof", "Bank Statement", "Auto Quotation"],
     undefined,
     Car,
+    "Published lender checklists (salaried)",
   ),
-  P("personal-loan", "Money & Tax", "Personal loan", "Unsecured credit", [
-    "National ID",
-    "Tax ID",
-    "Payslip",
-    "Bank Statement",
-    "Address Proof",
-  ]),
+  P(
+    "personal-loan",
+    "Money & Tax",
+    "Personal loan",
+    "Unsecured credit",
+    ["PAN Card", "Identity Proof", "Address Proof", "Payslip", "Bank Statement"],
+    undefined,
+    undefined,
+    "Published lender checklists (salaried)",
+  ),
   P(
     "education-loan",
     "Money & Tax",
     "Education loan",
     "Study finance",
-    ["Admission Letter", "National ID", "Tax ID", "Bank Statement", "Payslip", "Education Certificate"],
+    ["Admission Letter", "PAN Card", "Identity Proof", "Proof of Funds", "Income Proof", "Marksheet"],
     ["Collateral Deed"],
+    undefined,
+    "Published lender education-loan checklists",
   ),
-  P("gold-loan", "Money & Tax", "Gold loan", "Secured on gold", ["National ID", "Address Proof", "Passport Photos"]),
-  P("credit-card", "Money & Tax", "Credit card application", "New card", [
-    "National ID",
-    "Tax ID",
-    "Payslip",
-    "Address Proof",
-  ]),
-  P("bank-account", "Money & Tax", "Bank account opening", "Savings or salary", [
-    "National ID",
-    "Tax ID",
-    "Address Proof",
-    "Passport Photos",
-  ]),
-  P("demat", "Money & Tax", "Demat and trading account", "Invest in markets", [
-    "National ID",
-    "Tax ID",
-    "Bank Statement",
-    "Cancelled Cheque",
-    "Passport Photos",
-  ]),
-  P("ppf", "Money & Tax", "PPF account opening", "Long-term savings", [
-    "National ID",
-    "Address Proof",
-    "Passport Photos",
-    "Nominee Form",
-  ]),
-  P("nps", "Money & Tax", "NPS account opening", "Retirement savings", [
-    "National ID",
-    "Tax ID",
-    "Address Proof",
-    "Cancelled Cheque",
-    "Nominee Form",
-  ]),
+  P(
+    "gold-loan",
+    "Money & Tax",
+    "Gold loan",
+    "Secured on gold",
+    ["Identity Proof", "Address Proof", "Passport Photos"],
+    undefined,
+    undefined,
+    "Published lender gold-loan checklists",
+  ),
+  P(
+    "credit-card",
+    "Money & Tax",
+    "Credit card application",
+    "New card",
+    ["PAN Card", "Identity Proof", "Address Proof", "Income Proof"],
+    undefined,
+    undefined,
+    "Published issuer checklists",
+  ),
+  P(
+    "bank-account",
+    "Money & Tax",
+    "Bank account opening",
+    "Savings or salary",
+    ["Identity Proof", "Address Proof", "PAN Card", "Passport Photos"],
+    undefined,
+    undefined,
+    "RBI KYC master direction",
+  ),
+  P(
+    "demat",
+    "Money & Tax",
+    "Demat and trading account",
+    "Invest in markets",
+    ["PAN Card", "Identity Proof", "Bank Statement", "Cancelled Cheque", "Passport Photos"],
+    undefined,
+    undefined,
+    "SEBI KYC requirements",
+  ),
+  P(
+    "ppf",
+    "Money & Tax",
+    "PPF account opening",
+    "Long-term savings",
+    ["Identity Proof", "Address Proof", "Passport Photos", "Nominee Form"],
+    undefined,
+    undefined,
+    "Post office / bank PPF checklists",
+  ),
+  P(
+    "nps",
+    "Money & Tax",
+    "NPS account opening",
+    "Retirement savings",
+    ["PAN Card", "Identity Proof", "Address Proof", "Cancelled Cheque", "Nominee Form"],
+    undefined,
+    undefined,
+    "PFRDA subscriber registration",
+  ),
   P(
     "epf-withdraw",
     "Money & Tax",
     "EPF withdrawal",
-    "Provident fund claim",
-    ["Tax ID", "Bank Statement", "Cancelled Cheque"],
+    "Form 19 / 10C claim",
+    ["PAN Card", "Bank Statement", "Cancelled Cheque"],
     ["Relieving Letter"],
+    undefined,
+    "EPFO Form 19/10C requirements",
   ),
-  P("gratuity", "Money & Tax", "Gratuity claim", "After leaving a job", [
-    "National ID",
-    "Bank Statement",
-    "Relieving Letter",
-    "Salary Certificate",
-  ]),
+  P(
+    "gratuity",
+    "Money & Tax",
+    "Gratuity claim",
+    "Form I after leaving",
+    ["Identity Proof", "Bank Statement", "Relieving Letter", "Salary Certificate"],
+    undefined,
+    undefined,
+    "Payment of Gratuity Act Form I",
+  ),
   P(
     "loan-closure",
     "Money & Tax",
     "Loan closure and lien release",
     "The NOC pack",
-    ["Loan Statement", "National ID", "NOC"],
+    ["Loan Statement", "Identity Proof", "NOC"],
     ["Property Deed"],
+    undefined,
+    "Published lender closure checklists",
   ),
-  P("balance-transfer", "Money & Tax", "Home loan balance transfer", "Refinance", [
-    "Loan Statement",
-    "Property Deed",
-    "Payslip",
-    "Bank Statement",
-    "Tax Return",
-  ]),
+  P(
+    "balance-transfer",
+    "Money & Tax",
+    "Home loan balance transfer",
+    "Refinance",
+    ["Loan Statement", "Property Ownership Proof", "Income Proof", "Bank Statement", "ITR Acknowledgement"],
+    undefined,
+    undefined,
+    "Published lender takeover checklists",
+  ),
   /* Jobs & Employment (12) */
   P(
     "bgv",
     "Jobs & Employment",
     "Background verification",
     "New job onboarding",
-    ["National ID", "Employment Offer", "Relieving Letter", "Payslip", "Tax Return", "Education Certificate"],
-    ["Education Certificate"],
+    ["Identity Proof", "Employment Offer", "Relieving Letter", "Payslip", "Degree Certificate"],
+    ["ITR Acknowledgement"],
     ShieldCheck,
+    "Published employer BGV checklists",
   ),
-  P("onboarding", "Jobs & Employment", "New job onboarding", "Day-one paperwork", [
-    "National ID",
-    "Tax ID",
-    "Education Certificate",
-    "Relieving Letter",
-    "Bank Statement",
-    "Passport Photos",
-  ]),
+  P(
+    "onboarding",
+    "Jobs & Employment",
+    "New job onboarding",
+    "Day-one paperwork",
+    ["Identity Proof", "PAN Card", "Degree Certificate", "Relieving Letter", "Cancelled Cheque", "Passport Photos"],
+    undefined,
+    undefined,
+    "Published employer onboarding checklists",
+  ),
   P(
     "govt-job",
     "Jobs & Employment",
     "Government job application",
     "Recruitment paperwork",
-    ["National ID", "Education Certificate", "Marksheet", "Passport Photos"],
+    ["Identity Proof", "Degree Certificate", "Marksheet", "Passport Photos"],
     ["Domicile Certificate", "Income Certificate"],
+    undefined,
+    "Recruitment notification requirements",
   ),
   P(
     "freelance-kyc",
     "Jobs & Employment",
     "Freelance client KYC",
     "Contractor onboarding",
-    ["National ID", "Tax ID", "Bank Statement"],
+    ["Identity Proof", "PAN Card", "Bank Statement"],
     ["GST Certificate"],
+    undefined,
+    "Standard client KYC requirements",
   ),
-  P("incorporation", "Jobs & Employment", "Company incorporation", "Register a company", [
-    "National ID",
-    "Tax ID",
-    "Address Proof",
-    "Passport Photos",
-    "Utility Bill",
-  ]),
+  P(
+    "incorporation",
+    "Jobs & Employment",
+    "Company incorporation",
+    "SPICe+ filing",
+    ["Identity Proof", "PAN Card", "Address Proof", "Passport Photos", "Utility Bill"],
+    undefined,
+    undefined,
+    "MCA SPICe+ document requirements",
+  ),
   P(
     "gst-reg",
     "Jobs & Employment",
     "GST registration",
     "Business tax ID",
-    ["Tax ID", "National ID", "Business Registration", "Bank Statement", "Utility Bill"],
+    ["PAN Card", "Identity Proof", "Business Registration", "Bank Statement", "Utility Bill"],
     ["Rental Agreement"],
+    undefined,
+    "GSTN registration requirements",
   ),
-  P("udyam", "Jobs & Employment", "MSME registration", "Small business ID", [
-    "National ID",
-    "Tax ID",
-    "Business Registration",
-    "Bank Statement",
-  ]),
-  P("emp-abroad", "Jobs & Employment", "Employment abroad attestation", "Certificates attested", [
-    "Education Certificate",
-    "Passport",
-    "Employment Offer",
-    "Marksheet",
-  ]),
-  P("resignation", "Jobs & Employment", "Resignation and relieving", "Clean exit pack", [
-    "Resignation Letter",
-    "Employment Offer",
-    "Payslip",
-    "Experience Letter",
-  ]),
-  P("shop-license", "Jobs & Employment", "Shop and establishment license", "Local business license", [
-    "National ID",
-    "Business Registration",
-    "Rental Agreement",
-    "Utility Bill",
-    "Passport Photos",
-  ]),
+  P(
+    "udyam",
+    "Jobs & Employment",
+    "MSME registration",
+    "Udyam portal",
+    ["Aadhaar Card", "PAN Card", "Business Registration", "Bank Statement"],
+    undefined,
+    undefined,
+    "Udyam registration requirements",
+  ),
+  P(
+    "emp-abroad",
+    "Jobs & Employment",
+    "Employment abroad attestation",
+    "Certificates attested",
+    ["Degree Certificate", "Passport", "Employment Offer", "Marksheet"],
+    undefined,
+    undefined,
+    "MEA attestation / apostille procedure",
+  ),
+  P(
+    "resignation",
+    "Jobs & Employment",
+    "Resignation and relieving",
+    "Clean exit pack",
+    ["Resignation Letter", "Employment Offer", "Payslip", "Experience Letter"],
+    undefined,
+    undefined,
+    "Standard HR exit checklists",
+  ),
+  P(
+    "shop-license",
+    "Jobs & Employment",
+    "Shop and establishment license",
+    "Local business license",
+    ["Identity Proof", "Business Registration", "Rental Agreement", "Utility Bill", "Passport Photos"],
+    undefined,
+    undefined,
+    "State labour department checklists",
+  ),
   P(
     "prof-reg",
     "Jobs & Employment",
     "Professional council registration",
     "Doctors, CAs, lawyers",
-    ["Education Certificate", "Marksheet", "National ID", "Passport Photos"],
+    ["Degree Certificate", "Marksheet", "Identity Proof", "Passport Photos"],
     ["Internship Certificate"],
+    undefined,
+    "Professional council requirements",
   ),
-  P("work-sponsor", "Jobs & Employment", "Employee visa sponsorship", "Employer files for you", [
-    "Passport",
-    "Employment Offer",
-    "Education Certificate",
-    "Experience Letter",
-    "Payslip",
-  ]),
+  P(
+    "work-sponsor",
+    "Jobs & Employment",
+    "Employee visa sponsorship",
+    "Employer files for you",
+    ["Passport", "Employment Offer", "Degree Certificate", "Experience Letter", "Payslip"],
+    undefined,
+    undefined,
+    "Employer immigration checklists",
+  ),
   /* Education (12) */
   P(
     "school-adm",
     "Education",
     "School admission",
     "New school",
-    ["Birth Certificate", "Passport Photos", "Address Proof", "National ID", "Immunization Record"],
+    ["Birth Certificate", "Passport Photos", "Address Proof", "Identity Proof", "Immunization Record"],
     ["Transfer Certificate"],
+    undefined,
+    "Published school admission checklists",
   ),
   P(
     "college-adm",
     "Education",
     "College admission",
     "Undergraduate",
-    ["Marksheet", "Transfer Certificate", "National ID", "Passport Photos"],
+    ["Marksheet", "Transfer Certificate", "Identity Proof", "Passport Photos"],
     ["Migration Certificate"],
+    undefined,
+    "University admission requirements",
   ),
-  P("pg-adm", "Education", "Postgraduate admission", "Masters programs", [
-    "Education Certificate",
-    "Marksheet",
-    "National ID",
-    "Passport Photos",
-    "Scorecard",
-  ]),
-  P("study-abroad", "Education", "Study abroad application", "University applications", [
-    "Passport",
-    "Education Certificate",
-    "Marksheet",
-    "Language Test Scorecard",
-    "Statement of Purpose",
-    "Recommendation Letters",
-    "Bank Statement",
-  ]),
+  P(
+    "pg-adm",
+    "Education",
+    "Postgraduate admission",
+    "Masters programs",
+    ["Degree Certificate", "Marksheet", "Identity Proof", "Passport Photos", "Scorecard"],
+    undefined,
+    undefined,
+    "University admission requirements",
+  ),
+  P(
+    "study-abroad",
+    "Education",
+    "Study abroad application",
+    "University applications",
+    [
+      "Passport",
+      "Degree Certificate",
+      "Marksheet",
+      "Language Test Scorecard",
+      "Statement of Purpose",
+      "Recommendation Letters",
+      "Proof of Funds",
+    ],
+    undefined,
+    undefined,
+    "University international-office checklists",
+  ),
   P(
     "comp-exam",
     "Education",
     "Competitive exam application",
     "UPSC, SSC, banking",
-    ["National ID", "Passport Photos", "Education Certificate", "Marksheet"],
+    ["Identity Proof", "Passport Photos", "Degree Certificate", "Marksheet"],
     ["Domicile Certificate"],
+    undefined,
+    "Exam notification requirements",
   ),
-  P("board-reg", "Education", "Board exam registration", "Class 10 and 12", [
-    "Birth Certificate",
-    "Passport Photos",
-    "National ID",
-    "Marksheet",
-  ]),
-  P("scholarship", "Education", "Scholarship application", "Merit and means", [
-    "Marksheet",
-    "Income Certificate",
-    "National ID",
-    "Bank Statement",
-    "Admission Letter",
-  ]),
-  P("school-transfer", "Education", "School transfer", "Moving cities", [
-    "Transfer Certificate",
-    "Marksheet",
-    "Address Proof",
-    "Birth Certificate",
-  ]),
-  P("attestation", "Education", "Degree attestation", "ECA, WES, apostille", [
-    "Education Certificate",
-    "Marksheet",
-    "Passport",
-    "Transcripts",
-  ]),
-  P("hostel", "Education", "Hostel admission", "Campus housing", [
-    "Admission Letter",
-    "National ID",
-    "Passport Photos",
-    "Medical Fitness Certificate",
-    "Address Proof",
-  ]),
+  P(
+    "board-reg",
+    "Education",
+    "Board exam registration",
+    "Class 10 and 12",
+    ["Birth Certificate", "Passport Photos", "Identity Proof", "Marksheet"],
+    undefined,
+    undefined,
+    "Board registration requirements",
+  ),
+  P(
+    "scholarship",
+    "Education",
+    "Scholarship application",
+    "Merit and means",
+    ["Marksheet", "Income Certificate", "Identity Proof", "Bank Statement", "Admission Letter"],
+    undefined,
+    undefined,
+    "NSP scholarship portal requirements",
+  ),
+  P(
+    "school-transfer",
+    "Education",
+    "School transfer",
+    "Moving cities",
+    ["Transfer Certificate", "Marksheet", "Address Proof", "Birth Certificate"],
+    undefined,
+    undefined,
+    "Published school admission checklists",
+  ),
+  P(
+    "attestation",
+    "Education",
+    "Degree attestation",
+    "ECA, WES, apostille",
+    ["Degree Certificate", "Marksheet", "Passport", "Transcripts"],
+    undefined,
+    undefined,
+    "WES/ECA and MEA apostille requirements",
+  ),
+  P(
+    "hostel",
+    "Education",
+    "Hostel admission",
+    "Campus housing",
+    ["Admission Letter", "Identity Proof", "Passport Photos", "Medical Fitness Certificate", "Address Proof"],
+    undefined,
+    undefined,
+    "Institution hostel requirements",
+  ),
   P(
     "dup-marksheet",
     "Education",
     "Duplicate marksheet reissue",
     "Lost certificates",
-    ["National ID", "Affidavit", "Passport Photos"],
+    ["Identity Proof", "Affidavit", "Passport Photos"],
     ["Police Complaint"],
+    undefined,
+    "Board/university reissue procedure",
   ),
-  P("exam-day", "Education", "Exam day pack", "What to carry", ["Admit Card", "National ID", "Passport Photos"]),
-  /* Health (11) */
+  P(
+    "exam-day",
+    "Education",
+    "Exam day pack",
+    "What to carry",
+    ["Admit Card", "Photo ID", "Passport Photos"],
+    undefined,
+    undefined,
+    "Exam admit-card instructions",
+  ),
+  /* Health (11) — claims verified against the IRDAI Master Circular document set */
   P(
     "hospital",
     "Health",
     "Hospital admission",
     "Cashless pack",
-    ["Health Insurance", "National ID", "Prescription", "Lab Report", "Discharge Summary"],
+    ["Health Insurance", "Photo ID", "Prescription", "Lab Report"],
     ["Discharge Summary"],
+    undefined,
+    "Insurer cashless admission checklists",
   ),
-  P("claim-reimb", "Health", "Health insurance reimbursement", "Claim after paying", [
-    "Health Insurance",
-    "Medical Bills",
-    "Discharge Summary",
-    "Prescription",
-    "Lab Report",
-    "Cancelled Cheque",
-  ]),
-  P("cashless-preauth", "Health", "Cashless pre-authorization", "Planned procedure", [
-    "Health Insurance",
-    "National ID",
-    "Prescription",
-    "Lab Report",
-  ]),
+  P(
+    "claim-reimb",
+    "Health",
+    "Health insurance reimbursement",
+    "Claim after paying",
+    [
+      "Claim Form",
+      "Health Insurance",
+      "Discharge Summary",
+      "Medical Bills",
+      "Prescription",
+      "Lab Report",
+      "Photo ID",
+      "Cancelled Cheque",
+    ],
+    undefined,
+    undefined,
+    "IRDAI Master Circular, 29 May 2024",
+  ),
+  P(
+    "cashless-preauth",
+    "Health",
+    "Cashless pre-authorization",
+    "Planned procedure",
+    ["Health Insurance", "Photo ID", "Prescription", "Lab Report"],
+    undefined,
+    undefined,
+    "Insurer pre-authorization checklists",
+  ),
   P(
     "new-health-ins",
     "Health",
     "New health insurance",
     "Buying a policy",
-    ["National ID", "Address Proof", "Passport Photos"],
+    ["Identity Proof", "Address Proof", "Passport Photos"],
     ["Lab Report"],
+    undefined,
+    "Insurer proposal requirements",
   ),
-  P("maternity", "Health", "Maternity hospital pack", "Delivery admission", [
-    "Health Insurance",
-    "National ID",
-    "Prescription",
-    "Lab Report",
-  ]),
-  P("vaccination", "Health", "Vaccination record pack", "School and travel", [
-    "Immunization Record",
-    "Birth Certificate",
-    "National ID",
-  ]),
-  P("emp-med-reimb", "Health", "Employer medical reimbursement", "Company claims", [
-    "Medical Bills",
-    "Prescription",
-    "Payslip",
-  ]),
-  P("disability-cert", "Health", "Disability certificate", "Assessment paperwork", [
-    "National ID",
-    "Lab Report",
-    "Discharge Summary",
-    "Passport Photos",
-    "Address Proof",
-  ]),
-  P("govt-health-card", "Health", "Government health card", "Public health schemes", [
-    "National ID",
-    "Address Proof",
-    "Income Certificate",
-    "Passport Photos",
-  ]),
-  P("second-opinion", "Health", "Second opinion records", "Full case file", [
-    "Lab Report",
-    "Prescription",
-    "Discharge Summary",
-    "Scan Report",
-  ]),
+  P(
+    "maternity",
+    "Health",
+    "Maternity hospital pack",
+    "Delivery admission",
+    ["Health Insurance", "Photo ID", "Prescription", "Lab Report"],
+    undefined,
+    undefined,
+    "Insurer maternity checklists",
+  ),
+  P(
+    "vaccination",
+    "Health",
+    "Vaccination record pack",
+    "School and travel",
+    ["Immunization Record", "Birth Certificate", "Identity Proof"],
+    undefined,
+    undefined,
+    "School and travel health requirements",
+  ),
+  P(
+    "emp-med-reimb",
+    "Health",
+    "Employer medical reimbursement",
+    "Company claims",
+    ["Medical Bills", "Prescription", "Payslip"],
+    undefined,
+    undefined,
+    "Employer reimbursement policies",
+  ),
+  P(
+    "disability-cert",
+    "Health",
+    "Disability certificate",
+    "UDID assessment",
+    ["Identity Proof", "Lab Report", "Discharge Summary", "Passport Photos", "Address Proof"],
+    undefined,
+    undefined,
+    "UDID portal requirements",
+  ),
+  P(
+    "govt-health-card",
+    "Health",
+    "Government health card",
+    "Public health schemes",
+    ["Identity Proof", "Address Proof", "Income Certificate", "Passport Photos"],
+    undefined,
+    undefined,
+    "Scheme enrollment requirements",
+  ),
+  P(
+    "second-opinion",
+    "Health",
+    "Second opinion records",
+    "Full case file",
+    ["Lab Report", "Prescription", "Discharge Summary", "Scan Report"],
+    undefined,
+    undefined,
+    "Hospital records requirements",
+  ),
   P(
     "fitness-cert",
     "Health",
     "Medical fitness certificate",
     "Jobs and licenses",
-    ["National ID", "Passport Photos"],
+    ["Photo ID", "Passport Photos"],
     ["Lab Report"],
+    undefined,
+    "Issuing-hospital requirements",
   ),
-  /* Home & Property (13) */
+  /* Home & Property (13) — home loan verified against SBI/HDFC salaried checklists */
   P(
     "homeloan",
     "Home & Property",
     "Home loan",
-    "Application pack",
-    ["National ID", "Tax ID", "Payslip", "Bank Statement", "Tax Return", "Property Deed", "Property Valuation"],
-    ["Property Valuation"],
+    "Salaried application pack",
+    [
+      "PAN Card",
+      "Identity Proof",
+      "Address Proof",
+      "Passport Photos",
+      "Payslip",
+      "Form 16",
+      "Bank Statement",
+      "Sale Agreement",
+      "Property Ownership Proof",
+    ],
+    ["Approved Building Plan", "Property Valuation"],
     Landmark,
+    "SBI / HDFC published salaried checklists",
   ),
   P(
     "property",
     "Home & Property",
     "Property sale",
-    "Resale pack",
-    ["Property Deed", "Property Tax", "National ID", "Tax ID", "Encumbrance Certificate"],
+    "Seller's pack",
+    ["Property Deed", "Property Tax", "Identity Proof", "PAN Card", "Encumbrance Certificate"],
     ["Encumbrance Certificate"],
+    undefined,
+    "Sub-registrar published requirements",
   ),
-  P("property-buy", "Home & Property", "Property purchase", "Buyer's diligence", [
-    "Sale Agreement",
-    "Encumbrance Certificate",
-    "Property Tax",
-    "National ID",
-    "Tax ID",
-    "Bank Statement",
-  ]),
-  P("rent-tenant", "Home & Property", "Renting a home", "Tenant pack", [
-    "National ID",
-    "Passport Photos",
-    "Employment Offer",
-    "Payslip",
-    "Rental Agreement",
-  ]),
-  P("rent-landlord", "Home & Property", "Renting out property", "Landlord pack", [
-    "Property Deed",
-    "Property Tax",
-    "National ID",
-    "Rental Agreement",
-    "Utility Bill",
-  ]),
-  P("tenant-verify", "Home & Property", "Tenant police verification", "Mandatory in many cities", [
-    "Rental Agreement",
-    "National ID",
-    "Passport Photos",
-  ]),
-  P("khata", "Home & Property", "Khata or mutation transfer", "Municipal records", [
-    "Property Deed",
-    "Property Tax",
-    "Sale Agreement",
-    "National ID",
-    "Encumbrance Certificate",
-  ]),
+  P(
+    "property-buy",
+    "Home & Property",
+    "Property purchase",
+    "Buyer's diligence",
+    ["Sale Agreement", "Encumbrance Certificate", "Property Tax", "Identity Proof", "PAN Card", "Proof of Funds"],
+    undefined,
+    undefined,
+    "Sub-registrar published requirements",
+  ),
+  P(
+    "rent-tenant",
+    "Home & Property",
+    "Renting a home",
+    "Tenant pack",
+    ["Identity Proof", "Passport Photos", "Employment Proof", "Payslip", "Rental Agreement"],
+    undefined,
+    undefined,
+    "Standard landlord requirements",
+  ),
+  P(
+    "rent-landlord",
+    "Home & Property",
+    "Renting out property",
+    "Landlord pack",
+    ["Property Ownership Proof", "Property Tax", "Identity Proof", "Rental Agreement", "Utility Bill"],
+    undefined,
+    undefined,
+    "Registration office requirements",
+  ),
+  P(
+    "tenant-verify",
+    "Home & Property",
+    "Tenant police verification",
+    "Mandatory in many cities",
+    ["Rental Agreement", "Identity Proof", "Passport Photos"],
+    undefined,
+    undefined,
+    "City police verification portals",
+  ),
+  P(
+    "khata",
+    "Home & Property",
+    "Khata or mutation transfer",
+    "Municipal records",
+    ["Property Deed", "Property Tax", "Sale Agreement", "Identity Proof", "Encumbrance Certificate"],
+    undefined,
+    undefined,
+    "Municipal revenue office checklists",
+  ),
   P(
     "electricity",
     "Home & Property",
     "New electricity connection",
     "Meter in your name",
-    ["National ID", "Address Proof", "Passport Photos"],
-    ["Property Deed", "Rental Agreement"],
+    ["Identity Proof", "Address Proof", "Passport Photos"],
+    ["Property Ownership Proof", "Rental Agreement"],
+    undefined,
+    "Distribution company requirements",
   ),
   P(
     "gas-water",
     "Home & Property",
     "Gas and water connection",
     "Utility setup",
-    ["National ID", "Address Proof"],
-    ["Property Deed"],
+    ["Identity Proof", "Address Proof"],
+    ["Property Ownership Proof"],
+    undefined,
+    "Utility provider requirements",
   ),
   P(
     "home-ins",
     "Home & Property",
     "Home insurance purchase",
     "Structure and contents",
-    ["Property Deed", "National ID"],
+    ["Property Ownership Proof", "Identity Proof"],
     ["Property Valuation"],
+    undefined,
+    "Insurer proposal requirements",
   ),
-  P("society-noc", "Home & Property", "Society share transfer", "Apartment societies", [
-    "Property Deed",
-    "Sale Agreement",
-    "National ID",
-    "NOC",
-  ]),
-  P("reno-loan", "Home & Property", "Home renovation loan", "Improvement finance", [
-    "Property Deed",
-    "Payslip",
-    "Bank Statement",
-    "Tax ID",
-    "Cost Estimate",
-  ]),
-  P("plan-approval", "Home & Property", "Building plan approval", "Before construction", [
-    "Property Deed",
-    "Property Tax",
-    "Site Plan",
-    "National ID",
-  ]),
+  P(
+    "society-noc",
+    "Home & Property",
+    "Society share transfer",
+    "Apartment societies",
+    ["Property Deed", "Sale Agreement", "Identity Proof", "NOC"],
+    undefined,
+    undefined,
+    "Cooperative society bye-law requirements",
+  ),
+  P(
+    "reno-loan",
+    "Home & Property",
+    "Home renovation loan",
+    "Improvement finance",
+    ["Property Ownership Proof", "Income Proof", "Bank Statement", "PAN Card", "Cost Estimate"],
+    undefined,
+    undefined,
+    "Published lender checklists",
+  ),
+  P(
+    "plan-approval",
+    "Home & Property",
+    "Building plan approval",
+    "Before construction",
+    ["Property Deed", "Property Tax", "Site Plan", "Identity Proof"],
+    undefined,
+    undefined,
+    "Municipal planning authority checklists",
+  ),
   /* Family & Life (12) */
   P(
     "marriage-reg",
     "Family & Life",
     "Marriage registration",
     "Certificate application",
-    ["National ID", "Address Proof", "Passport Photos", "Birth Certificate"],
+    ["Identity Proof", "Address Proof", "Passport Photos", "Date of Birth Proof"],
     ["Marriage Invitation"],
+    undefined,
+    "Marriage registrar requirements",
   ),
-  P("newborn", "Family & Life", "Newborn documentation", "First documents", [
-    "Birth Certificate",
-    "National ID",
-    "Marriage Certificate",
-    "Address Proof",
-  ]),
-  P("add-family-ins", "Family & Life", "Add family member to insurance", "Spouse or child", [
-    "Marriage Certificate",
-    "Birth Certificate",
-    "National ID",
-    "Health Insurance",
-  ]),
-  P("will-prep", "Family & Life", "Will preparation", "Document your wishes", [
-    "National ID",
-    "Property Deed",
-    "Investment Statement",
-    "Bank Statement",
-    "Nominee Form",
-  ]),
+  P(
+    "newborn",
+    "Family & Life",
+    "Newborn documentation",
+    "First documents",
+    ["Birth Certificate", "Identity Proof", "Marriage Certificate", "Address Proof"],
+    undefined,
+    undefined,
+    "Municipal birth registration requirements",
+  ),
+  P(
+    "add-family-ins",
+    "Family & Life",
+    "Add family member to insurance",
+    "Spouse or child",
+    ["Marriage Certificate", "Birth Certificate", "Identity Proof", "Health Insurance"],
+    undefined,
+    undefined,
+    "Insurer endorsement requirements",
+  ),
+  P(
+    "will-prep",
+    "Family & Life",
+    "Will preparation",
+    "Document your wishes",
+    ["Identity Proof", "Property Ownership Proof", "Investment Statement", "Bank Statement", "Nominee Form"],
+    undefined,
+    undefined,
+    "Standard estate documentation practice",
+  ),
   P(
     "nominee-update",
     "Family & Life",
     "Nominee updates",
     "After life changes",
-    ["Nominee Form", "National ID"],
+    ["Nominee Form", "Identity Proof"],
     ["Marriage Certificate", "Birth Certificate"],
+    undefined,
+    "Institution nomination forms",
   ),
-  P("life-claim", "Family & Life", "Life insurance claim", "Beneficiary claim", [
-    "Life Insurance",
-    "Death Certificate",
-    "National ID",
-    "Bank Statement",
-    "Cancelled Cheque",
-  ]),
-  P("death-settle", "Family & Life", "Settlements after a death", "Accounts and assets", [
-    "Death Certificate",
-    "Legal Heir Certificate",
-    "National ID",
-    "Bank Statement",
-    "Nominee Form",
-  ]),
-  P("legal-heir", "Family & Life", "Legal heir certificate", "Establish heirship", [
-    "Death Certificate",
-    "National ID",
-    "Address Proof",
-    "Affidavit",
-  ]),
+  P(
+    "life-claim",
+    "Family & Life",
+    "Life insurance claim",
+    "Beneficiary claim",
+    ["Life Insurance", "Death Certificate", "Identity Proof", "Bank Statement", "Cancelled Cheque"],
+    undefined,
+    undefined,
+    "Insurer claim requirements (IRDAI)",
+  ),
+  P(
+    "death-settle",
+    "Family & Life",
+    "Settlements after a death",
+    "Accounts and assets",
+    ["Death Certificate", "Legal Heir Certificate", "Identity Proof", "Bank Statement", "Nominee Form"],
+    undefined,
+    undefined,
+    "Bank deceased-claim procedures",
+  ),
+  P(
+    "legal-heir",
+    "Family & Life",
+    "Legal heir certificate",
+    "Establish heirship",
+    ["Death Certificate", "Identity Proof", "Address Proof", "Affidavit"],
+    undefined,
+    undefined,
+    "Tahsildar office requirements",
+  ),
   P(
     "succession",
     "Family & Life",
@@ -834,31 +1227,46 @@ const EVENTS = [
     "Court process pack",
     ["Death Certificate", "Legal Heir Certificate"],
     ["Property Deed", "Investment Statement"],
+    undefined,
+    "Civil court filing requirements",
   ),
-  P("pension", "Family & Life", "Pension application", "Retirement begins", [
-    "National ID",
-    "Bank Statement",
-    "Passport Photos",
-    "Relieving Letter",
-    "Pension Order",
-  ]),
-  P("family-pension", "Family & Life", "Family pension claim", "Survivor benefits", [
-    "Death Certificate",
-    "Pension Order",
-    "National ID",
-    "Bank Statement",
-    "Marriage Certificate",
-  ]),
-  P("senior-card", "Family & Life", "Senior citizen card", "Age-based benefits", [
-    "National ID",
-    "Birth Certificate",
-    "Address Proof",
-    "Passport Photos",
-  ]),
+  P(
+    "pension",
+    "Family & Life",
+    "Pension application",
+    "Retirement begins",
+    ["Identity Proof", "Bank Statement", "Passport Photos", "Relieving Letter", "Pension Order"],
+    undefined,
+    undefined,
+    "Pension disbursing authority checklists",
+  ),
+  P(
+    "family-pension",
+    "Family & Life",
+    "Family pension claim",
+    "Survivor benefits",
+    ["Death Certificate", "Pension Order", "Identity Proof", "Bank Statement", "Marriage Certificate"],
+    undefined,
+    undefined,
+    "Pension disbursing authority checklists",
+  ),
+  P(
+    "senior-card",
+    "Family & Life",
+    "Senior citizen card",
+    "Age-based benefits",
+    ["Identity Proof", "Date of Birth Proof", "Address Proof", "Passport Photos"],
+    undefined,
+    undefined,
+    "State social welfare requirements",
+  ),
 ];
 const DOC_VOCAB = [...new Set(EVENTS.flatMap((e) => e.reqs))].sort();
 const evalEvent = (ev: { reqs: string[] }, have: Set<string>) => {
-  const rows = ev.reqs.map((r) => ({ label: r, have: have.has(r) }));
+  const rows = ev.reqs.map((r) => {
+    const via = satisfies(r, have);
+    return { label: r, have: !!via, via };
+  });
   const got = rows.filter((r) => r.have).length;
   return { rows, got, total: rows.length, score: Math.round((got / rows.length) * 100) };
 };
@@ -1076,6 +1484,66 @@ function Home({ store, go, toast }: any) {
     })),
     ...holdingGaps,
   ];
+  type Insight = { icons: any[]; text: string; to: string; tone: string };
+  const insights: Insight[] = [];
+  {
+    // Health × Packages × Wealth: an upcoming visit meets claim readiness
+    const appt = store.reminders
+      .filter((r: Reminder) => !r.done && r.kind === "appointment" && daysTo(r.due) >= 0 && daysTo(r.due) <= 30)
+      .sort((a: Reminder, b: Reminder) => a.due.localeCompare(b.due))[0];
+    if (appt) {
+      const who = store.members.find((m: Member) => m.id === appt.memberId)?.name.split(" ")[0];
+      const hosp = EVENTS.find((e) => e.id === "hospital");
+      if (hosp) {
+        const hv = evalEvent(hosp, have);
+        const missing = hv.rows.filter((r) => !r.have).map((r) => r.label);
+        insights.push({
+          icons: [HeartPulse, Plane],
+          text: `${who}'s ${appt.title.toLowerCase()} is in ${daysTo(appt.due)}d. The Hospital admission pack is ${hv.score}% ready${missing.length ? `; only ${missing[0]} is missing` : ""}.`,
+          to: "packages",
+          tone: hv.score >= 80 ? T.mint : T.gold,
+        });
+      }
+    }
+    // Wealth × Health: the premium receipt captured in Wealth backs the policy your claims depend on
+    const premTx = (store.transactions || []).find((t: Transaction) => /premium|insurance/i.test(t.purpose));
+    const lifeCover = store.holdings.find((h: Holding) => h.kind === "cover" && /life/i.test(h.type));
+    if (premTx && lifeCover) {
+      insights.push({
+        icons: [Wallet, ShieldCheck],
+        text: `${lifeCover.name} premium receipt is filed as evidence (${new Date(premTx.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}). ${lifeCover.renewalDate ? `Renewal in ${daysTo(lifeCover.renewalDate)}d; ` : ""}a claim would find both policy and proof in one place.`,
+        to: "wealth",
+        tone: T.mint,
+      });
+    }
+    // Documents × Packages: one expiring document, counted across every pack it powers
+    const expDoc =
+      [...expiring].sort((a: Doc, b: Doc) => +new Date(a.expiry!) - +new Date(b.expiry!))[0] ||
+      store.docs.filter((d: Doc) => d.expiry).sort((a: Doc, b: Doc) => +new Date(a.expiry!) - +new Date(b.expiry!))[0];
+    if (expDoc) {
+      const powered = EVENTS.filter((e) =>
+        e.reqs.some((r) => r === expDoc.docType || (SATISFIES[r] || []).includes(expDoc.docType)),
+      );
+      if (powered.length > 1) {
+        insights.push({
+          icons: [FolderOpen, Plane],
+          text: `${expDoc.docType} expires in ${daysTo(expDoc.expiry!)}d and satisfies requirements in ${powered.length} packs, including ${powered[0].name}. One renewal protects them all.`,
+          to: "documents",
+          tone: daysTo(expDoc.expiry!) < 60 ? T.gold : T.muted,
+        });
+      }
+    }
+    // Trust × Health × Wealth: the same people receive the emergency card and the SOS pack
+    const emerg = store.members.filter((m: Member) => m.access === "Emergency access" || m.access === "Full member");
+    if (emerg.length) {
+      insights.push({
+        icons: [Users, Siren],
+        text: `${emerg.map((m: Member) => m.name.split(" ")[0]).join(" and ")} hold emergency access: in a crisis they receive both the medical emergency card and the SOS wealth handoff.`,
+        to: "trust",
+        tone: A.blue,
+      });
+    }
+  }
   const groups: { key: string; label: string; icon: any; color: string; to: string; acts: Act[] }[] = [
     { key: "health", label: "Health", icon: HeartPulse, color: A.green, to: "health", acts: healthActs },
     { key: "documents", label: "Documents", icon: FolderOpen, color: A.blue, to: "documents", acts: docActs },
@@ -1273,46 +1741,66 @@ function Home({ store, go, toast }: any) {
           )}
         </Card>
         <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-            <ShieldCheck size={16} color={T.muted} />
-            <b style={{ color: T.white, fontSize: 15 }}>Where you stand</b>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <ShieldCheck size={16} color={T.gold} />
+            <b style={{ color: T.white, fontSize: 15 }}>Connected across LifePack</b>
           </div>
-          {[
-            { x: best, lbl: "Most ready" },
-            { x: worst, lbl: "Needs work" },
-          ].map(({ x, lbl }) => (
+          <p style={{ fontSize: 12, color: T.muted, margin: "0 0 10px" }}>
+            What your modules mean together, not what they already show apart.
+          </p>
+          {insights.slice(0, 4).map((ins, i) => (
             <button
-              key={lbl}
-              onClick={() => go("packages")}
+              key={i}
+              onClick={() => go(ins.to)}
               style={{
                 width: "100%",
                 display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "10px 0",
-                borderTop: lbl === "Needs work" ? `1px solid ${T.border}` : "none",
+                alignItems: "flex-start",
+                gap: 11,
+                padding: "11px 0",
+                borderTop: i ? `1px solid ${T.border}` : "none",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
+                textAlign: "left",
               }}
             >
-              <Ring score={x.score} size={46} />
-              <div style={{ textAlign: "left" }}>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: T.muted,
-                    fontFamily: "ui-monospace, monospace",
-                    textTransform: "uppercase",
-                    letterSpacing: 1,
-                  }}
-                >
-                  {lbl}
-                </div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{x.e.name}</div>
-              </div>
+              <span style={{ display: "inline-flex", gap: 3, marginTop: 2, flexShrink: 0 }}>
+                {ins.icons.map((Ic: any, j: number) => (
+                  <span
+                    key={j}
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      width: 22,
+                      height: 22,
+                      borderRadius: 7,
+                      background: ins.tone + "1f",
+                    }}
+                  >
+                    <Ic size={12} color={ins.tone} />
+                  </span>
+                ))}
+              </span>
+              <span style={{ flex: 1, fontSize: 13, color: T.text, lineHeight: 1.55 }}>{ins.text}</span>
+              <ChevronRight size={14} color={T.faint} style={{ marginTop: 4 }} />
             </button>
           ))}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              borderTop: `1px solid ${T.border}`,
+              paddingTop: 12,
+              marginTop: 2,
+            }}
+          >
+            <Ring score={best.score} size={40} />
+            <span style={{ flex: 1, fontSize: 12.5, color: T.muted }}>
+              Most ready: <b style={{ color: T.text }}>{best.e.name}</b>
+            </span>
+          </div>
           <button
             onClick={() => go("packages")}
             style={{ ...btnGhost, width: "100%", justifyContent: "center", marginTop: 12 }}
@@ -1545,30 +2033,33 @@ function Packages({ store, toast }: any) {
 const PACK_TEMPLATES: [RegExp, string[]][] = [
   [
     /school|admission|kindergarten|college/i,
-    ["Birth Certificate", "Passport Photos", "Address Proof", "National ID", "Marksheet", "Immunization Record"],
+    ["Birth Certificate", "Passport Photos", "Address Proof", "Identity Proof", "Marksheet", "Immunization Record"],
   ],
   [
     /employer|job|onboard|joining|offer/i,
-    ["National ID", "Education Certificate", "Relieving Letter", "Payslip", "Bank Statement", "Passport Photos"],
+    ["Identity Proof", "Degree Certificate", "Relieving Letter", "Payslip", "Bank Statement", "Passport Photos"],
   ],
-  [/rent|lease|tenant|apartment/i, ["National ID", "Payslip", "Employment Offer", "Bank Statement", "Passport Photos"]],
-  [/passport/i, ["Passport", "National ID", "Address Proof", "Passport Photos"]],
-  [/marriage|wedding/i, ["Birth Certificate", "National ID", "Address Proof", "Passport Photos"]],
-  [/driving|licen[cs]e|vehicle|car|bike/i, ["National ID", "Address Proof", "Passport Photos", "Vehicle Insurance"]],
+  [
+    /rent|lease|tenant|apartment/i,
+    ["Identity Proof", "Payslip", "Employment Proof", "Bank Statement", "Passport Photos"],
+  ],
+  [/passport/i, ["Passport", "Identity Proof", "Address Proof", "Passport Photos"]],
+  [/marriage|wedding/i, ["Birth Certificate", "Identity Proof", "Address Proof", "Passport Photos"]],
+  [/driving|licen[cs]e|vehicle|car|bike/i, ["Identity Proof", "Address Proof", "Passport Photos", "Vehicle Insurance"]],
   [
     /visa|travel|trip|abroad/i,
     ["Passport", "Bank Statement", "Flight Reservation", "Hotel Booking", "Passport Photos"],
   ],
-  [/loan|finance|credit/i, ["National ID", "Tax ID", "Payslip", "Bank Statement", "Address Proof"]],
-  [/exam|test|entrance/i, ["Admit Card", "National ID", "Passport Photos", "Education Certificate"]],
-  [/insurance|claim/i, ["National ID", "Medical Bills", "Prescription", "Bank Statement", "Cancelled Cheque"]],
-  [/death|heir|succession/i, ["Death Certificate", "National ID", "Legal Heir Certificate", "Bank Statement"]],
+  [/loan|finance|credit/i, ["Identity Proof", "PAN Card", "Payslip", "Bank Statement", "Address Proof"]],
+  [/exam|test|entrance/i, ["Admit Card", "Photo ID", "Passport Photos", "Degree Certificate"]],
+  [/insurance|claim/i, ["Photo ID", "Medical Bills", "Prescription", "Bank Statement", "Cancelled Cheque"]],
+  [/death|heir|succession/i, ["Death Certificate", "Identity Proof", "Legal Heir Certificate", "Bank Statement"]],
   [/scholar|grant/i, ["Marksheet", "Income Certificate", "National ID", "Bank Statement"]],
   [/business|shop|startup|gst/i, ["National ID", "Tax ID", "Business Registration", "Bank Statement", "Utility Bill"]],
 ];
 function draftChecklist(desc: string): string[] {
   for (const [re, reqs] of PACK_TEMPLATES) if (re.test(desc)) return [...reqs];
-  return ["National ID", "Address Proof", "Bank Statement"];
+  return ["Identity Proof", "Address Proof", "Bank Statement"];
 }
 
 function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }: any) {
@@ -1822,7 +2313,14 @@ function PackageDetail({ ev, store, onClose, onEdit, toast }: any) {
       .map((p: any) => p.name);
   const memberName = (mid?: string) => store.members.find((m: Member) => m.id === mid)?.name || "Unassigned";
   const { rows, got, total, score } = evalEvent(ev, have);
-  const included = store.docs.filter((d: Doc) => ev.reqs.includes(d.docType));
+  const included: Doc[] = [
+    ...new Set(
+      rows
+        .filter((r: any) => r.have)
+        .map((r: any) => satisfyingDoc(r.label, store.docs))
+        .filter(Boolean) as Doc[],
+    ),
+  ];
   const exportPack = () => {
     const body =
       `LifePack . ${ev.name}\nGenerated ${new Date().toLocaleString()}\nReadiness ${score}% (${got} of ${total})\n\nINCLUDED:\n` +
@@ -1944,7 +2442,7 @@ function PackageDetail({ ev, store, onClose, onEdit, toast }: any) {
             {rows
               .filter((r) => r.have)
               .map((r) => {
-                const d = included.find((x: Doc) => x.docType === r.label);
+                const d = satisfyingDoc(r.label, store.docs);
                 const isOpen = expanded === r.label;
                 const reuse = otherPacks(r.label);
                 return (
@@ -1987,7 +2485,10 @@ function PackageDetail({ ev, store, onClose, onEdit, toast }: any) {
                         <div style={{ fontSize: 12.5, color: T.text, fontFamily: "ui-monospace, monospace" }}>
                           {d.name}
                         </div>
-                        <div style={{ fontSize: 11.5, color: T.muted, marginTop: 2 }}>{memberName(d.memberId)}</div>
+                        <div style={{ fontSize: 11.5, color: T.muted, marginTop: 2 }}>
+                          {memberName(d.memberId)}
+                          {d.docType !== r.label ? ` · satisfied by ${d.docType}` : ""}
+                        </div>
                         {reuse.length > 0 && (
                           <div style={{ fontSize: 11.5, color: T.faint, marginTop: 5, lineHeight: 1.5 }}>
                             Stored once, also counts toward: {reuse.join(", ")}
