@@ -2,14 +2,14 @@ import type { Category, MedType } from "./types";
 // Deterministic, rule-based classification from filename. International doc types.
 const RULES: { kw: string[]; category: Category; docType: string; medType?: MedType }[] = [
   { kw: ["passport"], category: "Identity", docType: "Passport" },
-  { kw: ["national id", "nationalid", "identity card"], category: "Identity", docType: "National ID" },
-  { kw: ["tax id", "taxid", "tin", "ssn"], category: "Identity", docType: "Tax ID" },
+  { kw: ["aadhaar", "aadhar", "uidai", "national id", "identity card"], category: "Identity", docType: "Aadhaar Card" },
+  { kw: ["pan", "tax id", "taxid", "tin"], category: "Identity", docType: "PAN Card" },
   { kw: ["licence", "license", "driving", "driver"], category: "Identity", docType: "Driver's License" },
   { kw: ["offer"], category: "Employment", docType: "Employment Offer" },
   { kw: ["relieving", "relieve"], category: "Employment", docType: "Relieving Letter" },
   { kw: ["experience", "exp letter"], category: "Employment", docType: "Experience Letter" },
   { kw: ["payslip", "salary", "pay stub", "paystub"], category: "Employment", docType: "Payslip" },
-  { kw: ["tax return", "1040", "itr", "return"], category: "Finance", docType: "Tax Return" },
+  { kw: ["itr", "tax return", "acknowledgement", "form 16"], category: "Finance", docType: "ITR Acknowledgement" },
   { kw: ["bank", "statement", "account"], category: "Finance", docType: "Bank Statement" },
   { kw: ["invest", "mutual", "brokerage", "portfolio", "demat"], category: "Finance", docType: "Investment Statement" },
   { kw: ["retirement", "401k", "pension"], category: "Finance", docType: "Retirement Account" },
