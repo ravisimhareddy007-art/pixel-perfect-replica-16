@@ -96,7 +96,18 @@ const CAT_META: Record<Category, { icon: any; color: string }> = {
 };
 
 /* ── life-event packages ── */
-const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: any; reqs: string[] }[] = [
+const EVENTS: {
+  id: string;
+  name: string;
+  blurb: string;
+  accent: string;
+  icon: any;
+  reqs: string[];
+  cat: string;
+  source: string;
+  lastChecked: string;
+  conditional?: string[];
+}[] = [
   {
     id: "schengen",
     name: "Schengen visa",
@@ -113,6 +124,10 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
       "Flight Reservation",
       "Hotel Booking",
     ],
+    cat: "Travel & Immigration",
+    source: "Official published requirements",
+    lastChecked: "Jul 24, 2026",
+    conditional: ["Travel Insurance"],
   },
   {
     id: "us",
@@ -121,6 +136,9 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.blue,
     icon: Plane,
     reqs: ["Passport", "Bank Statement", "Payslip", "Employment Offer", "Tax Return", "DS-160 Confirmation"],
+    cat: "Travel & Immigration",
+    source: "Official published requirements",
+    lastChecked: "Jul 24, 2026",
   },
   {
     id: "uk",
@@ -129,6 +147,10 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.blue,
     icon: Plane,
     reqs: ["Passport", "Bank Statement", "Payslip", "Employment Offer", "Accommodation Proof", "Travel Itinerary"],
+    cat: "Travel & Immigration",
+    source: "Official published requirements",
+    lastChecked: "Jul 24, 2026",
+    conditional: ["Accommodation Proof"],
   },
   {
     id: "canada",
@@ -137,6 +159,10 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.blue,
     icon: Plane,
     reqs: ["Passport", "Bank Statement", "Tax Return", "Employment Offer", "Invitation Letter", "Biometrics"],
+    cat: "Travel & Immigration",
+    source: "Official published requirements",
+    lastChecked: "Jul 24, 2026",
+    conditional: ["Invitation Letter"],
   },
   {
     id: "homeloan",
@@ -145,6 +171,10 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.green,
     icon: Landmark,
     reqs: ["National ID", "Tax ID", "Payslip", "Bank Statement", "Tax Return", "Property Deed", "Property Valuation"],
+    cat: "Home & Property",
+    source: "Published lender checklists",
+    lastChecked: "Jul 24, 2026",
+    conditional: ["Property Valuation"],
   },
   {
     id: "carloan",
@@ -153,6 +183,9 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.green,
     icon: Car,
     reqs: ["National ID", "Tax ID", "Payslip", "Bank Statement", "Auto Quotation"],
+    cat: "Money & Tax",
+    source: "Published lender checklists",
+    lastChecked: "Jul 24, 2026",
   },
   {
     id: "bgv",
@@ -161,6 +194,10 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.purple,
     icon: ShieldCheck,
     reqs: ["National ID", "Employment Offer", "Relieving Letter", "Payslip", "Tax Return", "Education Certificate"],
+    cat: "Jobs & Employment",
+    source: "Published employer checklists",
+    lastChecked: "Jul 24, 2026",
+    conditional: ["Education Certificate"],
   },
   {
     id: "hospital",
@@ -169,6 +206,10 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.pink,
     icon: HeartPulse,
     reqs: ["Health Insurance", "National ID", "Prescription", "Lab Report", "Discharge Summary"],
+    cat: "Health",
+    source: "Published insurer and hospital checklists",
+    lastChecked: "Jul 24, 2026",
+    conditional: ["Discharge Summary"],
   },
   {
     id: "tax",
@@ -177,6 +218,10 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.gold,
     icon: FileText,
     reqs: ["Tax ID", "Tax Return", "Bank Statement", "Investment Statement", "Payslip"],
+    cat: "Money & Tax",
+    source: "Official published requirements",
+    lastChecked: "Jul 24, 2026",
+    conditional: ["Investment Statement"],
   },
   {
     id: "property",
@@ -185,9 +230,13 @@ const EVENTS: { id: string; name: string; blurb: string; accent: string; icon: a
     accent: A.pink,
     icon: HomeIcon,
     reqs: ["Property Deed", "Property Tax", "National ID", "Tax ID", "Encumbrance Certificate"],
+    cat: "Home & Property",
+    source: "Published registrar checklists",
+    lastChecked: "Jul 24, 2026",
+    conditional: ["Encumbrance Certificate"],
   },
 ];
-const evalEvent = (ev: (typeof EVENTS)[number], have: Set<string>) => {
+const evalEvent = (ev: { reqs: string[] }, have: Set<string>) => {
   const rows = ev.reqs.map((r) => ({ label: r, have: have.has(r) }));
   const got = rows.filter((r) => r.have).length;
   return { rows, got, total: rows.length, score: Math.round((got / rows.length) * 100) };
@@ -655,16 +704,63 @@ function Home({ store, go, toast }: any) {
 }
 
 /* ═══════════════ PACKAGES ═══════════════ */
+type AnyPack = {
+  id: string;
+  name: string;
+  blurb: string;
+  accent: string;
+  icon: any;
+  reqs: string[];
+  cat: string;
+  source?: string;
+  lastChecked?: string;
+  conditional?: string[];
+  custom?: boolean;
+  desc?: string;
+};
+const PACK_CATS = [
+  "Travel & Immigration",
+  "Money & Tax",
+  "Jobs & Employment",
+  "Health",
+  "Home & Property",
+  "Family & Life",
+];
 function Packages({ store, toast }: any) {
   const have: Set<string> = useMemo(() => new Set(store.docs.map((d: Doc) => d.docType)), [store.docs]);
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState<(typeof EVENTS)[number] | null>(null);
-  const list = EVENTS.filter((e) => e.name.toLowerCase().includes(q.toLowerCase()));
+  const [cat, setCat] = useState("All");
+  const [open, setOpen] = useState<AnyPack | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<AnyPack | null>(null);
+  const customAsPacks: AnyPack[] = store.customPacks.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    blurb: "Custom pack",
+    accent: T.gold,
+    icon: FileText,
+    reqs: c.reqs,
+    cat: "Custom",
+    custom: true,
+    desc: c.desc,
+  }));
+  const all: AnyPack[] = [...(EVENTS as AnyPack[]), ...customAsPacks];
+  const cats = [
+    "All",
+    ...PACK_CATS.filter((c) => all.some((p) => p.cat === c)),
+    ...(customAsPacks.length ? ["Custom"] : []),
+  ];
+  const needle = q.trim().toLowerCase();
+  const list = all.filter(
+    (e) =>
+      (cat === "All" || e.cat === cat) &&
+      (!needle || `${e.name} ${e.blurb} ${e.cat} ${e.reqs.join(" ")}`.toLowerCase().includes(needle)),
+  );
   return (
     <div>
       <SectionHead
         title="Packages"
-        sub="Pick a life event. LifePack assembles the pack from your documents and flags what is missing."
+        sub="A catalog of real-world situations. LifePack matches your archive against each one and shows how ready you already are."
       />
       <div
         style={{
@@ -672,19 +768,50 @@ function Packages({ store, toast }: any) {
           alignItems: "center",
           gap: 10,
           background: T.panel,
-          border: `1px solid ${T.border}`,
+          border: `1px solid ${q ? T.gold + "66" : T.border}`,
           borderRadius: 12,
           padding: "10px 14px",
-          marginBottom: 18,
+          marginBottom: 12,
         }}
       >
         <Search size={16} color={T.muted} />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Prepare a visa, a home loan, a hospital admission, a tax filing"
+          placeholder="Schengen visa, home loan, hospital admission, school admission, passport renewal"
           style={{ flex: 1, background: "none", border: "none", outline: "none", color: T.text, fontSize: 14 }}
         />
+        {q && (
+          <button
+            onClick={() => setQ("")}
+            style={{ background: "none", border: "none", cursor: "pointer", color: T.muted, display: "flex" }}
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {cats.map((c) => {
+          const on = cat === c;
+          return (
+            <button
+              key={c}
+              onClick={() => setCat(c)}
+              style={{
+                padding: "7px 13px",
+                borderRadius: 99,
+                fontSize: 12.5,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: `1px solid ${on ? T.gold + "77" : T.border}`,
+                background: on ? T.raised : "transparent",
+                color: on ? T.white : T.muted,
+              }}
+            >
+              {c}
+            </button>
+          );
+        })}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 12 }}>
         {list.map((e) => {
@@ -706,10 +833,11 @@ function Packages({ store, toast }: any) {
               }}
             >
               <Ring score={score} size={54} />
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <e.icon size={16} color={e.accent} />
                   <b style={{ color: T.white, fontSize: 15.5 }}>{e.name}</b>
+                  {e.custom && <span style={pill(T.gold)}>custom</span>}
                 </div>
                 <div style={{ fontSize: 13, color: T.muted, marginTop: 3 }}>
                   {score === 100 ? "Everything in place" : `${total - got} missing · ${got} of ${total} ready`}
@@ -719,14 +847,294 @@ function Packages({ store, toast }: any) {
             </button>
           );
         })}
+        <button
+          onClick={() => setCreating(true)}
+          style={{
+            textAlign: "left",
+            cursor: "pointer",
+            background: "transparent",
+            border: `1.5px dashed ${T.border}`,
+            borderRadius: 14,
+            padding: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            minHeight: 86,
+          }}
+        >
+          <span
+            style={{
+              display: "grid",
+              placeItems: "center",
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              background: T.gold + "1a",
+            }}
+          >
+            <Plus size={20} color={T.gold} />
+          </span>
+          <div>
+            <b style={{ color: T.white, fontSize: 15 }}>Create a custom pack</b>
+            <div style={{ fontSize: 12.5, color: T.muted, marginTop: 3 }}>
+              Describe any situation; LifePack drafts the checklist and you refine it.
+            </div>
+          </div>
+        </button>
       </div>
-      {open && <PackageDetail ev={open} store={store} onClose={() => setOpen(null)} toast={toast} />}
+      {open && (
+        <PackageDetail
+          ev={open}
+          store={store}
+          onClose={() => setOpen(null)}
+          onEdit={
+            open.custom
+              ? () => {
+                  setEditing(open);
+                  setOpen(null);
+                  setCreating(true);
+                }
+              : undefined
+          }
+          toast={toast}
+        />
+      )}
+      {creating && (
+        <CustomPackModal
+          existing={editing}
+          onClose={() => {
+            setCreating(false);
+            setEditing(null);
+          }}
+          onSave={(name: string, desc: string, reqs: string[]) => {
+            if (editing) {
+              store.updateCustomPack(editing.id, { name, desc, reqs });
+              toast("Custom pack updated");
+            } else {
+              store.addCustomPack({ name, desc, reqs });
+              toast("Custom pack created");
+            }
+            setCreating(false);
+            setEditing(null);
+          }}
+          onDelete={
+            editing
+              ? () => {
+                  store.removeCustomPack(editing.id);
+                  toast("Custom pack removed");
+                  setCreating(false);
+                  setEditing(null);
+                }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }
-function PackageDetail({ ev, store, onClose, toast }: any) {
+
+/* ── deterministic checklist starter for custom packs (honest: a draft, not verified) ── */
+const PACK_TEMPLATES: [RegExp, string[]][] = [
+  [
+    /school|admission|kindergarten|college/i,
+    [
+      "Birth Certificate",
+      "Passport Photos",
+      "Address Proof",
+      "National ID",
+      "Previous Report Card",
+      "Immunization Record",
+    ],
+  ],
+  [
+    /employer|job|onboard|joining|offer/i,
+    ["National ID", "Education Certificate", "Relieving Letter", "Payslip", "Bank Statement", "Passport Photos"],
+  ],
+  [/rent|lease|tenant|apartment/i, ["National ID", "Payslip", "Employment Offer", "Bank Statement", "Passport Photos"]],
+  [/passport.*renew|renew.*passport/i, ["Passport", "National ID", "Address Proof", "Passport Photos"]],
+  [/marriage|wedding/i, ["Birth Certificate", "National ID", "Address Proof", "Passport Photos"]],
+  [/driving|licen[cs]e/i, ["National ID", "Address Proof", "Passport Photos"]],
+];
+function draftChecklist(desc: string): string[] {
+  for (const [re, reqs] of PACK_TEMPLATES) if (re.test(desc)) return [...reqs];
+  return ["National ID", "Address Proof", "Bank Statement"];
+}
+
+function CustomPackModal({ existing, onClose, onSave, onDelete }: any) {
+  const [desc, setDesc] = useState(existing?.desc || "");
+  const [name, setName] = useState(existing?.name || "");
+  const [reqs, setReqs] = useState<string[]>(existing?.reqs || []);
+  const [drafted, setDrafted] = useState(!!existing);
+  const generate = () => {
+    if (!desc.trim()) return;
+    setReqs(draftChecklist(desc));
+    if (!name.trim()) {
+      const n = desc.trim().replace(/^documents?\s+(needed|requested|required)\s+(for|by)\s+/i, "");
+      setName(n.charAt(0).toUpperCase() + n.slice(1, 44));
+    }
+    setDrafted(true);
+  };
+  const inp: CSSProperties = {
+    width: "100%",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 9,
+    padding: "9px 11px",
+    color: T.text,
+    fontSize: 14,
+    outline: "none",
+  };
+  const lbl: CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: T.muted,
+    fontFamily: "ui-monospace, monospace",
+    margin: "12px 0 5px",
+    display: "block",
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 70,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(480px,100%)",
+          maxHeight: "92vh",
+          overflowY: "auto",
+          padding: 22,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <b style={{ color: T.white, fontSize: 18 }}>{existing ? "Edit custom pack" : "Create a custom pack"}</b>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={16} />
+          </button>
+        </div>
+        <p style={{ fontSize: 12.5, color: T.muted, margin: "0 0 4px" }}>
+          For situations the catalog does not cover. Describe it in your own words.
+        </p>
+        <label style={lbl}>What do you need documents for?</label>
+        <textarea
+          style={{ ...inp, minHeight: 60, resize: "vertical", fontFamily: "inherit" }}
+          value={desc}
+          onChange={(e) => setDesc(e.target.value)}
+          placeholder={
+            'e.g. "Documents needed for my son\u2019s school admission" or "Documents requested by my new employer"'
+          }
+        />
+        {!drafted && (
+          <button
+            onClick={generate}
+            disabled={!desc.trim()}
+            style={{
+              ...btnGold,
+              width: "100%",
+              justifyContent: "center",
+              marginTop: 12,
+              opacity: desc.trim() ? 1 : 0.4,
+            }}
+          >
+            Draft the checklist
+          </button>
+        )}
+        {drafted && (
+          <>
+            <label style={lbl}>Pack name</label>
+            <input style={inp} value={name} onChange={(e) => setName(e.target.value)} placeholder="Name this pack" />
+            <label style={lbl}>Checklist · edit freely</label>
+            <div
+              style={{
+                fontSize: 11.5,
+                color: T.gold,
+                background: T.gold + "12",
+                border: `1px solid ${T.gold}44`,
+                borderRadius: 9,
+                padding: "8px 11px",
+                marginBottom: 8,
+                lineHeight: 1.5,
+              }}
+            >
+              A starting draft from your description, not officially verified. Edit it to match what you were actually
+              asked for.
+            </div>
+            {reqs.map((r, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 7 }}>
+                <input
+                  style={inp}
+                  value={r}
+                  onChange={(e) => setReqs(reqs.map((x, j) => (j === i ? e.target.value : x)))}
+                />
+                <button
+                  onClick={() => setReqs(reqs.filter((_, j) => j !== i))}
+                  style={{ ...btnGhost, padding: "0 11px" }}
+                  title="Remove"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+            <button onClick={() => setReqs([...reqs, ""])} style={{ ...btnGhost, padding: "7px 12px", fontSize: 12.5 }}>
+              <Plus size={13} /> Add requirement
+            </button>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              {onDelete && (
+                <button onClick={onDelete} style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "55" }}>
+                  <Trash2 size={14} /> Delete
+                </button>
+              )}
+              <button
+                onClick={() =>
+                  name.trim() &&
+                  reqs.filter((r) => r.trim()).length &&
+                  onSave(name.trim(), desc.trim(), reqs.map((r) => r.trim()).filter(Boolean))
+                }
+                disabled={!name.trim() || !reqs.filter((r) => r.trim()).length}
+                style={{
+                  ...btnGold,
+                  flex: 1,
+                  justifyContent: "center",
+                  opacity: name.trim() && reqs.filter((r) => r.trim()).length ? 1 : 0.4,
+                }}
+              >
+                {existing ? "Save changes" : "Save pack"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PackageDetail({ ev, store, onClose, onEdit, toast }: any) {
   const have: Set<string> = new Set(store.docs.map((d: Doc) => d.docType));
   const [view, setView] = useState<Doc | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [addFor, setAddFor] = useState<string | null>(null);
+  const [pickFor, setPickFor] = useState<string | null>(null);
+  const upRef = useRef<HTMLInputElement>(null);
+  const upReq = useRef<string>("");
+  const otherPacks = (docType: string) =>
+    [...(EVENTS as any[]), ...store.customPacks]
+      .filter((p: any) => (p.reqs || []).includes(docType) && p.id !== ev.id)
+      .map((p: any) => p.name);
+  const memberName = (mid?: string) => store.members.find((m: Member) => m.id === mid)?.name || "Unassigned";
   const { rows, got, total, score } = evalEvent(ev, have);
   const included = store.docs.filter((d: Doc) => ev.reqs.includes(d.docType));
   const exportPack = () => {
@@ -786,10 +1194,40 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
             >
               <ev.icon size={21} color={ev.accent} />
             </span>
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ color: T.white, fontSize: 18, fontWeight: 800 }}>{ev.name}</div>
               <div style={{ color: T.muted, fontSize: 13 }}>{ev.blurb}</div>
             </div>
+          </div>
+          <div
+            style={{
+              marginTop: 12,
+              fontSize: 11.5,
+              color: ev.custom ? T.gold : T.muted,
+              fontFamily: "ui-monospace, monospace",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              flexWrap: "wrap",
+            }}
+          >
+            {ev.custom ? (
+              <>
+                <span>Custom / AI-generated · not officially verified</span>
+                {onEdit && (
+                  <button
+                    onClick={onEdit}
+                    style={{ ...btnGhost, padding: "4px 10px", fontSize: 11.5, marginLeft: "auto" }}
+                  >
+                    <Pencil size={11} /> Edit checklist
+                  </button>
+                )}
+              </>
+            ) : (
+              <span>
+                Curated · Source: {ev.source} · Last checked {ev.lastChecked}
+              </span>
+            )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 16 }}>
             <Ring score={score} size={64} />
@@ -815,45 +1253,74 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
                 gap: 8,
               }}
             >
-              <CheckCircle2 size={16} color={T.muted} /> Included ({rows.filter((r) => r.have).length})
+              <CheckCircle2 size={16} color={T.mint} /> Found in LifePack ({rows.filter((r) => r.have).length})
             </div>
             {rows
               .filter((r) => r.have)
               .map((r) => {
                 const d = included.find((x: Doc) => x.docType === r.label);
+                const isOpen = expanded === r.label;
+                const reuse = otherPacks(r.label);
                 return (
-                  <button
-                    key={r.label}
-                    onClick={() => d && setView(d)}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      cursor: d ? "pointer" : "default",
-                      background: "none",
-                      border: "none",
-                      borderTop: `1px solid ${T.border}`,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "9px 16px",
-                    }}
-                  >
-                    <span
+                  <div key={r.label} style={{ borderTop: `1px solid ${T.border}` }}>
+                    <button
+                      onClick={() => setExpanded(isOpen ? null : r.label)}
                       style={{
-                        display: "grid",
-                        placeItems: "center",
-                        width: 20,
-                        height: 20,
-                        borderRadius: 6,
-                        background: T.mint + "26",
+                        width: "100%",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        background: isOpen ? T.raised + "77" : "none",
+                        border: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "9px 16px",
                       }}
                     >
-                      <Check size={12} color={T.mint} />
-                    </span>
-                    <span style={{ flex: 1, fontSize: 14, color: T.text }}>{r.label}</span>
-                    <span style={{ fontSize: 11, color: T.muted }}>View</span>
-                    <ChevronRight size={13} color={T.muted} />
-                  </button>
+                      <span
+                        style={{
+                          display: "grid",
+                          placeItems: "center",
+                          width: 20,
+                          height: 20,
+                          borderRadius: 6,
+                          background: T.mint + "26",
+                        }}
+                      >
+                        <Check size={12} color={T.mint} />
+                      </span>
+                      <span style={{ flex: 1, fontSize: 14, color: T.text }}>{r.label}</span>
+                      <ChevronRight
+                        size={13}
+                        color={T.muted}
+                        style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: ".12s" }}
+                      />
+                    </button>
+                    {isOpen && d && (
+                      <div style={{ padding: "2px 16px 12px 48px" }}>
+                        <div style={{ fontSize: 12.5, color: T.text, fontFamily: "ui-monospace, monospace" }}>
+                          {d.name}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: T.muted, marginTop: 2 }}>{memberName(d.memberId)}</div>
+                        {reuse.length > 0 && (
+                          <div style={{ fontSize: 11.5, color: T.faint, marginTop: 5, lineHeight: 1.5 }}>
+                            Stored once, also counts toward: {reuse.join(", ")}
+                          </div>
+                        )}
+                        <div style={{ display: "flex", gap: 8, marginTop: 9 }}>
+                          <button onClick={() => setView(d)} style={{ ...btnGhost, padding: "6px 11px", fontSize: 12 }}>
+                            View document
+                          </button>
+                          <button
+                            onClick={() => setPickFor(r.label)}
+                            style={{ ...btnGhost, padding: "6px 11px", fontSize: 12 }}
+                          >
+                            Replace
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
           </Card>
@@ -870,38 +1337,89 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
                   gap: 8,
                 }}
               >
-                <AlertTriangle size={16} color={T.muted} /> Still needed ({rows.filter((r) => !r.have).length})
+                <AlertTriangle size={16} color={T.gold} /> Still needed ({rows.filter((r) => !r.have).length})
               </div>
               {rows
                 .filter((r) => !r.have)
-                .map((r) => (
-                  <div
-                    key={r.label}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "9px 16px",
-                      borderTop: `1px solid ${T.border}`,
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "grid",
-                        placeItems: "center",
-                        width: 20,
-                        height: 20,
-                        borderRadius: 6,
-                        background: T.gold + "26",
-                      }}
-                    >
-                      <X size={12} color={T.gold} />
-                    </span>
-                    <span style={{ flex: 1, fontSize: 14, color: T.text }}>{r.label}</span>
-                  </div>
-                ))}
+                .map((r) => {
+                  const menuOpen = addFor === r.label;
+                  const cond = (ev.conditional || []).includes(r.label);
+                  return (
+                    <div key={r.label} style={{ borderTop: `1px solid ${T.border}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 16px" }}>
+                        <span
+                          style={{
+                            display: "grid",
+                            placeItems: "center",
+                            width: 20,
+                            height: 20,
+                            borderRadius: 6,
+                            background: T.gold + "26",
+                          }}
+                        >
+                          <X size={12} color={T.gold} />
+                        </span>
+                        <span style={{ flex: 1, fontSize: 14, color: T.text, minWidth: 0 }}>
+                          {r.label}
+                          {cond && (
+                            <span style={{ display: "block", fontSize: 11, color: T.faint }}>
+                              May be required depending on your situation
+                            </span>
+                          )}
+                        </span>
+                        <button
+                          onClick={() => setAddFor(menuOpen ? null : r.label)}
+                          style={{
+                            ...btnGhost,
+                            padding: "5px 12px",
+                            fontSize: 12.5,
+                            color: T.gold,
+                            borderColor: T.gold + "55",
+                          }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {menuOpen && (
+                        <div style={{ display: "flex", gap: 8, padding: "0 16px 11px 48px" }}>
+                          <button
+                            onClick={() => {
+                              upReq.current = r.label;
+                              upRef.current?.click();
+                            }}
+                            style={{ ...btnGhost, padding: "6px 11px", fontSize: 12 }}
+                          >
+                            <UploadCloud size={13} /> Upload document
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAddFor(null);
+                              setPickFor(r.label);
+                            }}
+                            style={{ ...btnGhost, padding: "6px 11px", fontSize: 12 }}
+                          >
+                            <FolderOpen size={13} /> Choose from Documents
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </Card>
           )}
+          <input
+            ref={upRef}
+            type="file"
+            hidden
+            onChange={async (e) => {
+              if (e.target.files?.length && upReq.current) {
+                await store.addFiles(e.target.files, "you", { docType: upReq.current });
+                toast(`${upReq.current} added to your archive`);
+              }
+              e.currentTarget.value = "";
+              setAddFor(null);
+            }}
+          />
           <button onClick={exportPack} style={{ ...btnGold, width: "100%", justifyContent: "center" }}>
             <Download size={16} /> Export pack
           </button>
@@ -917,11 +1435,114 @@ function PackageDetail({ ev, store, onClose, toast }: any) {
               gap: 6,
             }}
           >
-            <Lock size={12} /> Files stay on your device until you export.
+            <Lock size={12} /> Checklist based on published requirements; completeness and eligibility are not
+            guaranteed.
           </p>
         </div>
       </div>
       {view && <DocViewer doc={view} store={store} onClose={() => setView(null)} />}
+      {pickFor && (
+        <ReqPickerModal
+          req={pickFor}
+          docs={store.docs}
+          members={store.members}
+          onClose={() => setPickFor(null)}
+          onPick={(d: Doc) => {
+            store.updateDoc(d.id, { docType: pickFor });
+            toast(`${d.name} now counts as ${pickFor}`);
+            setPickFor(null);
+            setExpanded(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReqPickerModal({ req, docs, members, onClose, onPick }: any) {
+  const [q, setQ] = useState("");
+  const needle = q.trim().toLowerCase();
+  const list = docs.filter((d: Doc) => !needle || `${d.docType} ${d.name}`.toLowerCase().includes(needle));
+  const nameOf = (mid?: string) => members.find((m: Member) => m.id === mid)?.name || "Unassigned";
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 75,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(440px,100%)",
+          maxHeight: "80vh",
+          display: "flex",
+          flexDirection: "column",
+          padding: 18,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <b style={{ color: T.white, fontSize: 16 }}>Match a document to “{req}”</b>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 7 }}>
+            <X size={15} />
+          </button>
+        </div>
+        <p style={{ fontSize: 12, color: T.muted, margin: "0 0 10px" }}>
+          The selected document is re-tagged as {req} and reused everywhere that requirement appears.
+        </p>
+        <input
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search your documents"
+          style={{
+            background: T.raised,
+            border: `1px solid ${T.border}`,
+            borderRadius: 9,
+            padding: "8px 11px",
+            color: T.text,
+            fontSize: 13.5,
+            outline: "none",
+            marginBottom: 8,
+          }}
+        />
+        <div style={{ flex: 1, overflowY: "auto", border: `1px solid ${T.border}`, borderRadius: 11 }}>
+          {list.length === 0 ? (
+            <div style={{ padding: 16, fontSize: 13, color: T.faint }}>No documents match.</div>
+          ) : (
+            list.map((d: Doc, i: number) => (
+              <button
+                key={d.id}
+                onClick={() => onPick(d)}
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  borderTop: i ? `1px solid ${T.border}` : "none",
+                  padding: "9px 13px",
+                }}
+              >
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: T.text }}>{d.docType}</div>
+                <div style={{ fontSize: 11.5, color: T.faint, fontFamily: "ui-monospace, monospace" }}>
+                  {d.name} · {nameOf(d.memberId)}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
