@@ -422,7 +422,7 @@ function Home({ store, go, toast }: any) {
     });
     return acts.sort((a, b) => a.urgency - b.urgency);
   }, [store.members, store.reminders, store.labs]);
-  const txFollowUps = store.transactions.filter(
+  const txFollowUps = (store.transactions || []).filter(
     (t: Transaction) => !t.followUpDone && t.followUpOn && daysTo(t.followUpOn) <= 45,
   );
   const holdingGaps: Act[] = [];
@@ -733,7 +733,7 @@ function Packages({ store, toast }: any) {
   const [open, setOpen] = useState<AnyPack | null>(null);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<AnyPack | null>(null);
-  const customAsPacks: AnyPack[] = store.customPacks.map((c: any) => ({
+  const customAsPacks: AnyPack[] = (store.customPacks || []).map((c: any) => ({
     id: c.id,
     name: c.name,
     blurb: "Custom pack",
@@ -1131,7 +1131,7 @@ function PackageDetail({ ev, store, onClose, onEdit, toast }: any) {
   const upRef = useRef<HTMLInputElement>(null);
   const upReq = useRef<string>("");
   const otherPacks = (docType: string) =>
-    [...(EVENTS as any[]), ...store.customPacks]
+    [...(EVENTS as any[]), ...(store.customPacks || [])]
       .filter((p: any) => (p.reqs || []).includes(docType) && p.id !== ev.id)
       .map((p: any) => p.name);
   const memberName = (mid?: string) => store.members.find((m: Member) => m.id === mid)?.name || "Unassigned";
@@ -1412,11 +1412,13 @@ function PackageDetail({ ev, store, onClose, onEdit, toast }: any) {
             type="file"
             hidden
             onChange={async (e) => {
-              if (e.target.files?.length && upReq.current) {
-                await store.addFiles(e.target.files, "you", { docType: upReq.current });
+              const input = e.currentTarget;
+              const files = e.target.files;
+              if (files?.length && upReq.current) {
+                await store.addFiles(files, "you", { docType: upReq.current });
                 toast(`${upReq.current} added to your archive`);
               }
-              e.currentTarget.value = "";
+              input.value = "";
               setAddFor(null);
             }}
           />
@@ -2553,7 +2555,7 @@ function Wealth({ store, go, toast }: any) {
   });
   const sevRank: Record<Sev, number> = { critical: 0, important: 1, info: 2 };
   gaps.sort((a, b) => sevRank[a.sev] - sevRank[b.sev]);
-  const txs: Transaction[] = store.transactions;
+  const txs: Transaction[] = store.transactions || [];
 
   const attach = (h: Holding) => {
     pending.current = h;
