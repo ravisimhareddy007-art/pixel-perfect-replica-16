@@ -88,6 +88,10 @@ const APPCSS = `
 @media(max-width:760px){.lp-main{padding:16px 14px 30px}}
 `;
 /* ── helpers ── */
+const greeting = () => {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+};
 const fmtDays = (expiry?: string) => {
   if (!expiry) return "-";
   const d = Math.ceil((+new Date(expiry) - Date.now()) / 86400000);
@@ -1575,11 +1579,54 @@ function Home({ store, go, toast }: any) {
   ];
   return (
     <div>
-      <Eyebrow>Ready when you need them . private . on-device</Eyebrow>
+      <Eyebrow>Ready when you need them · private by design</Eyebrow>
       <SectionHead
-        title={`Good evening, ${(store.members[0]?.name || "there").split(" ")[0]}`}
+        title={`${greeting()}, ${(store.members[0]?.name || "there").split(" ")[0]}`}
         sub="Your archive at a glance, and what needs attention today."
       />
+      {store.dataMode === "empty" && store.docs.length === 0 && (
+        <Card
+          style={{
+            padding: 24,
+            marginBottom: 20,
+            border: `1px solid ${T.gold}44`,
+            background: `linear-gradient(160deg, ${T.gold}12, ${T.panel})`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
+            <Sparkles size={17} color={T.gold} />
+            <b style={{ color: T.white, fontSize: 16 }}>Welcome to your empty LifePack</b>
+          </div>
+          <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.6, margin: "0 0 14px", maxWidth: 560 }}>
+            This is exactly what a brand-new user sees on day zero. Add a few documents and watch the whole app come to
+            life: readiness scores fill in, packs start matching, and your archive builds itself. Prefer to explore with
+            data first? Switch to the sample family in Settings.
+          </p>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <label style={{ ...btnGold, cursor: "pointer" }}>
+              <UploadCloud size={15} /> Add your first document
+              <input
+                type="file"
+                multiple
+                hidden
+                onChange={(e) => {
+                  if (e.target.files?.length) {
+                    store.addFiles(e.target.files);
+                    toast(`${e.target.files.length} document(s) added`);
+                  }
+                  e.currentTarget.value = "";
+                }}
+              />
+            </label>
+            <button onClick={() => go("packages")} style={btnGhost}>
+              <Plane size={15} /> Browse the 100 packs
+            </button>
+            <button onClick={() => go("settings")} style={btnGhost}>
+              <SettingsIcon size={15} /> Load sample family
+            </button>
+          </div>
+        </Card>
+      )}
       <div
         style={{
           display: "grid",
@@ -5989,6 +6036,43 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
             />
           </Card>
           <Card style={{ padding: 0, marginBottom: 16 }}>
+            <div style={{ padding: "13px 16px 4px", fontSize: 13.5, fontWeight: 700, color: T.white }}>Workspace</div>
+            <div style={{ padding: "4px 16px 14px" }}>
+              <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.55, marginBottom: 10 }}>
+                {store.dataMode === "sample"
+                  ? "You are exploring a sample family so every screen has something to show."
+                  : "You are in an empty workspace, as a brand-new user would see it."}
+              </div>
+              <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
+                {(["sample", "empty"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      store.setDataMode(m);
+                      go("home");
+                      toast(m === "empty" ? "Switched to an empty workspace" : "Sample family restored");
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "9px 0",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "none",
+                      background: store.dataMode === m ? T.gold : "transparent",
+                      color: store.dataMode === m ? "#10182A" : T.muted,
+                    }}
+                  >
+                    {m === "sample" ? "Sample data" : "Empty (day 0)"}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11.5, color: T.faint, marginTop: 8 }}>
+                Switching is lossless: anything you add in one mode is waiting when you switch back.
+              </div>
+            </div>
+          </Card>
+          <Card style={{ padding: 0, marginBottom: 16 }}>
             <div style={{ padding: "13px 16px", fontSize: 13.5, fontWeight: 700, color: T.white }}>Preferences</div>
             <div
               style={{
@@ -6540,15 +6624,17 @@ export default function App() {
   const [wealthOpen, setWealthOpen] = useState(false);
   const [booted, setBooted] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
-  const [authIntent, setAuthIntent] = useState<"signin" | "signup">("signin");
   useEffect(() => {
     const sess = getSession();
     setAccount(sess);
-    setAuthIntent(sessionStorage.getItem("lp-auth-intent") === "signup" ? "signup" : "signin");
     if (sess && sessionStorage.getItem("lp-new-account") === "1") {
       sessionStorage.removeItem("lp-new-account");
       store.setOnboarded(false);
       store.updateMember("you", { name: sess.name });
+    }
+    if (sessionStorage.getItem("lp-try-empty") === "1") {
+      sessionStorage.removeItem("lp-try-empty");
+      store.setDataMode("empty");
     }
     setBooted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -6569,7 +6655,7 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [booted, store.notifications]);
-  const needsOnboarding = booted && !!account && !store.onboarded;
+  const needsOnboarding = booted && !store.onboarded && store.dataMode !== "empty";
   const [query, setQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toast = (m: string) => {
@@ -6591,18 +6677,6 @@ export default function App() {
       }}
     >
       <style>{APPCSS}</style>
-      {booted && !account && (
-        <AuthScreen
-          defaultMode={authIntent}
-          onAuthed={(a: Account, isNew: boolean) => {
-            setAccount(a);
-            if (isNew) {
-              store.setOnboarded(false);
-              store.updateMember("you", { name: a.name });
-            }
-          }}
-        />
-      )}
       {needsOnboarding && (
         <OnboardingWizard
           store={store}
