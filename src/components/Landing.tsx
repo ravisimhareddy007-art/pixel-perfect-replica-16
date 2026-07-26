@@ -926,7 +926,10 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
-              onClick={onEnter}
+              onClick={() => {
+                sessionStorage.setItem("lp-demo", "1");
+                onEnter();
+              }}
               style={{
                 background: "none",
                 border: "none",
@@ -955,7 +958,13 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             >
               Sign in
             </button>
-            <button onClick={onEnter} className="lp-navcta">
+            <button
+              onClick={() => {
+                sessionStorage.setItem("lp-fresh", "1");
+                onEnter();
+              }}
+              className="lp-navcta"
+            >
               Get started <ArrowRight size={15} />
             </button>
           </div>
@@ -986,12 +995,18 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               any visa, loan, job switch, or hospital visit is only a few taps away.
             </p>
             <div className="lp-herocta">
-              <button onClick={onEnter} className="lp-cta">
+              <button
+                onClick={() => {
+                  sessionStorage.setItem("lp-fresh", "1");
+                  onEnter();
+                }}
+                className="lp-cta"
+              >
                 Open your LifePack <ArrowRight size={17} />
               </button>
               <button
                 onClick={() => {
-                  sessionStorage.setItem("lp-try-empty", "1");
+                  sessionStorage.setItem("lp-fresh", "1");
                   onEnter();
                 }}
                 style={{
@@ -1228,7 +1243,14 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             <p className="lp-sub" style={{ marginTop: 12, marginLeft: "auto", marginRight: "auto" }}>
               Set it up once, and let the next big moment be the easy one.
             </p>
-            <button onClick={onEnter} className="lp-cta" style={{ marginTop: 26 }}>
+            <button
+              onClick={() => {
+                sessionStorage.setItem("lp-fresh", "1");
+                onEnter();
+              }}
+              className="lp-cta"
+              style={{ marginTop: 26 }}
+            >
               Open your LifePack <ArrowRight size={17} />
             </button>
           </div>
