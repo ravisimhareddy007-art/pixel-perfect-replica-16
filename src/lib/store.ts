@@ -41,6 +41,8 @@ interface State {
   handoff: Handoff | null;
   customPacks: CustomPack[];
   wealthPin: string | null; // djb2 hash of the app-lock passcode; a lock on the door, not encryption
+  theme: "dark" | "light";
+  notifications: boolean;
 }
 
 /* ── members (enterprise-neutral) ── */
@@ -481,6 +483,8 @@ const DEFAULT: State = {
   handoff: null,
   customPacks: [],
   wealthPin: null,
+  theme: "dark",
+  notifications: false,
 };
 
 /* ── visit-pack selector: the data-layer ("backend") filter for Prepare-for-visit.
@@ -555,6 +559,8 @@ function load(): State {
         handoff: p.handoff ?? null,
         customPacks: p.customPacks ?? [],
         wealthPin: p.wealthPin ?? null,
+        theme: p.theme ?? "dark",
+        notifications: p.notifications ?? false,
       };
     }
   } catch {}
@@ -768,6 +774,14 @@ export function useStore() {
     };
     persist();
   }, []);
+  const setTheme = useCallback((t: "dark" | "light") => {
+    state = { ...state, theme: t };
+    persist();
+  }, []);
+  const setNotifications = useCallback((v: boolean) => {
+    state = { ...state, notifications: v };
+    persist();
+  }, []);
   const setWealthPin = useCallback((hash: string | null) => {
     state = { ...state, wealthPin: hash };
     persist();
@@ -824,6 +838,8 @@ export function useStore() {
     updateTransaction,
     removeTransaction,
     completeFollowUp,
+    setTheme,
+    setNotifications,
     setWealthPin,
     addCustomPack,
     updateCustomPack,
