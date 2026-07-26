@@ -6548,8 +6548,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    if (!booted || !store.notifications || typeof Notification === "undefined" || Notification.permission !== "granted")
-      return;
+    if (!booted || typeof Notification === "undefined" || Notification.permission !== "granted") return;
     if (sessionStorage.getItem("lp-notified") === "1") return;
     const due = store.reminders.filter((r: Reminder) => !r.done && daysTo(r.due) <= 0);
     if (due.length) {
@@ -6562,7 +6561,7 @@ export default function App() {
       sessionStorage.setItem("lp-notified", "1");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [booted, store.notifications]);
+  }, [booted]);
   const needsOnboarding = booted && !!account && !store.onboarded;
   const [query, setQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -6581,7 +6580,6 @@ export default function App() {
         background: T.navy,
         fontFamily: "Inter, system-ui, sans-serif",
         color: T.text,
-        filter: store.theme === "light" ? "invert(0.93) hue-rotate(180deg)" : "none",
       }}
     >
       <style>{APPCSS}</style>

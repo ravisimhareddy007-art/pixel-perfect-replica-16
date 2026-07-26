@@ -748,7 +748,7 @@ function Feature({ eyebrow, title, body, points, mock, flip }: any) {
   );
 }
 
-export default function Landing({ onStart, onSignIn }: { onStart: () => void; onSignIn: () => void }) {
+export default function Landing({ onStart, onSignIn }: { onStart: () => void; onSignIn?: () => void }) {
   return (
     <div className="lp-root">
       <style>{CSS}</style>

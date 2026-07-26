@@ -16,5 +16,5 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const navigate = useNavigate();
-  return <Landing onStart={() => navigate({ to: "/app" })} />;
+  return <Landing onStart={() => navigate({ to: "/app" })} onSignIn={() => navigate({ to: "/app" })} />;
 }
