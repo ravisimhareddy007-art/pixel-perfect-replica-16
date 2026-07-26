@@ -54,6 +54,8 @@ import {
   HelpCircle,
   Info,
   Sparkles,
+  HardDrive,
+  RefreshCw,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access, Holding, Transaction, Reminder } from "@/lib/types";
@@ -5885,6 +5887,244 @@ const FAQS: [string, string][] = [
   ],
 ];
 
+function ProfileMenu({ store, account, go, onSignOut, toast }: any) {
+  const [open, setOpen] = useState(false);
+  const you = store.members.find((m: Member) => m.id === "you");
+  const name = account?.name || you?.name || "You";
+  const isSample = store.dataMode === "sample";
+  const initial = (name || "?").trim()[0]?.toUpperCase() || "?";
+  const switchTo = (mode: "sample" | "empty") => {
+    store.setDataMode(mode);
+    setOpen(false);
+    go("home");
+    toast(mode === "sample" ? "Switched to the sample family" : "Switched to your archive");
+  };
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: T.panel,
+          border: `1px solid ${open ? T.gold + "66" : T.border}`,
+          borderRadius: 99,
+          padding: "5px 10px 5px 6px",
+          cursor: "pointer",
+        }}
+      >
+        <span
+          style={{
+            display: "grid",
+            placeItems: "center",
+            width: 30,
+            height: 30,
+            borderRadius: 99,
+            background: T.gold + "26",
+            color: T.gold,
+            fontWeight: 800,
+            fontSize: 14,
+          }}
+        >
+          {initial}
+        </span>
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 600,
+            color: T.text,
+            maxWidth: 120,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {name.split(" ")[0]}
+        </span>
+        <ChevronDown size={14} color={T.muted} />
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 8px)",
+              right: 0,
+              zIndex: 61,
+              width: 264,
+              background: T.panel,
+              border: `1px solid ${T.border}`,
+              borderRadius: 14,
+              boxShadow: "0 24px 60px rgba(0,0,0,.55)",
+              overflow: "hidden",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 11, padding: 14 }}>
+              <span
+                style={{
+                  display: "grid",
+                  placeItems: "center",
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: T.gold + "26",
+                  color: T.gold,
+                  fontWeight: 800,
+                  fontSize: 17,
+                }}
+              >
+                {initial}
+              </span>
+              <div style={{ minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: T.white,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {name}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: T.muted,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {account?.email || "Not signed in"}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: "8px 12px", borderTop: `1px solid ${T.border}` }}>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  color: T.faint,
+                  fontFamily: "ui-monospace, monospace",
+                  marginBottom: 6,
+                }}
+              >
+                Instance
+              </div>
+              {(
+                [
+                  ["empty", "My archive", "Your real documents"],
+                  ["sample", "Sample family", "A demo to explore"],
+                ] as const
+              ).map(([mode, label, sub]) => {
+                const on = store.dataMode === mode;
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => switchTo(mode)}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "9px 10px",
+                      borderRadius: 9,
+                      cursor: "pointer",
+                      border: "none",
+                      background: on ? T.raised : "transparent",
+                      textAlign: "left",
+                      marginBottom: 2,
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "grid",
+                        placeItems: "center",
+                        width: 26,
+                        height: 26,
+                        borderRadius: 8,
+                        background: (mode === "sample" ? A.purple : T.mint) + "22",
+                      }}
+                    >
+                      {mode === "sample" ? (
+                        <Users size={14} color={A.purple} />
+                      ) : (
+                        <FolderOpen size={14} color={T.mint} />
+                      )}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: 600, color: T.text }}>{label}</span>
+                      <span style={{ display: "block", fontSize: 11, color: T.muted }}>{sub}</span>
+                    </span>
+                    {on && <Check size={15} color={T.gold} />}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ padding: 8, borderTop: `1px solid ${T.border}` }}>
+              {[
+                ["Profile and settings", SettingsIcon, () => go("settings")],
+                ["Family", Users, () => go("trust")],
+              ].map(([label, Ic, fn]: any, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    fn();
+                    setOpen(false);
+                  }}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "9px 10px",
+                    borderRadius: 9,
+                    cursor: "pointer",
+                    border: "none",
+                    background: "transparent",
+                    color: T.text,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textAlign: "left",
+                  }}
+                >
+                  <Ic size={15} color={T.muted} /> {label}
+                </button>
+              ))}
+              <button
+                onClick={onSignOut}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "9px 10px",
+                  borderRadius: 9,
+                  cursor: "pointer",
+                  border: "none",
+                  background: "transparent",
+                  color: T.coral,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textAlign: "left",
+                }}
+              >
+                <LogOut size={15} color={T.coral} /> Sign out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }: any) {
   const [pinModal, setPinModal] = useState(false);
   const [modal, setModal] = useState<null | "whatsnew" | "faq" | "feedback" | "about" | "delete">(null);
@@ -5984,107 +6224,115 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
       </div>
     </div>
   );
+  const docCount = store.docs.length;
+  const storageMB = (store.docs.reduce((n: number, d: Doc) => n + (d.sizeKB || 0), 0) / 1024).toFixed(1);
+  const Section = ({ label, children }: any) => (
+    <div style={{ marginBottom: 20 }}>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: 1.2,
+          textTransform: "uppercase",
+          color: T.faint,
+          fontFamily: "ui-monospace, monospace",
+          margin: "0 0 8px 2px",
+        }}
+      >
+        {label}
+      </div>
+      <Card style={{ padding: 0, overflow: "hidden" }}>{children}</Card>
+    </div>
+  );
+  const Row = ({ icon: Ic, label, value, sub, onClick, danger, first }: any) => (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "13px 16px",
+        borderTop: first ? "none" : `1px solid ${T.border}`,
+        background: "none",
+        border: "none",
+        cursor: onClick ? "pointer" : "default",
+        textAlign: "left",
+      }}
+    >
+      <Ic size={16} color={danger ? T.coral : T.muted} />
+      <span style={{ flex: 1 }}>
+        <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: danger ? T.coral : T.text }}>
+          {label}
+        </span>
+        {sub && <span style={{ display: "block", fontSize: 12, color: T.muted, marginTop: 1 }}>{sub}</span>}
+      </span>
+      {value && <span style={{ fontSize: 12.5, color: T.muted, fontFamily: "ui-monospace, monospace" }}>{value}</span>}
+      {onClick && <ChevronRight size={14} color={T.faint} />}
+    </button>
+  );
   return (
     <div>
-      <SectionHead title="Settings" sub="Your account, your family's access, and how LifePack behaves." />
+      <SectionHead title="Settings" sub="Your account, your family, and how LifePack behaves." />
       <div className="lp-cols2">
         <div>
-          <Card style={{ padding: 0, marginBottom: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 16 }}>
+          <Section label="Account">
+            <div style={{ display: "flex", alignItems: "center", gap: 13, padding: 16 }}>
               <span
                 style={{
                   display: "grid",
                   placeItems: "center",
-                  width: 46,
-                  height: 46,
+                  width: 44,
+                  height: 44,
                   borderRadius: 13,
                   background: T.gold + "22",
                   color: T.gold,
                   fontWeight: 800,
-                  fontSize: 19,
+                  fontSize: 18,
                 }}
               >
                 {(name || "?")[0]}
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input style={{ ...inp, flex: 1 }} value={name} onChange={(e) => setName(e.target.value)} />
-                  <button onClick={saveName} style={{ ...btnGhost, padding: "8px 13px", fontSize: 12.5 }}>
-                    Save
-                  </button>
-                </div>
-                <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6 }}>
-                  {account?.email || "local profile"}
-                  {account?.createdAt
-                    ? ` · member since ${new Date(account.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}`
-                    : ""}
-                  {you?.bloodGroup ? ` · ${you.bloodGroup}` : ""}
+                <input
+                  style={{
+                    width: "100%",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: `1px solid ${T.border}`,
+                    padding: "2px 0 5px",
+                    color: T.white,
+                    fontSize: 15,
+                    fontWeight: 600,
+                    outline: "none",
+                  }}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onBlur={saveName}
+                />
+                <div style={{ fontSize: 12, color: T.muted, marginTop: 5 }}>
+                  {account?.email || "Not signed in · changes are saved on this device"}
                 </div>
               </div>
             </div>
-            <RowBtn
+            <Row
               icon={Users}
-              label="Family access"
-              sub="Who is in your LifePack and what each person can see"
+              label="Manage family members"
+              sub="Who is in your LifePack and what each can see"
               onClick={() => go("trust")}
             />
-            <RowBtn
+            <Row
               icon={Lock}
-              label={store.wealthPin ? "Wealth passcode · on" : "Wealth passcode · off"}
-              sub="App lock for the Wealth tab on shared screens; not encryption"
+              label="Protect Wealth with a PIN"
+              sub="Require a passcode before opening financial documents"
+              value={store.wealthPin ? "On" : "Off"}
               onClick={() => setPinModal(true)}
             />
-          </Card>
-          <Card style={{ padding: 0, marginBottom: 16 }}>
-            <div style={{ padding: "13px 16px 4px", fontSize: 13.5, fontWeight: 700, color: T.white }}>Workspace</div>
-            <div style={{ padding: "4px 16px 14px" }}>
-              <div style={{ fontSize: 12.5, color: T.muted, lineHeight: 1.55, marginBottom: 10 }}>
-                {store.dataMode === "sample"
-                  ? "You are exploring a sample family so every screen has something to show."
-                  : "You are in an empty workspace, as a brand-new user would see it."}
-              </div>
-              <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: 10, overflow: "hidden" }}>
-                {(["sample", "empty"] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => {
-                      store.setDataMode(m);
-                      go("home");
-                      toast(m === "empty" ? "Switched to an empty workspace" : "Sample family restored");
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: "9px 0",
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      border: "none",
-                      background: store.dataMode === m ? T.gold : "transparent",
-                      color: store.dataMode === m ? "#10182A" : T.muted,
-                    }}
-                  >
-                    {m === "sample" ? "Sample data" : "Empty (day 0)"}
-                  </button>
-                ))}
-              </div>
-              <div style={{ fontSize: 11.5, color: T.faint, marginTop: 8 }}>
-                Switching is lossless: anything you add in one mode is waiting when you switch back.
-              </div>
-            </div>
-          </Card>
-          <Card style={{ padding: 0, marginBottom: 16 }}>
-            <div style={{ padding: "13px 16px", fontSize: 13.5, fontWeight: 700, color: T.white }}>Preferences</div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "12px 16px",
-                borderTop: `1px solid ${T.border}`,
-              }}
-            >
+          </Section>
+          <Section label="Preferences">
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 16px" }}>
               {store.theme === "dark" ? <Moon size={16} color={T.muted} /> : <Sun size={16} color={T.gold} />}
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: T.text }}>Appearance</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: T.text }}>Theme</span>
               <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: 9, overflow: "hidden" }}>
                 {(["dark", "light"] as const).map((t) => (
                   <button
@@ -6113,18 +6361,14 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
-                padding: "12px 16px",
+                padding: "13px 16px",
                 borderTop: `1px solid ${T.border}`,
               }}
             >
               <BellIcon size={16} color={store.notifications ? T.gold : T.muted} />
               <span style={{ flex: 1 }}>
-                <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: T.text }}>
-                  Reminder notifications
-                </span>
-                <span style={{ display: "block", fontSize: 12, color: T.muted }}>
-                  Alerts on this device while the app is open
-                </span>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: T.text }}>Notifications</span>
+                <span style={{ display: "block", fontSize: 12, color: T.muted }}>Reminder alerts on this device</span>
               </span>
               <button
                 onClick={toggleNotifications}
@@ -6152,43 +6396,86 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
                 />
               </button>
             </div>
-          </Card>
+          </Section>
+          <Section label="Archive">
+            <Row
+              icon={HardDrive}
+              label="Storage"
+              value={`${docCount} docs · ${storageMB} MB`}
+              sub="Everything in your current archive on this device"
+              first
+            />
+            <Row
+              icon={Download}
+              label="Export archive"
+              sub="Download all documents as a zip"
+              onClick={async () => {
+                await buildZip("LifePack_Archive", store.docs);
+                toast("Archive exported");
+              }}
+            />
+          </Section>
         </div>
         <div>
-          <Card style={{ padding: 0, marginBottom: 16 }}>
-            <div style={{ padding: "13px 16px", fontSize: 13.5, fontWeight: 700, color: T.white }}>
-              Support and info
-            </div>
-            <RowBtn
+          <Section label="Support">
+            <Row
               icon={Sparkles}
               label="What's new"
+              value="v0.9"
               sub="Latest changes in LifePack"
               onClick={() => setModal("whatsnew")}
+              first
             />
-            <RowBtn
+            <Row
               icon={HelpCircle}
-              label="FAQs"
+              label="Help and FAQs"
               sub="Straight answers, including the uncomfortable ones"
               onClick={() => setModal("faq")}
             />
-            <RowBtn
+            <Row
               icon={MessageSquare}
               label="Send feedback"
               sub="Tell us what is broken or missing"
               onClick={() => setModal("feedback")}
             />
-            <RowBtn icon={Info} label="About LifePack" onClick={() => setModal("about")} />
-          </Card>
-          <Card style={{ padding: 0 }}>
-            <RowBtn icon={LogOut} label="Sign out" sub="Your archive stays on this device" onClick={onSignOut} />
-            <RowBtn
-              icon={Trash2}
-              label="Delete account"
-              sub="Removes your account and this device's archive"
-              danger
-              onClick={() => setModal("delete")}
-            />
-          </Card>
+            <Row icon={Info} label="About LifePack" onClick={() => setModal("about")} />
+          </Section>
+          <div style={{ marginBottom: 20 }}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: 1.2,
+                textTransform: "uppercase",
+                color: T.coral,
+                fontFamily: "ui-monospace, monospace",
+                margin: "0 0 8px 2px",
+              }}
+            >
+              Danger zone
+            </div>
+            <Card style={{ padding: 0, overflow: "hidden", border: `1px solid ${T.coral}44` }}>
+              <Row icon={LogOut} label="Sign out" sub="Your archive stays on this device" onClick={onSignOut} first />
+              <Row
+                icon={RefreshCw}
+                label="Reset demo data"
+                sub="Restore the sample family to its original state"
+                onClick={() => {
+                  store.setDataMode("sample");
+                  localStorage.removeItem("lifepack.v3.saved");
+                  toast("Sample data reset");
+                  go("home");
+                }}
+              />
+              <Row
+                icon={Trash2}
+                label="Delete account"
+                sub="Erase your account and this device's archive"
+                danger
+                onClick={() => setModal("delete")}
+              />
+            </Card>
+          </div>
         </div>
       </div>
       {pinModal && (
@@ -6205,7 +6492,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
         </Overlay>
       )}
       {modal === "faq" && (
-        <Overlay title="FAQs">
+        <Overlay title="Help and FAQs">
           {FAQS.map(([q, a], i) => (
             <div key={i} style={{ padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{q}</div>
@@ -6250,7 +6537,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
             what a hundred real-world situations require, shows how ready you already are, and assembles the pack when
             the moment comes.
           </p>
-          <p style={{ fontSize: 12, color: T.muted, marginTop: 10 }}>Prototype build · Jul 2026</p>
+          <p style={{ fontSize: 12, color: T.muted, marginTop: 10 }}>Prototype build v0.9 · Jul 2026</p>
         </Overlay>
       )}
       {modal === "delete" && (
@@ -6475,10 +6762,10 @@ function OnboardingWizard({ store, onDone }: any) {
           </b>
         </div>
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 22 }}>
-          {[0, 1, 2].map((i) => (
+          {[0, 1, 2, 3].map((i) => (
             <span
               key={i}
-              style={{ width: 34, height: 4, borderRadius: 4, background: i <= step ? T.gold : T.raised }}
+              style={{ width: 26, height: 4, borderRadius: 4, background: i <= step ? T.gold : T.raised }}
             />
           ))}
         </div>
@@ -6508,6 +6795,60 @@ function OnboardingWizard({ store, onDone }: any) {
           </div>
         )}
         {step === 1 && (
+          <div style={{ textAlign: "center" }}>
+            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>How LifePack works</h2>
+            <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
+              Three steps, that is the whole product.
+            </p>
+            <div style={{ display: "grid", gap: 10, textAlign: "left" }}>
+              {[
+                [UploadCloud, "Add", "Drop in a document. LifePack reads it and files it automatically."],
+                [Plane, "Match", "It checks your archive against 100 real situations and shows how ready you are."],
+                [FileText, "Assemble", "When the moment comes, export the exact pack you need in one tap."],
+              ].map(([Ic, t, b]: any, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    alignItems: "flex-start",
+                    background: T.panel,
+                    border: `1px solid ${T.border}`,
+                    borderRadius: 12,
+                    padding: "13px 14px",
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: T.gold + "1a",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Ic size={16} color={T.gold} />
+                  </span>
+                  <span>
+                    <b style={{ color: T.white, fontSize: 14 }}>{t}</b>
+                    <span style={{ display: "block", fontSize: 12.5, color: T.muted, marginTop: 2, lineHeight: 1.5 }}>
+                      {b}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setStep(2)}
+              style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 16 }}
+            >
+              Continue <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
+        {step === 2 && (
           <div style={{ textAlign: "center" }}>
             <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>What is coming up in your life?</h2>
             <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
@@ -6547,14 +6888,14 @@ function OnboardingWizard({ store, onDone }: any) {
               })}
             </div>
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(3)}
               style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
             >
               Continue <ArrowRight size={15} />
             </button>
           </div>
         )}
-        {step === 2 && (
+        {step === 3 && (
           <div style={{ textAlign: "center" }}>
             <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>Lock the Wealth tab?</h2>
             <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
@@ -6620,7 +6961,10 @@ function OnboardingWizard({ store, onDone }: any) {
 export default function App() {
   const store = useStore();
   const [route, setRoute] = useState("home");
-  const [navOpen, setNavOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth > 760));
+  const [navOpen, setNavOpen] = useState(true);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 760) setNavOpen(false);
+  }, []);
   const [wealthOpen, setWealthOpen] = useState(false);
   const [booted, setBooted] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
@@ -6629,12 +6973,19 @@ export default function App() {
     setAccount(sess);
     if (sess && sessionStorage.getItem("lp-new-account") === "1") {
       sessionStorage.removeItem("lp-new-account");
+      store.setDataMode("empty"); // a new account starts genuinely empty
       store.setOnboarded(false);
       store.updateMember("you", { name: sess.name });
     }
-    if (sessionStorage.getItem("lp-try-empty") === "1") {
-      sessionStorage.removeItem("lp-try-empty");
+    if (sessionStorage.getItem("lp-fresh") === "1") {
+      sessionStorage.removeItem("lp-fresh");
       store.setDataMode("empty");
+      store.setOnboarded(false);
+    }
+    if (sessionStorage.getItem("lp-demo") === "1") {
+      sessionStorage.removeItem("lp-demo");
+      store.setDataMode("sample");
+      store.setOnboarded(true);
     }
     setBooted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -6655,7 +7006,7 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [booted, store.notifications]);
-  const needsOnboarding = booted && !store.onboarded && store.dataMode !== "empty";
+  const needsOnboarding = booted && !store.onboarded;
   const [query, setQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toast = (m: string) => {
@@ -6802,15 +7153,11 @@ export default function App() {
 
       <main className="lp-main">
         <div
-          style={{
-            display: route === "documents" ? "none" : "flex",
-            justifyContent: "flex-end",
-            marginBottom: 20,
-            position: "relative",
-            zIndex: 40,
-          }}
+          style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, position: "relative", zIndex: 40 }}
         >
-          <div style={{ position: "relative", width: 300, maxWidth: "100%" }}>
+          <div
+            style={{ flex: 1, display: route === "documents" ? "none" : "block", position: "relative", maxWidth: 300 }}
+          >
             <div
               style={{
                 display: "flex",
@@ -6866,6 +7213,17 @@ export default function App() {
               </div>
             )}
           </div>
+          <div style={{ flex: 1 }} />
+          <ProfileMenu
+            store={store}
+            account={account}
+            go={go}
+            onSignOut={() => {
+              logout();
+              window.location.href = "/";
+            }}
+            toast={toast}
+          />
         </div>
         {route === "home" && <Home store={store} go={go} toast={toast} />}
         {route === "packages" && <Packages store={store} toast={toast} />}
