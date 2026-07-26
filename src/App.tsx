@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import type { ReactNode, CSSProperties } from "react";
 import {
   LayoutGrid,
@@ -6072,9 +6072,16 @@ export default function App() {
   const [route, setRoute] = useState("home");
   const [navOpen, setNavOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth > 760));
   const [wealthOpen, setWealthOpen] = useState(false);
-  const signedIn = typeof window !== "undefined" && sessionStorage.getItem("lp-signin") === "1";
-  if (signedIn && !store.onboarded) store.setOnboarded(true);
-  const needsOnboarding = !store.onboarded && !signedIn;
+  const [booted, setBooted] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    const f = sessionStorage.getItem("lp-signin") === "1";
+    setSignedIn(f);
+    if (f && !store.onboarded) store.setOnboarded(true);
+    setBooted(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const needsOnboarding = booted && !store.onboarded && !signedIn;
   const [query, setQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toast = (m: string) => {
