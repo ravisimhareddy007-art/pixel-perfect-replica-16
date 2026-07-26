@@ -40,6 +40,7 @@ interface State {
   transactions: Transaction[];
   handoff: Handoff | null;
   customPacks: CustomPack[];
+  wealthPin: string | null; // djb2 hash of the app-lock passcode; a lock on the door, not encryption
 }
 
 /* ── members (enterprise-neutral) ── */
@@ -132,6 +133,7 @@ const seedDocs: Doc[] = [
     nominee: true,
   }),
   doc("PropertyTax_Receipt_FY2026-27", "Property", "Property Tax", { source: "Upload" }),
+  doc("UPI_Screenshot_Rohan_5000", "Finance", "Transaction Evidence", { source: "Upload", docDate: iso(-4) }),
   doc("Prescription_DrBennett_Metformin_Jul2026", "Medical", "Prescription", {
     source: "Upload",
     memberId: "father",
@@ -169,15 +171,32 @@ const seedHoldings: Holding[] = [
     type: "Bank account",
     institution: "Meridian Bank",
     accountRef: "•4821",
-    value: 180000,
+    value: 240000,
     nominee: true,
     nomineeName: "Jordan Morgan",
+    accessNote:
+      "Jordan is joint holder. Netbanking ID saved under 'Meridian' in the password manager. Branch: MG Road (Mr. Srinivas, relationship manager).",
     docId: dId("Bank Statement"),
   },
   {
     id: id(),
     memberId: "you",
-    name: "Investment portfolio",
+    name: "Fixed deposit",
+    kind: "asset",
+    type: "Fixed deposit",
+    institution: "Meridian Bank",
+    accountRef: "•6630",
+    value: 500000,
+    nominee: true,
+    nomineeName: "Jordan Morgan",
+    maturityDate: rel(38),
+    accessNote:
+      "Auto-renew is OFF. On maturity, proceeds credit savings •4821. FD advice slip in the blue files folder at home.",
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "Mutual funds (SIP)",
     kind: "asset",
     type: "Mutual funds",
     institution: "Beacon Wealth",
@@ -190,13 +209,29 @@ const seedHoldings: Holding[] = [
   {
     id: id(),
     memberId: "you",
-    name: "Retirement account",
+    name: "Gold in bank locker",
+    kind: "asset",
+    type: "Gold",
+    institution: "Meridian Bank",
+    accountRef: "Locker 114",
+    value: 850000,
+    nominee: true,
+    nomineeName: "Jordan Morgan",
+    accessNote:
+      "Locker 114, MG Road branch. Keys in the bedroom safe. Jordan already has operating mandate; carry Aadhaar for access.",
+  },
+  {
+    id: id(),
+    memberId: "you",
+    name: "NPS (retirement)",
     kind: "asset",
     type: "Retirement",
-    institution: "Beacon Wealth",
-    accountRef: "•7715",
+    institution: "Protean CRA",
+    accountRef: "PRAN •7715",
     value: 1350000,
-    nominee: false,
+    nominee: true,
+    nomineeName: "Jordan Morgan",
+    accessNote: "PRAN card in the files drawer. Linked bank: savings •4821. Login via Protean CRA portal with PRAN.",
   },
   {
     id: id(),
@@ -204,12 +239,13 @@ const seedHoldings: Holding[] = [
     name: "Family home",
     kind: "asset",
     type: "Property",
-    institution: "Registrar of Titles",
-    accountRef: "Deed",
+    institution: "Lakeview Apartments",
+    accountRef: "Flat 402",
     value: 18500000,
     nominee: true,
     nomineeName: "Jordan Morgan",
-    accessNote: "Original deed in bank locker \u2022114, Meridian MG Road",
+    accessNote:
+      "Original sale deed and khata in locker 114, Meridian MG Road. Society office: Mr. Rao, Lakeview Apts. Property tax paid online, receipts in this archive.",
     docId: dId("Property Deed"),
   },
   {
@@ -221,6 +257,8 @@ const seedHoldings: Holding[] = [
     institution: "Meridian Bank",
     accountRef: "•3390",
     value: 6200000,
+    accessNote:
+      "EMI autopay from savings •4821 on the 5th. Insurance-linked: loan cover clears the balance on death; certificate with the loan papers.",
   },
   {
     id: id(),
@@ -235,28 +273,33 @@ const seedHoldings: Holding[] = [
   {
     id: id(),
     memberId: "you",
-    name: "Life insurance",
+    name: "Term life insurance",
     kind: "cover",
     type: "Life insurance",
     institution: "Aegis Life",
-    accountRef: "•5567",
+    accountRef: "Policy 5567",
     value: 10000000,
-    nominee: false,
+    nominee: true,
+    nomineeName: "Jordan Morgan",
     renewalDate: rel(210),
+    accessNote:
+      "Agent: R. Iyer, 98400-22110. Claim online on the Aegis portal with policy 5567 and death certificate. Premium autopays from savings •4821 each July.",
     docId: dId("Life Insurance"),
   },
   {
     id: id(),
     memberId: "you",
-    name: "Health insurance",
+    name: "Health insurance (family floater)",
     kind: "cover",
     type: "Health insurance",
     institution: "Aegis Health",
-    accountRef: "•1120",
+    accountRef: "Policy 88231",
     value: 500000,
     nominee: true,
     nomineeName: "Family floater",
     renewalDate: rel(40),
+    accessNote:
+      "TPA: MediAssist. For cashless, quote policy 88231 with Aadhaar at the hospital insurance desk. E-cards saved in this archive under Insurance.",
     docId: dId("Health Insurance"),
   },
 ];
@@ -288,6 +331,20 @@ const seedTransactions: Transaction[] = [
     docId: dId("Property Tax"),
     followUpDone: false,
     addedAt: iso(-30),
+  },
+  {
+    id: id(),
+    memberId: "you",
+    purpose: "Lent to Rohan (friend)",
+    counterparty: "Rohan K",
+    direction: "paid",
+    amount: 5000,
+    date: rel(-4),
+    docId: dId("Transaction Evidence"),
+    followUpOn: rel(10),
+    followUpNote: "Ask about repayment when we meet",
+    followUpDone: false,
+    addedAt: iso(-4),
   },
 ];
 
@@ -423,6 +480,7 @@ const DEFAULT: State = {
   transactions: seedTransactions,
   handoff: null,
   customPacks: [],
+  wealthPin: null,
 };
 
 /* ── visit-pack selector: the data-layer ("backend") filter for Prepare-for-visit.
@@ -496,6 +554,7 @@ function load(): State {
         transactions: p.transactions ?? DEFAULT.transactions,
         handoff: p.handoff ?? null,
         customPacks: p.customPacks ?? [],
+        wealthPin: p.wealthPin ?? null,
       };
     }
   } catch {}
@@ -709,6 +768,10 @@ export function useStore() {
     };
     persist();
   }, []);
+  const setWealthPin = useCallback((hash: string | null) => {
+    state = { ...state, wealthPin: hash };
+    persist();
+  }, []);
   const addCustomPack = useCallback((cp: Omit<CustomPack, "id" | "createdAt">) => {
     state = { ...state, customPacks: [...state.customPacks, { ...cp, id: id(), createdAt: new Date().toISOString() }] };
     persist();
@@ -761,6 +824,7 @@ export function useStore() {
     updateTransaction,
     removeTransaction,
     completeFollowUp,
+    setWealthPin,
     addCustomPack,
     updateCustomPack,
     removeCustomPack,
