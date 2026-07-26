@@ -15,7 +15,7 @@ import type {
 import { putBlob, delBlob } from "./idb";
 import { classify } from "./classify";
 
-const LS = "lifepack.v2";
+const LS = "lifepack.v3"; // bumped: enriched seeds (fresh state on upgrade)
 const rel = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 const iso = (n: number) => new Date(Date.now() + n * 86400000).toISOString();
 const id = () => Math.random().toString(36).slice(2, 9);
