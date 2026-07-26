@@ -6,7 +6,11 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "LifePack AI — Personal Document Intelligence" },
-      { name: "description", content: "Classify, track, and assemble your documents for real life events. Includes a hallucination-safe Healthcare module." },
+      {
+        name: "description",
+        content:
+          "Classify, track, and assemble your documents for real life events. Includes a hallucination-safe Healthcare module.",
+      },
       { property: "og:title", content: "LifePack AI" },
       { property: "og:description", content: "AI-powered personal document intelligence." },
     ],
@@ -16,5 +20,16 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const navigate = useNavigate();
-  return <Landing onStart={() => navigate({ to: "/app" })} onSignIn={() => navigate({ to: "/app" })} />;
+  return (
+    <Landing
+      onStart={() => {
+        sessionStorage.setItem("lp-auth-intent", "signup");
+        navigate({ to: "/app" });
+      }}
+      onSignIn={() => {
+        sessionStorage.setItem("lp-auth-intent", "signin");
+        navigate({ to: "/app" });
+      }}
+    />
+  );
 }
