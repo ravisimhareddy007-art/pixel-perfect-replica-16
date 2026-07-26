@@ -43,6 +43,7 @@ interface State {
   wealthPin: string | null; // djb2 hash of the app-lock passcode; a lock on the door, not encryption
   theme: "dark" | "light";
   notifications: boolean;
+  dataMode: "sample" | "empty"; // empty = 1Shelf-style day-0; sample = seeded family
 }
 
 /* ── members (enterprise-neutral) ── */
@@ -470,8 +471,34 @@ const seedCare: Record<string, CareProfile> = {
   },
 };
 
+const emptyOwner: Member = { id: "you", name: "You", relation: "Self", color: "#5B8DEF", access: "Owner" };
+const EMPTY: Omit<State, "theme" | "notifications" | "wealthPin" | "onboarded" | "dataMode"> = {
+  members: [emptyOwner],
+  docs: [],
+  labs: [],
+  care: { you: { conditions: [], medications: [], allergies: "" } },
+  meds: [],
+  reminders: [],
+  holdings: [],
+  transactions: [],
+  handoff: null,
+  customPacks: [],
+};
+const SAMPLE: Omit<State, "theme" | "notifications" | "wealthPin" | "onboarded" | "dataMode"> = {
+  members: seedMembers,
+  docs: seedDocs,
+  labs: seedLabs,
+  care: seedCare,
+  meds: seedMeds,
+  reminders: seedReminders,
+  holdings: seedHoldings,
+  transactions: seedTransactions,
+  handoff: null,
+  customPacks: [],
+};
 const DEFAULT: State = {
   onboarded: true,
+  dataMode: "sample",
   members: seedMembers,
   docs: seedDocs,
   labs: seedLabs,
@@ -486,6 +513,37 @@ const DEFAULT: State = {
   theme: "dark",
   notifications: false,
 };
+// user-scoped bundles preserved across a mode switch (so switching back is instant and lossless)
+type Bundle = Omit<State, "theme" | "notifications" | "wealthPin" | "onboarded" | "dataMode">;
+const BUNDLE_KEYS: (keyof Bundle)[] = [
+  "members",
+  "docs",
+  "labs",
+  "care",
+  "meds",
+  "reminders",
+  "holdings",
+  "transactions",
+  "handoff",
+  "customPacks",
+];
+const LS_SAVED = "lifepack.v3.saved"; // { sample?: Bundle, empty?: Bundle }
+function loadSaved(): { sample?: Bundle; empty?: Bundle } {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(localStorage.getItem(LS_SAVED) || "{}");
+  } catch {
+    return {};
+  }
+}
+function saveSaved(v: { sample?: Bundle; empty?: Bundle }) {
+  if (typeof window !== "undefined") localStorage.setItem(LS_SAVED, JSON.stringify(v));
+}
+function bundleOf(st: State): Bundle {
+  const b: any = {};
+  BUNDLE_KEYS.forEach((k) => (b[k] = (st as any)[k]));
+  return b;
+}
 
 /* ── visit-pack selector: the data-layer ("backend") filter for Prepare-for-visit.
    Given the chosen doctor/appointment, returns the member's relevant real documents,
@@ -561,6 +619,7 @@ function load(): State {
         wealthPin: p.wealthPin ?? null,
         theme: p.theme ?? "dark",
         notifications: p.notifications ?? false,
+        dataMode: p.dataMode ?? "sample",
       };
     }
   } catch {}
@@ -774,6 +833,15 @@ export function useStore() {
     };
     persist();
   }, []);
+  const setDataMode = useCallback((mode: "sample" | "empty") => {
+    if (state.dataMode === mode) return;
+    const saved = loadSaved();
+    saved[state.dataMode] = bundleOf(state); // preserve what the user did in the current mode
+    saveSaved(saved);
+    const restore: Bundle = saved[mode] || (mode === "empty" ? (EMPTY as Bundle) : (SAMPLE as Bundle));
+    state = { ...state, ...restore, dataMode: mode, onboarded: mode === "empty" ? false : true };
+    persist();
+  }, []);
   const setTheme = useCallback((t: "dark" | "light") => {
     state = { ...state, theme: t };
     persist();
@@ -838,6 +906,7 @@ export function useStore() {
     updateTransaction,
     removeTransaction,
     completeFollowUp,
+    setDataMode,
     setTheme,
     setNotifications,
     setWealthPin,
