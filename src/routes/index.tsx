@@ -20,16 +20,5 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const navigate = useNavigate();
-  return (
-    <Landing
-      onStart={() => {
-        sessionStorage.setItem("lp-auth-intent", "signup");
-        navigate({ to: "/app" });
-      }}
-      onSignIn={() => {
-        sessionStorage.setItem("lp-auth-intent", "signin");
-        navigate({ to: "/app" });
-      }}
-    />
-  );
+  return <Landing onEnter={() => navigate({ to: "/app" })} />;
 }
