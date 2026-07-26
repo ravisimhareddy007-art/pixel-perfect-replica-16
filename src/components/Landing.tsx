@@ -1,4 +1,6 @@
+import { signup, login } from "@/lib/auth";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import {
   ShieldCheck,
   ArrowRight,
@@ -20,6 +22,7 @@ import {
   Plane,
   Briefcase,
   Stamp,
+  X,
 } from "lucide-react";
 
 const C = {
@@ -748,7 +751,151 @@ function Feature({ eyebrow, title, body, points, mock, flip }: any) {
   );
 }
 
-export default function Landing({ onStart, onSignIn }: { onStart: () => void; onSignIn?: () => void }) {
+function AuthModal({
+  mode: initMode,
+  onClose,
+  onAuthed,
+}: {
+  mode: "signin" | "signup";
+  onClose: () => void;
+  onAuthed: (isNew: boolean, name: string) => void;
+}) {
+  const [mode, setMode] = useState<"signin" | "signup">(initMode);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [err, setErr] = useState("");
+  const inp: React.CSSProperties = {
+    width: "100%",
+    background: "#fff",
+    border: `1px solid ${C.border}`,
+    borderRadius: 11,
+    padding: "12px 14px",
+    color: C.ink,
+    fontSize: 15,
+    outline: "none",
+    marginTop: 10,
+    fontFamily: "inherit",
+  };
+  const submit = () => {
+    setErr("");
+    if (mode === "signup") {
+      if (pw !== pw2) return setErr("Passwords do not match.");
+      const r = signup(name, email, pw);
+      if (!r.ok) return setErr(r.error);
+      onAuthed(true, r.account.name);
+    } else {
+      const r = login(email, pw);
+      if (!r.ok) return setErr(r.error);
+      onAuthed(false, r.account.name);
+    }
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 200,
+        background: "rgba(34,30,23,.45)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: C.paper,
+          border: `1px solid ${C.border}`,
+          borderRadius: 20,
+          width: "min(420px,100%)",
+          padding: 26,
+          boxShadow: "0 30px 80px rgba(34,30,23,.35)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <b style={{ fontFamily: "'Space Grotesk'", fontSize: 20, color: C.ink }}>
+            {mode === "signin" ? "Welcome back" : "Start your LifePack"}
+          </b>
+          <button
+            onClick={onClose}
+            style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex" }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            border: `1px solid ${C.border}`,
+            borderRadius: 11,
+            overflow: "hidden",
+            background: "#fff",
+          }}
+        >
+          {(["signin", "signup"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => {
+                setMode(m);
+                setErr("");
+              }}
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                fontSize: 13.5,
+                fontWeight: 700,
+                cursor: "pointer",
+                border: "none",
+                fontFamily: "inherit",
+                background: mode === m ? C.goldSoft : "transparent",
+                color: mode === m ? C.ink : C.muted,
+              }}
+            >
+              {m === "signin" ? "Sign in" : "Create account"}
+            </button>
+          ))}
+        </div>
+        {mode === "signup" && (
+          <input style={inp} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
+        )}
+        <input style={inp} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input
+          style={inp}
+          type="password"
+          placeholder="Password"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && mode === "signin" && submit()}
+        />
+        {mode === "signup" && (
+          <input
+            style={inp}
+            type="password"
+            placeholder="Repeat password"
+            value={pw2}
+            onChange={(e) => setPw2(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+          />
+        )}
+        {err && <div style={{ color: "#B4231F", fontSize: 13, marginTop: 10 }}>{err}</div>}
+        <button onClick={submit} className="lp-cta" style={{ width: "100%", justifyContent: "center", marginTop: 14 }}>
+          {mode === "signin" ? "Sign in" : "Create my LifePack"} <ArrowRight size={15} />
+        </button>
+        <p style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
+          Prototype accounts live on this device only. Production replaces this with server-side auth.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function Landing({ onEnter }: { onEnter: () => void }) {
+  const [auth, setAuth] = useState<null | "signin" | "signup">(null);
   return (
     <div className="lp-root">
       <style>{CSS}</style>
@@ -779,7 +926,7 @@ export default function Landing({ onStart, onSignIn }: { onStart: () => void; on
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
-              onClick={onSignIn}
+              onClick={() => setAuth("signin")}
               style={{
                 background: "none",
                 border: `1px solid ${C.border}`,
@@ -794,7 +941,7 @@ export default function Landing({ onStart, onSignIn }: { onStart: () => void; on
             >
               Sign in
             </button>
-            <button onClick={onStart} className="lp-navcta">
+            <button onClick={() => setAuth("signup")} className="lp-navcta">
               Get started <ArrowRight size={15} />
             </button>
           </div>
@@ -825,7 +972,7 @@ export default function Landing({ onStart, onSignIn }: { onStart: () => void; on
               any visa, loan, job switch, or hospital visit is only a few taps away.
             </p>
             <div className="lp-herocta">
-              <button onClick={onStart} className="lp-cta">
+              <button onClick={() => setAuth("signup")} className="lp-cta">
                 Open your LifePack <ArrowRight size={17} />
               </button>
               <span className="lp-trust">
@@ -1047,7 +1194,7 @@ export default function Landing({ onStart, onSignIn }: { onStart: () => void; on
             <p className="lp-sub" style={{ marginTop: 12, marginLeft: "auto", marginRight: "auto" }}>
               Set it up once, and let the next big moment be the easy one.
             </p>
-            <button onClick={onStart} className="lp-cta" style={{ marginTop: 26 }}>
+            <button onClick={() => setAuth("signup")} className="lp-cta" style={{ marginTop: 26 }}>
               Open your LifePack <ArrowRight size={17} />
             </button>
           </div>
@@ -1081,6 +1228,16 @@ export default function Landing({ onStart, onSignIn }: { onStart: () => void; on
           </span>
         </div>
       </footer>
+      {auth && (
+        <AuthModal
+          mode={auth}
+          onClose={() => setAuth(null)}
+          onAuthed={(isNew) => {
+            if (isNew) sessionStorage.setItem("lp-new-account", "1");
+            onEnter();
+          }}
+        />
+      )}
     </div>
   );
 }
