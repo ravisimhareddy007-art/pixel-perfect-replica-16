@@ -327,6 +327,16 @@ const EVENTS = [
     "US Dept. of State student visa checklist",
   ),
   P(
+    "travel-ins",
+    "Travel & Immigration",
+    "Travel insurance purchase",
+    "Visa-compliant cover",
+    ["Passport", "Identity Proof"],
+    ["Flight Reservation"],
+    undefined,
+    "Insurer proposal requirements",
+  ),
+  P(
     "intl-dl",
     "Travel & Immigration",
     "International driving permit",
@@ -336,17 +346,77 @@ const EVENTS = [
     Car,
     "RTO international driving permit checklist",
   ),
-  P(
-    "minor-travel",
-    "Travel & Immigration",
-    "Minor travel consent",
-    "Child travelling",
-    ["Birth Certificate", "Passport", "Identity Proof", "Consent Letter"],
-    undefined,
-    undefined,
-    "Airline and immigration guidance for minors",
-  ),
   /* Identity & Civic (14) — phrased exactly as government checklists phrase them */
+  P(
+    "lost-passport",
+    "Identity & Civic",
+    "Lost passport reissue",
+    "Report and reissue",
+    ["Police Complaint", "Identity Proof", "Address Proof", "Passport Photos", "Affidavit"],
+    ["Passport"],
+    undefined,
+    "Passport Seva lost/damaged reissue (Annexure F)",
+  ),
+  P(
+    "lost-pan",
+    "Identity & Civic",
+    "Lost PAN card reissue",
+    "Reprint request",
+    ["Identity Proof", "Address Proof", "Date of Birth Proof", "Passport Photos"],
+    ["Police Complaint"],
+    undefined,
+    "Income Tax Dept. reprint request",
+  ),
+  P(
+    "lost-aadhaar",
+    "Identity & Civic",
+    "Lost Aadhaar retrieval",
+    "Retrieve and reprint",
+    ["Identity Proof"],
+    ["Enrolment Slip"],
+    undefined,
+    "UIDAI retrieval and reprint process",
+  ),
+  P(
+    "lost-dl",
+    "Identity & Civic",
+    "Lost driving licence duplicate",
+    "Duplicate DL (LLD)",
+    ["Police Complaint", "Identity Proof", "Address Proof", "Passport Photos"],
+    ["Driving License"],
+    Car,
+    "Parivahan duplicate licence (LLD) requirements",
+  ),
+  P(
+    "ration-card",
+    "Identity & Civic",
+    "Ration card application",
+    "State food supplies",
+    ["Identity Proof", "Address Proof", "Income Certificate", "Passport Photos"],
+    undefined,
+    undefined,
+    "State food & civil supplies requirements",
+  ),
+  P(
+    "sim-kyc",
+    "Identity & Civic",
+    "Mobile SIM KYC",
+    "New or replacement SIM",
+    ["Identity Proof", "Address Proof", "Passport Photos"],
+    undefined,
+    undefined,
+    "DoT customer acquisition (CAF) KYC rules",
+  ),
+  P(
+    "disaster-relief",
+    "Identity & Civic",
+    "Disaster relief assistance",
+    "When documents are lost too",
+    ["Identity Proof", "Address Proof", "Bank Statement", "Passport Photos"],
+    ["Property Ownership Proof", "Death Certificate"],
+    undefined,
+    "State revenue department relief (SDRF) norms",
+  ),
   P(
     "passport-new",
     "Identity & Civic",
@@ -529,16 +599,6 @@ const EVENTS = [
     "Published lender education-loan checklists",
   ),
   P(
-    "gold-loan",
-    "Money & Tax",
-    "Gold loan",
-    "Secured on gold",
-    ["Identity Proof", "Address Proof", "Passport Photos"],
-    undefined,
-    undefined,
-    "Published lender gold-loan checklists",
-  ),
-  P(
     "credit-card",
     "Money & Tax",
     "Credit card application",
@@ -589,6 +649,26 @@ const EVENTS = [
     "PFRDA subscriber registration",
   ),
   P(
+    "pf-transfer",
+    "Money & Tax",
+    "PF transfer on job change",
+    "Form 13 online",
+    ["Aadhaar Card", "PAN Card", "Bank Statement"],
+    ["Relieving Letter"],
+    undefined,
+    "EPFO Form 13 transfer requirements",
+  ),
+  P(
+    "mf-kyc",
+    "Money & Tax",
+    "Mutual fund KYC",
+    "CKYC for investing",
+    ["PAN Card", "Identity Proof", "Address Proof", "Passport Photos", "Cancelled Cheque"],
+    undefined,
+    undefined,
+    "SEBI / KRA CKYC requirements",
+  ),
+  P(
     "epf-withdraw",
     "Money & Tax",
     "EPF withdrawal",
@@ -599,16 +679,6 @@ const EVENTS = [
     "EPFO Form 19/10C requirements",
   ),
   P(
-    "gratuity",
-    "Money & Tax",
-    "Gratuity claim",
-    "Form I after leaving",
-    ["Identity Proof", "Bank Statement", "Relieving Letter", "Salary Certificate"],
-    undefined,
-    undefined,
-    "Payment of Gratuity Act Form I",
-  ),
-  P(
     "loan-closure",
     "Money & Tax",
     "Loan closure and lien release",
@@ -617,16 +687,6 @@ const EVENTS = [
     ["Property Deed"],
     undefined,
     "Published lender closure checklists",
-  ),
-  P(
-    "balance-transfer",
-    "Money & Tax",
-    "Home loan balance transfer",
-    "Refinance",
-    ["Loan Statement", "Property Ownership Proof", "Income Proof", "Bank Statement", "ITR Acknowledgement"],
-    undefined,
-    undefined,
-    "Published lender takeover checklists",
   ),
   /* Jobs & Employment (12) */
   P(
@@ -670,6 +730,16 @@ const EVENTS = [
     "Standard client KYC requirements",
   ),
   P(
+    "trademark",
+    "Jobs & Employment",
+    "Trademark registration",
+    "Protect your brand",
+    ["PAN Card", "Identity Proof", "Business Registration", "Trademark Artwork"],
+    ["Udyam Certificate"],
+    undefined,
+    "IP India TM-A filing requirements",
+  ),
+  P(
     "incorporation",
     "Jobs & Employment",
     "Company incorporation",
@@ -700,16 +770,6 @@ const EVENTS = [
     "Udyam registration requirements",
   ),
   P(
-    "emp-abroad",
-    "Jobs & Employment",
-    "Employment abroad attestation",
-    "Certificates attested",
-    ["Degree Certificate", "Passport", "Employment Offer", "Marksheet"],
-    undefined,
-    undefined,
-    "MEA attestation / apostille procedure",
-  ),
-  P(
     "resignation",
     "Jobs & Employment",
     "Resignation and relieving",
@@ -720,16 +780,6 @@ const EVENTS = [
     "Standard HR exit checklists",
   ),
   P(
-    "shop-license",
-    "Jobs & Employment",
-    "Shop and establishment license",
-    "Local business license",
-    ["Identity Proof", "Business Registration", "Rental Agreement", "Utility Bill", "Passport Photos"],
-    undefined,
-    undefined,
-    "State labour department checklists",
-  ),
-  P(
     "prof-reg",
     "Jobs & Employment",
     "Professional council registration",
@@ -738,16 +788,6 @@ const EVENTS = [
     ["Internship Certificate"],
     undefined,
     "Professional council requirements",
-  ),
-  P(
-    "work-sponsor",
-    "Jobs & Employment",
-    "Employee visa sponsorship",
-    "Employer files for you",
-    ["Passport", "Employment Offer", "Degree Certificate", "Experience Letter", "Payslip"],
-    undefined,
-    undefined,
-    "Employer immigration checklists",
   ),
   /* Education (12) */
   P(
@@ -849,16 +889,6 @@ const EVENTS = [
     "WES/ECA and MEA apostille requirements",
   ),
   P(
-    "hostel",
-    "Education",
-    "Hostel admission",
-    "Campus housing",
-    ["Admission Letter", "Identity Proof", "Passport Photos", "Medical Fitness Certificate", "Address Proof"],
-    undefined,
-    undefined,
-    "Institution hostel requirements",
-  ),
-  P(
     "dup-marksheet",
     "Education",
     "Duplicate marksheet reissue",
@@ -867,16 +897,6 @@ const EVENTS = [
     ["Police Complaint"],
     undefined,
     "Board/university reissue procedure",
-  ),
-  P(
-    "exam-day",
-    "Education",
-    "Exam day pack",
-    "What to carry",
-    ["Admit Card", "Photo ID", "Passport Photos"],
-    undefined,
-    undefined,
-    "Exam admit-card instructions",
   ),
   /* Health (11) — claims verified against the IRDAI Master Circular document set */
   P(
@@ -978,26 +998,6 @@ const EVENTS = [
     undefined,
     "Scheme enrollment requirements",
   ),
-  P(
-    "second-opinion",
-    "Health",
-    "Second opinion records",
-    "Full case file",
-    ["Lab Report", "Prescription", "Discharge Summary", "Scan Report"],
-    undefined,
-    undefined,
-    "Hospital records requirements",
-  ),
-  P(
-    "fitness-cert",
-    "Health",
-    "Medical fitness certificate",
-    "Jobs and licenses",
-    ["Photo ID", "Passport Photos"],
-    ["Lab Report"],
-    undefined,
-    "Issuing-hospital requirements",
-  ),
   /* Home & Property (13) — home loan verified against SBI/HDFC salaried checklists */
   P(
     "homeloan",
@@ -1080,6 +1080,16 @@ const EVENTS = [
     "Municipal revenue office checklists",
   ),
   P(
+    "lpg",
+    "Home & Property",
+    "New LPG connection",
+    "Cooking gas KYC",
+    ["Identity Proof", "Address Proof", "Passport Photos"],
+    ["Rental Agreement"],
+    undefined,
+    "Oil company (Indane/HP/Bharat) KYC requirements",
+  ),
+  P(
     "electricity",
     "Home & Property",
     "New electricity connection",
@@ -1088,16 +1098,6 @@ const EVENTS = [
     ["Property Ownership Proof", "Rental Agreement"],
     undefined,
     "Distribution company requirements",
-  ),
-  P(
-    "gas-water",
-    "Home & Property",
-    "Gas and water connection",
-    "Utility setup",
-    ["Identity Proof", "Address Proof"],
-    ["Property Ownership Proof"],
-    undefined,
-    "Utility provider requirements",
   ),
   P(
     "home-ins",
@@ -1119,26 +1119,6 @@ const EVENTS = [
     undefined,
     "Cooperative society bye-law requirements",
   ),
-  P(
-    "reno-loan",
-    "Home & Property",
-    "Home renovation loan",
-    "Improvement finance",
-    ["Property Ownership Proof", "Income Proof", "Bank Statement", "PAN Card", "Cost Estimate"],
-    undefined,
-    undefined,
-    "Published lender checklists",
-  ),
-  P(
-    "plan-approval",
-    "Home & Property",
-    "Building plan approval",
-    "Before construction",
-    ["Property Deed", "Property Tax", "Site Plan", "Identity Proof"],
-    undefined,
-    undefined,
-    "Municipal planning authority checklists",
-  ),
   /* Family & Life (12) */
   P(
     "marriage-reg",
@@ -1149,6 +1129,33 @@ const EVENTS = [
     ["Marriage Invitation"],
     undefined,
     "Marriage registrar requirements",
+  ),
+  P(
+    "death-cert",
+    "Family & Life",
+    "Death certificate application",
+    "Municipal registration",
+    ["Identity Proof", "Address Proof", "Hospital Death Report"],
+    ["Affidavit"],
+    undefined,
+    "Municipal births & deaths registration",
+  ),
+  P(
+    "adoption",
+    "Family & Life",
+    "Adoption process",
+    "CARA registration",
+    [
+      "Identity Proof",
+      "Address Proof",
+      "Marriage Certificate",
+      "Income Proof",
+      "Medical Fitness Certificate",
+      "Passport Photos",
+    ],
+    ["Birth Certificate"],
+    undefined,
+    "CARA prospective-parent requirements",
   ),
   P(
     "newborn",
@@ -1852,16 +1859,12 @@ function Packages({ store, toast }: any) {
     accent: T.gold,
     icon: FileText,
     reqs: c.reqs,
-    cat: "Custom",
+    cat: "My packs",
     custom: true,
     desc: c.desc,
   }));
   const all: AnyPack[] = [...(EVENTS as AnyPack[]), ...customAsPacks];
-  const cats = [
-    "All",
-    ...PACK_CATS.filter((c) => all.some((p) => p.cat === c)),
-    ...(customAsPacks.length ? ["Custom"] : []),
-  ];
+  const cats = ["All", ...PACK_CATS.filter((c) => all.some((p) => p.cat === c)), `My packs (${customAsPacks.length})`];
   const needle = q.trim().toLowerCase();
   const list = all.filter(
     (e) =>
@@ -1908,11 +1911,12 @@ function Packages({ store, toast }: any) {
         )}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        {cats.map((c) => {
+        {cats.map((raw) => {
+          const c = raw.startsWith("My packs") ? "My packs" : raw;
           const on = cat === c;
           return (
             <button
-              key={c}
+              key={raw}
               onClick={() => setCat(c)}
               style={{
                 padding: "7px 13px",
@@ -1925,7 +1929,7 @@ function Packages({ store, toast }: any) {
                 color: on ? T.white : T.muted,
               }}
             >
-              {c}
+              {raw}
             </button>
           );
         })}
@@ -1967,9 +1971,13 @@ function Packages({ store, toast }: any) {
       </div>
       {list.length === 0 && (
         <Card style={{ textAlign: "center", padding: 30 }}>
-          <div style={{ color: T.text, fontWeight: 600, fontSize: 14.5 }}>No pack covers "{q}" yet</div>
+          <div style={{ color: T.text, fontWeight: 600, fontSize: 14.5 }}>
+            {cat === "My packs" && !q ? "You have not created a pack yet" : `No pack covers "${q}" yet`}
+          </div>
           <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
-            Describe it and LifePack drafts the checklist for you.
+            {cat === "My packs" && !q
+              ? "Custom packs you create live here, scored against your archive like any curated pack."
+              : "Describe it and LifePack drafts the checklist for you."}
           </div>
           <button onClick={() => setCreating(true)} style={{ ...btnGold, margin: "14px auto 0" }}>
             <Plus size={15} /> Create a custom pack
@@ -2742,7 +2750,7 @@ function Documents({ store, toast }: any) {
   const [cat, setCat] = useState<string>("All");
   const [person, setPerson] = useState<string>("All");
   const [source, setSource] = useState<string>("All");
-  const [quick, setQuick] = useState<"all" | "expiring" | "expired" | "recent">("all");
+  const [quick, setQuick] = useState<"all" | "expiring" | "expired" | "recent" | "proofs">("all");
   const [sort, setSort] = useState<"newest" | "oldest" | "name" | "expiry">("newest");
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<Doc | null>(null);
@@ -2764,6 +2772,7 @@ function Documents({ store, toast }: any) {
     if (quick === "expiring") list = list.filter((d) => d.expiry && daysTo(d.expiry) >= 0 && daysTo(d.expiry) < 60);
     if (quick === "expired") list = list.filter((d) => d.expiry && daysTo(d.expiry) < 0);
     if (quick === "recent") list = list.filter((d) => (Date.now() - +new Date(d.addedAt)) / 86400000 <= 7);
+    if (quick === "proofs") list = list.filter((d) => d.docType === "Transaction Evidence");
     if (cat !== "All") list = list.filter((d) => d.category === cat);
     if (person !== "All") list = list.filter((d) => (d.memberId || "") === person);
     if (source !== "All") list = list.filter((d) => d.source === source);
@@ -2823,6 +2832,12 @@ function Documents({ store, toast }: any) {
     { k: "expiring", label: "Expiring soon", n: expiring.length, tone: T.gold },
     { k: "expired", label: "Expired", n: expired.length, tone: T.coral },
     { k: "recent", label: "Added this week", n: recent.length, tone: T.mint },
+    {
+      k: "proofs",
+      label: "Proofs",
+      n: docs.filter((d: Doc) => d.docType === "Transaction Evidence").length,
+      tone: A.blue,
+    },
   ];
   const GRID = "26px 2.1fr 1.15fr 0.95fr 0.85fr 0.75fr 0.65fr 30px";
 
@@ -3654,7 +3669,9 @@ function AddMember({ onClose, save }: any) {
 }
 
 /* ═══════════════ WEALTH (derived from documents with value) ═══════════════ */
-function Wealth({ store, go, toast }: any) {
+function Wealth({ store, go, toast, unlocked, onUnlock }: any) {
+  const [pinModal, setPinModal] = useState(false);
+  const [showMath, setShowMath] = useState(false);
   const [viewDoc, setViewDoc] = useState<Doc | null>(null);
   const [edit, setEdit] = useState<Holding | null>(null);
   const [addTx, setAddTx] = useState(false);
@@ -3866,458 +3883,576 @@ function Wealth({ store, go, toast }: any) {
 
   return (
     <div>
-      <SectionHead
-        title="Wealth"
-        sub="Not a balance sheet: whether your family could access all of it if something happened to you."
-      />
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "0 0 28px" }}>
-        <button onClick={() => setAddTx(true)} style={btnGhost}>
-          <Receipt size={15} /> Capture proof
-        </button>
-        <button
-          onClick={() => setSos(true)}
-          style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "66", fontWeight: 700 }}
-        >
-          <Siren size={15} /> SOS handoff
-        </button>
-      </div>
-
-      {store.handoff && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 11,
-            background: T.coral + "14",
-            border: `1px solid ${T.coral}66`,
-            borderRadius: 12,
-            padding: "12px 16px",
-            marginBottom: 16,
-          }}
-        >
-          <Siren size={16} color={T.coral} />
-          <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>
-            <b style={{ color: T.coral }}>SOS handoff active</b> ({store.handoff.reason}) since{" "}
-            {new Date(store.handoff.releasedAt).toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-            })}{" "}
-            · shared with{" "}
-            {store.handoff.recipients
-              .map((id: string) => store.members.find((mm: Member) => mm.id === id)?.name.split(" ")[0])
-              .filter(Boolean)
-              .join(", ")}
-          </span>
-          <button
-            onClick={() => {
-              store.cancelHandoff();
-              toast("Handoff cancelled · access revoked");
-            }}
-            style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "55", padding: "7px 12px", fontSize: 12.5 }}
-          >
-            Cancel handoff
-          </button>
-        </div>
-      )}
-      <div className="lp-hero2" style={{ marginBottom: 16 }}>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-            <KeyRound size={15} color={T.muted} />
-            <b style={{ color: T.white, fontSize: 14.5 }}>Estate readiness</b>
-            <span style={{ marginLeft: "auto", fontSize: 12, color: T.muted }}>{guarded.length} holdings tracked</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 38, fontWeight: 800, color: readyColor }}>
-              {readiness}%
-            </span>
-            <span style={{ fontSize: 13, color: T.muted }}>of documented value your family could actually reach</span>
-          </div>
-          <div style={{ height: 8, borderRadius: 9, background: T.raised, margin: "12px 0 14px", overflow: "hidden" }}>
-            <div style={{ width: `${readiness}%`, height: "100%", borderRadius: 9, background: readyColor }} />
-          </div>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5 }}>
-            <span style={{ color: missNom ? T.coral : T.mint }}>
-              {missNom} missing nominee{missNom === 1 ? "" : "s"}
-            </span>
-            <span style={{ color: missDoc ? T.coral : T.mint }}>
-              {missDoc} missing document{missDoc === 1 ? "" : "s"}
-            </span>
-            <span style={{ color: missAcc ? T.gold : T.mint }}>
-              {missAcc} missing access instruction{missAcc === 1 ? "" : "s"}
-            </span>
-            {fixMins > 0 && (
-              <span style={{ color: T.muted, marginLeft: "auto", fontFamily: "ui-monospace, monospace" }}>
-                ~{fixMins} min to fix
-              </span>
-            )}
-          </div>
-        </Card>
-        <button
-          onClick={() => setEstate(true)}
-          style={{
-            textAlign: "left",
-            cursor: "pointer",
-            border: `1px solid ${T.gold}66`,
-            borderRadius: 14,
-            padding: 18,
-            background: `linear-gradient(160deg, ${T.gold}1f, ${T.panel})`,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            gap: 10,
-          }}
-        >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <FileText size={16} color={T.gold} />
-              <b style={{ color: T.white, fontSize: 15.5 }}>Estate summary</b>
-            </div>
-            <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6, lineHeight: 1.5 }}>
-              The one document your family opens first: every holding, nominee, location, and the first steps to take.
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, fontWeight: 700, color: readyColor }}>
-              {readiness}% ready for family
-            </span>
-            <span
-              style={{
-                marginLeft: "auto",
-                fontSize: 13.5,
-                fontWeight: 700,
-                color: T.gold,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-              }}
+      {store.wealthPin && !unlocked ? (
+        <>
+          <SectionHead title="Wealth" sub="Locked" />
+          <WealthLock store={store} onUnlock={onUnlock} toast={toast} />
+        </>
+      ) : (
+        <>
+          <SectionHead
+            title="Wealth"
+            sub="Not a balance sheet: whether your family could access all of it if something happened to you."
+          />
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "0 0 28px" }}>
+            <button onClick={() => setAddTx(true)} style={btnGhost}>
+              <Receipt size={15} /> Capture proof
+            </button>
+            <button
+              onClick={() => setSos(true)}
+              style={{ ...btnGhost, color: T.coral, borderColor: T.coral + "66", fontWeight: 700 }}
             >
-              Preview <ArrowRight size={14} />
-            </span>
+              <Siren size={15} /> SOS handoff
+            </button>
+            <button
+              onClick={() => setPinModal(true)}
+              style={{ ...btnGhost, marginLeft: "auto" }}
+              title="App lock for this tab"
+            >
+              <Lock size={14} /> {store.wealthPin ? "Passcode" : "Add passcode"}
+            </button>
           </div>
-        </button>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          gap: 22,
-          flexWrap: "wrap",
-          alignItems: "center",
-          padding: "10px 16px",
-          border: `1px solid ${T.border}`,
-          borderRadius: 12,
-          background: T.panel,
-          marginBottom: 24,
-          fontFamily: "ui-monospace, monospace",
-          fontSize: 13.5,
-        }}
-      >
-        <span style={{ color: T.muted }}>
-          Net worth <b style={{ color: T.white }}>{money(net)}</b>
-        </span>
-        <span style={{ color: T.muted }}>
-          Assets <b style={{ color: T.mint }}>{money(totalAssets)}</b>
-        </span>
-        <span style={{ color: T.muted }}>
-          Liabilities <b style={{ color: T.coral }}>{money(totalLiab)}</b>
-        </span>
-        <span style={{ color: T.muted }}>
-          Protection <b style={{ color: A.teal }}>{money(totalCover)}</b>
-        </span>
-      </div>
 
-      {gaps.length > 0 && (
-        <Card style={{ padding: 0, marginBottom: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px" }}>
-            <AlertTriangle size={16} color={T.gold} />
-            <b style={{ color: T.white, fontSize: 14.5 }}>Needs attention</b>
-            <span style={{ marginLeft: "auto", ...pill(T.gold) }}>{gaps.length}</span>
-          </div>
-          {gaps.map((g, i) => (
+          {store.handoff && (
             <div
-              key={i}
-              onClick={() =>
-                g.kind === "nominee" ? setNomineeFor(g.h) : g.kind === "doc" ? attach(g.h) : setEdit(g.h)
-              }
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
-                padding: "11px 16px",
-                borderTop: `1px solid ${T.border}`,
-                cursor: "pointer",
+                gap: 11,
+                background: T.coral + "14",
+                border: `1px solid ${T.coral}66`,
+                borderRadius: 12,
+                padding: "12px 16px",
+                marginBottom: 16,
               }}
             >
-              <span
+              <Siren size={16} color={T.coral} />
+              <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>
+                <b style={{ color: T.coral }}>SOS handoff active</b> ({store.handoff.reason}) since{" "}
+                {new Date(store.handoff.releasedAt).toLocaleString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}{" "}
+                · shared with{" "}
+                {store.handoff.recipients
+                  .map((id: string) => store.members.find((mm: Member) => mm.id === id)?.name.split(" ")[0])
+                  .filter(Boolean)
+                  .join(", ")}
+              </span>
+              <button
+                onClick={() => {
+                  store.cancelHandoff();
+                  toast("Handoff cancelled · access revoked");
+                }}
                 style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: 1,
-                  fontFamily: "ui-monospace, monospace",
-                  color: SEVC[g.sev],
-                  border: `1px solid ${SEVC[g.sev]}55`,
-                  background: SEVC[g.sev] + "14",
-                  borderRadius: 6,
-                  padding: "3px 7px",
-                  flexShrink: 0,
-                  width: 86,
-                  textAlign: "center",
+                  ...btnGhost,
+                  color: T.coral,
+                  borderColor: T.coral + "55",
+                  padding: "7px 12px",
+                  fontSize: 12.5,
                 }}
               >
-                {g.sev.toUpperCase()}
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 14, color: T.text, fontWeight: 600 }}>{g.label}</span>
-                <span style={{ display: "block", fontSize: 12, color: T.muted, marginTop: 1 }}>{g.impact}</span>
-              </span>
-              <span style={{ fontSize: 12.5, color: SEVC[g.sev], fontWeight: 700, flexShrink: 0 }}>
-                {g.kind === "nominee"
-                  ? "Add nominee"
-                  : g.kind === "doc"
-                    ? "Attach"
-                    : g.kind === "access"
-                      ? "Add note"
-                      : "Review"}
-              </span>
-              <ChevronRight size={14} color={T.faint} />
-            </div>
-          ))}
-        </Card>
-      )}
-
-      <div className="lp-cols2">
-        <div style={{ display: "grid", gap: 16 }}>
-          {groups.map(([label, arr]) =>
-            arr.length > 0 ? (
-              <Card key={label} style={{ padding: 0 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "13px 16px",
-                  }}
-                >
-                  <b style={{ color: T.white, fontSize: 14.5 }}>{label}</b>
-                  <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, color: T.muted }}>
-                    {money(sum(arr))}
-                  </span>
-                </div>
-                {arr.map((h) => (
-                  <Row key={h.id} h={h} />
-                ))}
-              </Card>
-            ) : null,
-          )}
-          <Card style={{ padding: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px" }}>
-              <Receipt size={16} color={T.muted} />
-              <b style={{ color: T.white, fontSize: 14.5 }}>Proof of payments</b>
-              <button
-                onClick={() => setAddTx(true)}
-                style={{ ...btnGhost, marginLeft: "auto", padding: "6px 12px", fontSize: 12.5 }}
-              >
-                <Plus size={13} /> Add
+                Cancel handoff
               </button>
             </div>
-            {txs.length === 0 ? (
-              <p style={{ color: T.muted, fontSize: 13, padding: "0 16px 14px" }}>
-                Record a payment or receipt with its evidence attached, and a follow-up if one is needed.
-              </p>
-            ) : (
-              txs.map((t) => {
-                const ev = store.docs.find((d: Doc) => d.id === t.docId);
-                const overdueFu = t.followUpOn && !t.followUpDone;
-                return (
-                  <div
-                    key={t.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "12px 16px",
-                      borderTop: `1px solid ${T.border}`,
-                    }}
-                  >
-                    <span
-                      style={{
-                        display: "grid",
-                        placeItems: "center",
-                        width: 34,
-                        height: 34,
-                        borderRadius: 9,
-                        background: (t.direction === "paid" ? T.coral : T.mint) + "22",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <Receipt size={15} color={t.direction === "paid" ? T.coral : T.mint} />
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: T.white }}>{t.purpose}</div>
-                      <div style={{ fontSize: 12.5, color: T.muted }}>
-                        {t.counterparty ? `${t.counterparty} · ` : ""}
-                        {new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        {overdueFu
-                          ? ` · follow up ${daysTo(t.followUpOn!) <= 0 ? "today" : `in ${daysTo(t.followUpOn!)}d`}${t.followUpNote ? `: ${t.followUpNote}` : ""}`
-                          : ""}
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontFamily: "ui-monospace, monospace",
-                        fontSize: 14.5,
-                        fontWeight: 700,
-                        color: t.direction === "paid" ? T.coral : T.mint,
-                      }}
-                    >
-                      {t.direction === "paid" ? "\u2212" : "+"}
-                      {money(t.amount)}
-                    </span>
-                    {ev ? (
-                      <button onClick={() => setViewDoc(ev)} style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}>
-                        <Paperclip size={12} /> Evidence
-                      </button>
-                    ) : (
-                      <span style={pill(T.gold)}>no evidence</span>
-                    )}
-                    {overdueFu && (
-                      <button
-                        onClick={() => {
-                          store.completeFollowUp(t.id);
-                          toast("Follow-up done");
-                        }}
-                        style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}
-                      >
-                        <Check size={12} /> Done
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        store.removeTransaction(t.id);
-                        toast("Transaction removed");
-                      }}
-                      title="Remove"
-                      style={{ ...btnGhost, padding: 7 }}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </Card>
-        </div>
-        <Card>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <KeyRound size={16} color={T.muted} />
-            <b style={{ color: T.white, fontSize: 15 }}>Legacy handoff</b>
-          </div>
-          <p style={{ fontSize: 12.5, color: T.muted, margin: "0 0 14px" }}>
-            Who steps in, and whether nothing is lost if you are gone.
-          </p>
-          <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 14 }}>
-            <Ring score={readiness} size={54} color={readiness >= 80 ? T.mint : readiness >= 50 ? T.gold : T.coral} />
-            <div style={{ fontSize: 13, color: T.muted }}>
-              of documented value has a document, a nominee, and access instructions on file
-            </div>
-          </div>
-          {trusted.map((m: Member) => (
-            <div
-              key={m.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "8px 0",
-                borderTop: `1px solid ${T.border}`,
-              }}
-            >
-              <span
+          )}
+          <div className="lp-hero2" style={{ marginBottom: 16 }}>
+            <Card>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                <KeyRound size={15} color={T.muted} />
+                <b style={{ color: T.white, fontSize: 14.5 }}>Estate readiness</b>
+                <span style={{ marginLeft: "auto", fontSize: 12, color: T.muted }}>
+                  {guarded.length} holdings tracked
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+                <span
+                  style={{ fontFamily: "ui-monospace, monospace", fontSize: 38, fontWeight: 800, color: readyColor }}
+                >
+                  {readiness}%
+                </span>
+                <span style={{ fontSize: 13, color: T.muted }}>
+                  of documented value your family could actually reach
+                </span>
+              </div>
+              <div
+                style={{ height: 8, borderRadius: 9, background: T.raised, margin: "12px 0 14px", overflow: "hidden" }}
+              >
+                <div style={{ width: `${readiness}%`, height: "100%", borderRadius: 9, background: readyColor }} />
+              </div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5 }}>
+                <span style={{ color: missNom ? T.coral : T.mint }}>
+                  {missNom} missing nominee{missNom === 1 ? "" : "s"}
+                </span>
+                <span style={{ color: missDoc ? T.coral : T.mint }}>
+                  {missDoc} missing document{missDoc === 1 ? "" : "s"}
+                </span>
+                <span style={{ color: missAcc ? T.gold : T.mint }}>
+                  {missAcc} missing access instruction{missAcc === 1 ? "" : "s"}
+                </span>
+                {fixMins > 0 && (
+                  <span style={{ color: T.muted, marginLeft: "auto", fontFamily: "ui-monospace, monospace" }}>
+                    ~{fixMins} min to fix
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowMath((v) => !v)}
                 style={{
-                  display: "grid",
-                  placeItems: "center",
-                  width: 30,
-                  height: 30,
-                  borderRadius: 8,
-                  background: m.color + "26",
-                  color: m.color,
-                  fontWeight: 800,
-                  fontSize: 13,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: T.muted,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  padding: 0,
+                  marginTop: 10,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
                 }}
               >
-                {m.name[0]}
-              </span>
-              <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>{m.name}</span>
-              <span style={pill(m.access === "Full member" ? T.mint : A.blue)}>{m.access}</span>
-            </div>
-          ))}
-          <button
-            onClick={() => setEstate(true)}
-            style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
+                <ChevronDown
+                  size={12}
+                  style={{ transform: showMath ? "rotate(180deg)" : "none", transition: ".15s" }}
+                />
+                How is this computed?
+              </button>
+              {showMath && (
+                <div style={{ marginTop: 10, borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+                  <p style={{ fontSize: 12, color: T.muted, margin: "0 0 8px", lineHeight: 1.6 }}>
+                    Each asset and cover counts as family-reachable only when all three are true: a document on file, a
+                    nominee named, and access instructions written. Weighted by value, so the home matters more than the
+                    FD. Liabilities are excluded. Nothing else is scored.
+                  </p>
+                  {guarded.map((h) => {
+                    const ok = !!(h.docId && h.nominee && h.accessNote);
+                    return (
+                      <div
+                        key={h.id}
+                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 0", fontSize: 12 }}
+                      >
+                        <span
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 9,
+                            background: ok ? T.mint : T.coral,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <span
+                          style={{
+                            flex: 1,
+                            color: T.text,
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {h.name}
+                        </span>
+                        <span style={{ fontFamily: "ui-monospace, monospace", color: T.muted }}>
+                          {h.docId ? "✓" : "✗"}doc {h.nominee ? "✓" : "✗"}nom {h.accessNote ? "✓" : "✗"}access
+                        </span>
+                        <span
+                          style={{
+                            fontFamily: "ui-monospace, monospace",
+                            color: ok ? T.mint : T.coral,
+                            width: 74,
+                            textAlign: "right",
+                          }}
+                        >
+                          {money(h.value || 0)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+            <button
+              onClick={() => setEstate(true)}
+              style={{
+                textAlign: "left",
+                cursor: "pointer",
+                border: `1px solid ${T.gold}66`,
+                borderRadius: 14,
+                padding: 18,
+                background: `linear-gradient(160deg, ${T.gold}1f, ${T.panel})`,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                gap: 10,
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <FileText size={16} color={T.gold} />
+                  <b style={{ color: T.white, fontSize: 15.5 }}>Estate summary</b>
+                </div>
+                <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6, lineHeight: 1.5 }}>
+                  The one document your family opens first: every holding, nominee, location, and the first steps to
+                  take.
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, fontWeight: 700, color: readyColor }}
+                >
+                  {readiness}% ready for family
+                </span>
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    color: T.gold,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  Preview <ArrowRight size={14} />
+                </span>
+              </div>
+            </button>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: 22,
+              flexWrap: "wrap",
+              alignItems: "center",
+              padding: "10px 16px",
+              border: `1px solid ${T.border}`,
+              borderRadius: 12,
+              background: T.panel,
+              marginBottom: 24,
+              fontFamily: "ui-monospace, monospace",
+              fontSize: 13.5,
+            }}
           >
-            <FileText size={15} /> Prepare estate summary
-          </button>
-          <button
-            onClick={() => go("trust")}
-            style={{ ...btnGhost, width: "100%", justifyContent: "center", marginTop: 8 }}
-          >
-            Manage trusted people <ArrowRight size={14} />
-          </button>
-        </Card>
-      </div>
+            <span style={{ color: T.muted }}>
+              Net worth <b style={{ color: T.white }}>{money(net)}</b>
+            </span>
+            <span style={{ color: T.muted }}>
+              Assets <b style={{ color: T.mint }}>{money(totalAssets)}</b>
+            </span>
+            <span style={{ color: T.muted }}>
+              Liabilities <b style={{ color: T.coral }}>{money(totalLiab)}</b>
+            </span>
+            <span style={{ color: T.muted }}>
+              Protection <b style={{ color: A.teal }}>{money(totalCover)}</b>
+            </span>
+          </div>
 
-      <input
-        ref={attachRef}
-        type="file"
-        hidden
-        onChange={(e) => {
-          if (e.target.files) onAttachFiles(e.target.files);
-          e.currentTarget.value = "";
-        }}
-      />
-      {edit && (
-        <HoldingModal
-          holding={edit}
-          members={store.members}
-          onClose={() => setEdit(null)}
-          onSave={(h: Holding) => {
-            store.updateHolding(h.id, h);
-            toast("Holding updated");
-            setEdit(null);
-          }}
-          onDelete={() => {
-            store.removeHolding(edit.id);
-            toast("Holding removed");
-            setEdit(null);
-          }}
-        />
+          {gaps.length > 0 && (
+            <Card style={{ padding: 0, marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px" }}>
+                <AlertTriangle size={16} color={T.gold} />
+                <b style={{ color: T.white, fontSize: 14.5 }}>Needs attention</b>
+                <span style={{ marginLeft: "auto", ...pill(T.gold) }}>{gaps.length}</span>
+              </div>
+              {gaps.map((g, i) => (
+                <div
+                  key={i}
+                  onClick={() =>
+                    g.kind === "nominee" ? setNomineeFor(g.h) : g.kind === "doc" ? attach(g.h) : setEdit(g.h)
+                  }
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "11px 16px",
+                    borderTop: `1px solid ${T.border}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: 1,
+                      fontFamily: "ui-monospace, monospace",
+                      color: SEVC[g.sev],
+                      border: `1px solid ${SEVC[g.sev]}55`,
+                      background: SEVC[g.sev] + "14",
+                      borderRadius: 6,
+                      padding: "3px 7px",
+                      flexShrink: 0,
+                      width: 86,
+                      textAlign: "center",
+                    }}
+                  >
+                    {g.sev.toUpperCase()}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: "block", fontSize: 14, color: T.text, fontWeight: 600 }}>{g.label}</span>
+                    <span style={{ display: "block", fontSize: 12, color: T.muted, marginTop: 1 }}>{g.impact}</span>
+                  </span>
+                  <span style={{ fontSize: 12.5, color: SEVC[g.sev], fontWeight: 700, flexShrink: 0 }}>
+                    {g.kind === "nominee"
+                      ? "Add nominee"
+                      : g.kind === "doc"
+                        ? "Attach"
+                        : g.kind === "access"
+                          ? "Add note"
+                          : "Review"}
+                  </span>
+                  <ChevronRight size={14} color={T.faint} />
+                </div>
+              ))}
+            </Card>
+          )}
+
+          <div className="lp-cols2">
+            <div style={{ display: "grid", gap: 16 }}>
+              {groups.map(([label, arr]) =>
+                arr.length > 0 ? (
+                  <Card key={label} style={{ padding: 0 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "13px 16px",
+                      }}
+                    >
+                      <b style={{ color: T.white, fontSize: 14.5 }}>{label}</b>
+                      <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, color: T.muted }}>
+                        {money(sum(arr))}
+                      </span>
+                    </div>
+                    {arr.map((h) => (
+                      <Row key={h.id} h={h} />
+                    ))}
+                  </Card>
+                ) : null,
+              )}
+              <Card style={{ padding: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "13px 16px" }}>
+                  <Receipt size={16} color={T.muted} />
+                  <b style={{ color: T.white, fontSize: 14.5 }}>Proof of payments</b>
+                  <button
+                    onClick={() => setAddTx(true)}
+                    style={{ ...btnGhost, marginLeft: "auto", padding: "6px 12px", fontSize: 12.5 }}
+                  >
+                    <Plus size={13} /> Add
+                  </button>
+                </div>
+                {txs.length === 0 ? (
+                  <p style={{ color: T.muted, fontSize: 13, padding: "0 16px 14px" }}>
+                    Record a payment or receipt with its evidence attached, and a follow-up if one is needed.
+                  </p>
+                ) : (
+                  txs.map((t) => {
+                    const ev = store.docs.find((d: Doc) => d.id === t.docId);
+                    const overdueFu = t.followUpOn && !t.followUpDone;
+                    return (
+                      <div
+                        key={t.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "12px 16px",
+                          borderTop: `1px solid ${T.border}`,
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "grid",
+                            placeItems: "center",
+                            width: 34,
+                            height: 34,
+                            borderRadius: 9,
+                            background: (t.direction === "paid" ? T.coral : T.mint) + "22",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Receipt size={15} color={t.direction === "paid" ? T.coral : T.mint} />
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: T.white }}>{t.purpose}</div>
+                          <div style={{ fontSize: 12.5, color: T.muted }}>
+                            {t.counterparty ? `${t.counterparty} · ` : ""}
+                            {new Date(t.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            {overdueFu
+                              ? ` · follow up ${daysTo(t.followUpOn!) <= 0 ? "today" : `in ${daysTo(t.followUpOn!)}d`}${t.followUpNote ? `: ${t.followUpNote}` : ""}`
+                              : ""}
+                          </div>
+                        </div>
+                        <span
+                          style={{
+                            fontFamily: "ui-monospace, monospace",
+                            fontSize: 14.5,
+                            fontWeight: 700,
+                            color: t.direction === "paid" ? T.coral : T.mint,
+                          }}
+                        >
+                          {t.direction === "paid" ? "\u2212" : "+"}
+                          {money(t.amount)}
+                        </span>
+                        {ev ? (
+                          <button
+                            onClick={() => setViewDoc(ev)}
+                            style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}
+                          >
+                            <Paperclip size={12} /> Evidence
+                          </button>
+                        ) : (
+                          <span style={pill(T.gold)}>no evidence</span>
+                        )}
+                        {overdueFu && (
+                          <button
+                            onClick={() => {
+                              store.completeFollowUp(t.id);
+                              toast("Follow-up done");
+                            }}
+                            style={{ ...btnGhost, padding: "6px 10px", fontSize: 12 }}
+                          >
+                            <Check size={12} /> Done
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            store.removeTransaction(t.id);
+                            toast("Transaction removed");
+                          }}
+                          title="Remove"
+                          style={{ ...btnGhost, padding: 7 }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </Card>
+            </div>
+            <Card>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <KeyRound size={16} color={T.muted} />
+                <b style={{ color: T.white, fontSize: 15 }}>Legacy handoff</b>
+              </div>
+              <p style={{ fontSize: 12.5, color: T.muted, margin: "0 0 14px" }}>
+                Who steps in, and whether nothing is lost if you are gone.
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 13, marginBottom: 14 }}>
+                <Ring
+                  score={readiness}
+                  size={54}
+                  color={readiness >= 80 ? T.mint : readiness >= 50 ? T.gold : T.coral}
+                />
+                <div style={{ fontSize: 13, color: T.muted }}>
+                  of documented value has a document, a nominee, and access instructions on file
+                </div>
+              </div>
+              {trusted.map((m: Member) => (
+                <div
+                  key={m.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "8px 0",
+                    borderTop: `1px solid ${T.border}`,
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      background: m.color + "26",
+                      color: m.color,
+                      fontWeight: 800,
+                      fontSize: 13,
+                    }}
+                  >
+                    {m.name[0]}
+                  </span>
+                  <span style={{ flex: 1, fontSize: 13.5, color: T.text }}>{m.name}</span>
+                  <span style={pill(m.access === "Full member" ? T.mint : A.blue)}>{m.access}</span>
+                </div>
+              ))}
+              <button
+                onClick={() => setEstate(true)}
+                style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
+              >
+                <FileText size={15} /> Prepare estate summary
+              </button>
+              <button
+                onClick={() => go("trust")}
+                style={{ ...btnGhost, width: "100%", justifyContent: "center", marginTop: 8 }}
+              >
+                Manage trusted people <ArrowRight size={14} />
+              </button>
+            </Card>
+          </div>
+
+          <input
+            ref={attachRef}
+            type="file"
+            hidden
+            onChange={(e) => {
+              if (e.target.files) onAttachFiles(e.target.files);
+              e.currentTarget.value = "";
+            }}
+          />
+          {edit && (
+            <HoldingModal
+              holding={edit}
+              members={store.members}
+              onClose={() => setEdit(null)}
+              onSave={(h: Holding) => {
+                store.updateHolding(h.id, h);
+                toast("Holding updated");
+                setEdit(null);
+              }}
+              onDelete={() => {
+                store.removeHolding(edit.id);
+                toast("Holding removed");
+                setEdit(null);
+              }}
+            />
+          )}
+          {addTx && (
+            <TransactionModal
+              members={store.members}
+              onClose={() => setAddTx(false)}
+              onSave={async (t: Omit<Transaction, "id" | "addedAt" | "docId">, evidence?: File) => {
+                await store.addTransaction(t, evidence);
+                toast(evidence ? "Transaction saved with evidence" : "Transaction saved");
+                setAddTx(false);
+              }}
+            />
+          )}
+          {nomineeFor && (
+            <NomineeModal
+              holding={nomineeFor}
+              onClose={() => setNomineeFor(null)}
+              onSave={(name: string) => {
+                store.updateHolding(nomineeFor.id, { nominee: true, nomineeName: name });
+                toast("Nominee added");
+                setNomineeFor(null);
+              }}
+            />
+          )}
+          {sos && <SOSHandoffModal store={store} toast={toast} onClose={() => setSos(false)} />}
+          {estate && <EstateSheet store={store} onClose={() => setEstate(false)} toast={toast} />}
+          {viewDoc && <DocViewer doc={viewDoc} store={store} onClose={() => setViewDoc(null)} />}
+          {pinModal && (
+            <PinModal store={store} hasPin={!!store.wealthPin} onClose={() => setPinModal(false)} toast={toast} />
+          )}
+        </>
       )}
-      {addTx && (
-        <TransactionModal
-          members={store.members}
-          onClose={() => setAddTx(false)}
-          onSave={async (t: Omit<Transaction, "id" | "addedAt" | "docId">, evidence?: File) => {
-            await store.addTransaction(t, evidence);
-            toast(evidence ? "Transaction saved with evidence" : "Transaction saved");
-            setAddTx(false);
-          }}
-        />
-      )}
-      {nomineeFor && (
-        <NomineeModal
-          holding={nomineeFor}
-          onClose={() => setNomineeFor(null)}
-          onSave={(name: string) => {
-            store.updateHolding(nomineeFor.id, { nominee: true, nomineeName: name });
-            toast("Nominee added");
-            setNomineeFor(null);
-          }}
-        />
-      )}
-      {sos && <SOSHandoffModal store={store} toast={toast} onClose={() => setSos(false)} />}
-      {estate && <EstateSheet store={store} onClose={() => setEstate(false)} toast={toast} />}
-      {viewDoc && <DocViewer doc={viewDoc} store={store} onClose={() => setViewDoc(null)} />}
     </div>
   );
 }
@@ -4611,6 +4746,226 @@ function SearchResults({ store, query, go }: any) {
           />
         ))}
       </Group>
+    </div>
+  );
+}
+
+const pinHash = (pin: string) => {
+  let h = 5381;
+  const salted = "lifepack|" + pin;
+  for (let i = 0; i < salted.length; i++) h = ((h << 5) + h + salted.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+};
+
+function WealthLock({ store, onUnlock, toast }: any) {
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState(false);
+  const tryUnlock = () => {
+    if (pinHash(pin) === store.wealthPin) onUnlock();
+    else {
+      setErr(true);
+      setPin("");
+    }
+  };
+  return (
+    <div style={{ maxWidth: 380, margin: "60px auto", textAlign: "center" }}>
+      <span
+        style={{
+          display: "grid",
+          placeItems: "center",
+          width: 54,
+          height: 54,
+          borderRadius: 15,
+          background: T.gold + "1a",
+          margin: "0 auto 14px",
+        }}
+      >
+        <Lock size={22} color={T.gold} />
+      </span>
+      <h2 style={{ color: T.white, fontSize: 20, margin: 0 }}>Wealth is locked</h2>
+      <p style={{ color: T.muted, fontSize: 13, margin: "8px 0 18px" }}>
+        Enter your passcode. This is an app lock for shared screens, separate from your account.
+      </p>
+      <input
+        autoFocus
+        type="password"
+        inputMode="numeric"
+        maxLength={6}
+        value={pin}
+        onChange={(e) => {
+          setErr(false);
+          setPin(e.target.value.replace(/\D/g, ""));
+        }}
+        onKeyDown={(e) => e.key === "Enter" && pin.length >= 4 && tryUnlock()}
+        style={{
+          width: 180,
+          textAlign: "center",
+          letterSpacing: 8,
+          fontSize: 22,
+          fontFamily: "ui-monospace, monospace",
+          background: T.raised,
+          border: `1px solid ${err ? T.coral : T.border}`,
+          borderRadius: 11,
+          padding: "12px 14px",
+          color: T.white,
+          outline: "none",
+        }}
+      />
+      {err && <div style={{ color: T.coral, fontSize: 12.5, marginTop: 8 }}>That passcode is not right.</div>}
+      <button
+        disabled={pin.length < 4}
+        onClick={tryUnlock}
+        style={{
+          ...btnGold,
+          width: 180,
+          justifyContent: "center",
+          margin: "16px auto 0",
+          opacity: pin.length >= 4 ? 1 : 0.4,
+        }}
+      >
+        Unlock
+      </button>
+    </div>
+  );
+}
+
+function PinModal({ store, hasPin, onClose, toast }: any) {
+  const [cur, setCur] = useState("");
+  const [pin, setPin] = useState("");
+  const [pin2, setPin2] = useState("");
+  const [err, setErr] = useState("");
+  const inp: CSSProperties = {
+    width: "100%",
+    textAlign: "center",
+    letterSpacing: 6,
+    fontSize: 18,
+    fontFamily: "ui-monospace, monospace",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 10,
+    padding: "10px 12px",
+    color: T.white,
+    outline: "none",
+  };
+  const lbl: CSSProperties = {
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    color: T.muted,
+    fontFamily: "ui-monospace, monospace",
+    margin: "12px 0 5px",
+    display: "block",
+    textAlign: "left",
+  };
+  const digits = (v: string) => v.replace(/\D/g, "").slice(0, 6);
+  const save = () => {
+    if (hasPin && pinHash(cur) !== store.wealthPin) return setErr("Current passcode is wrong.");
+    if (pin.length < 4) return setErr("Use 4 to 6 digits.");
+    if (pin !== pin2) return setErr("The two entries do not match.");
+    store.setWealthPin(pinHash(pin));
+    toast(hasPin ? "Passcode changed" : "Wealth passcode set");
+    onClose();
+  };
+  const remove = () => {
+    if (pinHash(cur) !== store.wealthPin) return setErr("Current passcode is wrong.");
+    store.setWealthPin(null);
+    toast("Passcode removed");
+    onClose();
+  };
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 70,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(360px,100%)",
+          padding: 22,
+          textAlign: "center",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <b style={{ color: T.white, fontSize: 17 }}>{hasPin ? "Change passcode" : "Lock Wealth with a passcode"}</b>
+          <button onClick={onClose} style={{ ...btnGhost, padding: 8 }}>
+            <X size={15} />
+          </button>
+        </div>
+        <p style={{ fontSize: 12, color: T.muted, margin: "0 0 6px", textAlign: "left" }}>
+          An app lock for shared screens and curious eyes. It is not encryption and does not protect the underlying
+          data.
+        </p>
+        {hasPin && (
+          <>
+            <label style={lbl}>Current passcode</label>
+            <input
+              type="password"
+              inputMode="numeric"
+              style={inp}
+              value={cur}
+              onChange={(e) => {
+                setErr("");
+                setCur(digits(e.target.value));
+              }}
+            />
+          </>
+        )}
+        <label style={lbl}>New passcode (4–6 digits)</label>
+        <input
+          type="password"
+          inputMode="numeric"
+          style={inp}
+          value={pin}
+          onChange={(e) => {
+            setErr("");
+            setPin(digits(e.target.value));
+          }}
+        />
+        <label style={lbl}>Repeat it</label>
+        <input
+          type="password"
+          inputMode="numeric"
+          style={inp}
+          value={pin2}
+          onChange={(e) => {
+            setErr("");
+            setPin2(digits(e.target.value));
+          }}
+          onKeyDown={(e) => e.key === "Enter" && save()}
+        />
+        {err && <div style={{ color: T.coral, fontSize: 12.5, marginTop: 8 }}>{err}</div>}
+        <button onClick={save} style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 16 }}>
+          {hasPin ? "Change passcode" : "Set passcode"}
+        </button>
+        {hasPin && (
+          <button
+            onClick={remove}
+            style={{
+              ...btnGhost,
+              width: "100%",
+              justifyContent: "center",
+              marginTop: 8,
+              color: T.coral,
+              borderColor: T.coral + "55",
+            }}
+          >
+            Remove passcode
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -5501,10 +5856,225 @@ function buildEstate(store: any): string {
   </body></html>`;
 }
 
+function OnboardingWizard({ store, onDone }: any) {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
+  const [picks, setPicks] = useState<Set<string>>(new Set());
+  const [pin, setPin] = useState("");
+  const [pin2, setPin2] = useState("");
+  const [err, setErr] = useState("");
+  const INTERESTS = [
+    ["schengen", "A visa or trip abroad", Plane],
+    ["homeloan", "A home or home loan", HomeIcon],
+    ["hospital", "Family health readiness", HeartPulse],
+    ["will-prep", "Estate and nominees", Wallet],
+    ["school-adm", "Kids' school or exams", GraduationCap],
+    ["onboarding", "A job change", Briefcase],
+  ] as const;
+  const finish = () => {
+    if (pin) {
+      if (pin.length < 4 || pin !== pin2) {
+        setErr(pin !== pin2 ? "The two entries do not match." : "Use 4 to 6 digits.");
+        return;
+      }
+      store.setWealthPin(pinHash(pin));
+    }
+    store.setOnboarded(true);
+    onDone(picks.size > 0);
+  };
+  const inp: CSSProperties = {
+    width: "100%",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 10,
+    padding: "11px 13px",
+    color: T.white,
+    fontSize: 15,
+    outline: "none",
+  };
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 90,
+        background: T.navy,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+        overflowY: "auto",
+      }}
+    >
+      <div style={{ width: "min(460px,100%)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22, justifyContent: "center" }}>
+          <span
+            style={{
+              display: "grid",
+              placeItems: "center",
+              width: 38,
+              height: 38,
+              borderRadius: 11,
+              background: `linear-gradient(135deg, ${T.gold}, ${T.goldBright})`,
+            }}
+          >
+            <FileText size={19} color="#10182A" />
+          </span>
+          <b style={{ color: T.white, fontSize: 17 }}>
+            LifePack <span style={{ color: T.gold }}>AI</span>
+          </b>
+        </div>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 22 }}>
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              style={{ width: 34, height: 4, borderRadius: 4, background: i <= step ? T.gold : T.raised }}
+            />
+          ))}
+        </div>
+        {step === 0 && (
+          <div style={{ textAlign: "center" }}>
+            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>Welcome. What should we call you?</h2>
+            <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
+              Your archive is seeded with a sample family so you can explore immediately; everything is editable.
+            </p>
+            <input
+              autoFocus
+              style={inp}
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && setStep(1)}
+            />
+            <button
+              onClick={() => {
+                if (name.trim()) store.updateMember("you", { name: name.trim() });
+                setStep(1);
+              }}
+              style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
+            >
+              Continue <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
+        {step === 1 && (
+          <div style={{ textAlign: "center" }}>
+            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>What is coming up in your life?</h2>
+            <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
+              Pick anything that applies; we will show how ready you already are.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+              {INTERESTS.map(([id, label, Ic]) => {
+                const on = picks.has(id);
+                return (
+                  <button
+                    key={id}
+                    onClick={() =>
+                      setPicks((prev) => {
+                        const n = new Set(prev);
+                        n.has(id) ? n.delete(id) : n.add(id);
+                        return n;
+                      })
+                    }
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 9,
+                      padding: "12px 13px",
+                      borderRadius: 11,
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      border: `1px solid ${on ? T.gold + "88" : T.border}`,
+                      background: on ? T.gold + "14" : T.panel,
+                      color: on ? T.white : T.muted,
+                    }}
+                  >
+                    <Ic size={15} color={on ? T.gold : T.muted} /> {label}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={() => setStep(2)}
+              style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
+            >
+              Continue <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
+        {step === 2 && (
+          <div style={{ textAlign: "center" }}>
+            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>Lock the Wealth tab?</h2>
+            <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
+              Optional passcode for shared screens. An app lock, not encryption; you can add or remove it any time in
+              Wealth.
+            </p>
+            <input
+              type="password"
+              inputMode="numeric"
+              style={{ ...inp, textAlign: "center", letterSpacing: 6, fontFamily: "ui-monospace, monospace" }}
+              placeholder="4–6 digits (optional)"
+              value={pin}
+              onChange={(e) => {
+                setErr("");
+                setPin(e.target.value.replace(/\D/g, "").slice(0, 6));
+              }}
+            />
+            {pin && (
+              <input
+                type="password"
+                inputMode="numeric"
+                style={{
+                  ...inp,
+                  textAlign: "center",
+                  letterSpacing: 6,
+                  fontFamily: "ui-monospace, monospace",
+                  marginTop: 9,
+                }}
+                placeholder="Repeat it"
+                value={pin2}
+                onChange={(e) => {
+                  setErr("");
+                  setPin2(e.target.value.replace(/\D/g, "").slice(0, 6));
+                }}
+              />
+            )}
+            {err && <div style={{ color: T.coral, fontSize: 12.5, marginTop: 8 }}>{err}</div>}
+            <button onClick={finish} style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}>
+              {pin ? "Set passcode and enter" : "Enter LifePack"} <ArrowRight size={15} />
+            </button>
+            {!pin && (
+              <button
+                onClick={finish}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: T.muted,
+                  fontSize: 12.5,
+                  marginTop: 10,
+                  cursor: "pointer",
+                }}
+              >
+                Skip for now
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const store = useStore();
   const [route, setRoute] = useState("home");
   const [navOpen, setNavOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth > 760));
+  const [wealthOpen, setWealthOpen] = useState(false);
+  const signedIn = typeof window !== "undefined" && sessionStorage.getItem("lp-signin") === "1";
+  if (signedIn && !store.onboarded) store.setOnboarded(true);
+  const needsOnboarding = !store.onboarded && !signedIn;
   const [query, setQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toast = (m: string) => {
@@ -5525,6 +6095,14 @@ export default function App() {
       }}
     >
       <style>{APPCSS}</style>
+      {needsOnboarding && (
+        <OnboardingWizard
+          store={store}
+          onDone={(goPacks: boolean) => {
+            if (goPacks) setRoute("packages");
+          }}
+        />
+      )}
       <aside
         style={{
           width: navOpen ? 232 : 68,
@@ -5711,7 +6289,9 @@ export default function App() {
         {route === "packages" && <Packages store={store} toast={toast} />}
         {route === "documents" && <Documents store={store} toast={toast} />}
         {route === "health" && <Healthcare toast={toast} />}
-        {route === "wealth" && <Wealth store={store} go={go} toast={toast} />}
+        {route === "wealth" && (
+          <Wealth store={store} go={go} toast={toast} unlocked={wealthOpen} onUnlock={() => setWealthOpen(true)} />
+        )}
         {route === "trust" && <Trust store={store} toast={toast} />}
       </main>
       {query.trim() && <div onClick={() => setQuery("")} style={{ position: "fixed", inset: 0, zIndex: 30 }} />}
