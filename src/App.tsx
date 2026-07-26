@@ -45,11 +45,21 @@ import {
   ChevronsRight,
   GraduationCap,
   IdCard,
+  Settings as SettingsIcon,
+  LogOut,
+  Bell as BellIcon,
+  Sun,
+  Moon,
+  MessageSquare,
+  HelpCircle,
+  Info,
+  Sparkles,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access, Holding, Transaction, Reminder } from "@/lib/types";
 import Healthcare from "@/components/Healthcare";
 import { buildZip } from "@/lib/zip";
+import { getSession, signup, login, logout, deleteAccount, updateAccountName, type Account } from "@/lib/auth";
 import DocViewer from "@/components/DocViewer";
 
 /* ── theme ── */
@@ -3904,13 +3914,6 @@ function Wealth({ store, go, toast, unlocked, onUnlock }: any) {
             >
               <Siren size={15} /> SOS handoff
             </button>
-            <button
-              onClick={() => setPinModal(true)}
-              style={{ ...btnGhost, marginLeft: "auto" }}
-              title="App lock for this tab"
-            >
-              <Lock size={14} /> {store.wealthPin ? "Passcode" : "Add passcode"}
-            </button>
           </div>
 
           {store.handoff && (
@@ -3958,169 +3961,113 @@ function Wealth({ store, go, toast, unlocked, onUnlock }: any) {
               </button>
             </div>
           )}
-          <div className="lp-hero2" style={{ marginBottom: 16 }}>
-            <Card>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                <KeyRound size={15} color={T.muted} />
-                <b style={{ color: T.white, fontSize: 14.5 }}>Estate readiness</b>
-                <span style={{ marginLeft: "auto", fontSize: 12, color: T.muted }}>
-                  {guarded.length} holdings tracked
-                </span>
-              </div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <span
-                  style={{ fontFamily: "ui-monospace, monospace", fontSize: 38, fontWeight: 800, color: readyColor }}
-                >
-                  {readiness}%
-                </span>
-                <span style={{ fontSize: 13, color: T.muted }}>
-                  of documented value your family could actually reach
-                </span>
-              </div>
-              <div
-                style={{ height: 8, borderRadius: 9, background: T.raised, margin: "12px 0 14px", overflow: "hidden" }}
-              >
-                <div style={{ width: `${readiness}%`, height: "100%", borderRadius: 9, background: readyColor }} />
-              </div>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 12.5 }}>
-                <span style={{ color: missNom ? T.coral : T.mint }}>
-                  {missNom} missing nominee{missNom === 1 ? "" : "s"}
-                </span>
-                <span style={{ color: missDoc ? T.coral : T.mint }}>
-                  {missDoc} missing document{missDoc === 1 ? "" : "s"}
-                </span>
-                <span style={{ color: missAcc ? T.gold : T.mint }}>
-                  {missAcc} missing access instruction{missAcc === 1 ? "" : "s"}
-                </span>
-                {fixMins > 0 && (
-                  <span style={{ color: T.muted, marginLeft: "auto", fontFamily: "ui-monospace, monospace" }}>
-                    ~{fixMins} min to fix
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => setShowMath((v) => !v)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: T.muted,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  padding: 0,
-                  marginTop: 10,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 5,
-                }}
-              >
-                <ChevronDown
-                  size={12}
-                  style={{ transform: showMath ? "rotate(180deg)" : "none", transition: ".15s" }}
-                />
-                How is this computed?
-              </button>
-              {showMath && (
-                <div style={{ marginTop: 10, borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
-                  <p style={{ fontSize: 12, color: T.muted, margin: "0 0 8px", lineHeight: 1.6 }}>
-                    Each asset and cover counts as family-reachable only when all three are true: a document on file, a
-                    nominee named, and access instructions written. Weighted by value, so the home matters more than the
-                    FD. Liabilities are excluded. Nothing else is scored.
-                  </p>
-                  {guarded.map((h) => {
-                    const ok = !!(h.docId && h.nominee && h.accessNote);
-                    return (
-                      <div
-                        key={h.id}
-                        style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 0", fontSize: 12 }}
-                      >
-                        <span
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: 9,
-                            background: ok ? T.mint : T.coral,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span
-                          style={{
-                            flex: 1,
-                            color: T.text,
-                            minWidth: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {h.name}
-                        </span>
-                        <span style={{ fontFamily: "ui-monospace, monospace", color: T.muted }}>
-                          {h.docId ? "✓" : "✗"}doc {h.nominee ? "✓" : "✗"}nom {h.accessNote ? "✓" : "✗"}access
-                        </span>
-                        <span
-                          style={{
-                            fontFamily: "ui-monospace, monospace",
-                            color: ok ? T.mint : T.coral,
-                            width: 74,
-                            textAlign: "right",
-                          }}
-                        >
-                          {money(h.value || 0)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </Card>
-            <button
-              onClick={() => setEstate(true)}
+          <div
+            className="lp-readystrip"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              flexWrap: "wrap",
+              border: `1px solid ${T.border}`,
+              background: T.panel,
+              borderRadius: 14,
+              padding: "12px 16px",
+              marginBottom: 12,
+            }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <KeyRound size={15} color={T.muted} />
+              <b style={{ color: T.white, fontSize: 13.5 }}>Estate readiness</b>
+            </span>
+            <span style={{ fontFamily: "ui-monospace, monospace", fontSize: 24, fontWeight: 800, color: readyColor }}>
+              {readiness}%
+            </span>
+            <span
               style={{
-                textAlign: "left",
-                cursor: "pointer",
-                border: `1px solid ${T.gold}66`,
-                borderRadius: 14,
-                padding: 18,
-                background: `linear-gradient(160deg, ${T.gold}1f, ${T.panel})`,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: 10,
+                flex: "1 1 140px",
+                minWidth: 120,
+                height: 7,
+                borderRadius: 9,
+                background: T.raised,
+                overflow: "hidden",
               }}
             >
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <FileText size={16} color={T.gold} />
-                  <b style={{ color: T.white, fontSize: 15.5 }}>Estate summary</b>
-                </div>
-                <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6, lineHeight: 1.5 }}>
-                  The one document your family opens first: every holding, nominee, location, and the first steps to
-                  take.
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  style={{ fontFamily: "ui-monospace, monospace", fontSize: 13, fontWeight: 700, color: readyColor }}
-                >
-                  {readiness}% ready for family
-                </span>
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    fontSize: 13.5,
-                    fontWeight: 700,
-                    color: T.gold,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 5,
-                  }}
-                >
-                  Preview <ArrowRight size={14} />
-                </span>
-              </div>
+              <span
+                style={{
+                  display: "block",
+                  width: `${readiness}%`,
+                  height: "100%",
+                  borderRadius: 9,
+                  background: readyColor,
+                }}
+              />
+            </span>
+            <span style={{ fontSize: 12, color: T.muted, whiteSpace: "nowrap" }}>
+              {missDoc + missAcc + missNom === 0
+                ? "everything reachable"
+                : [
+                    missDoc ? `${missDoc} doc${missDoc > 1 ? "s" : ""}` : "",
+                    missAcc ? `${missAcc} access` : "",
+                    missNom ? `${missNom} nominee` : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") + " missing"}
+            </span>
+            <button onClick={() => setShowMath((v) => !v)} style={{ ...btnGhost, padding: "6px 11px", fontSize: 12 }}>
+              {showMath ? "Hide math" : "How?"}
+            </button>
+            <span style={{ width: 1, alignSelf: "stretch", background: T.border }} />
+            <button onClick={() => setEstate(true)} style={{ ...btnGold, padding: "8px 14px", fontSize: 13 }}>
+              <FileText size={14} /> Estate summary <ArrowRight size={13} />
             </button>
           </div>
+          {showMath && (
+            <Card style={{ marginBottom: 12, padding: "12px 16px" }}>
+              <p style={{ fontSize: 12, color: T.muted, margin: "0 0 8px", lineHeight: 1.6 }}>
+                Each asset and cover counts as family-reachable only when all three are true: a document on file, a
+                nominee named, and access instructions written. Weighted by value, so the home matters more than the FD.
+                Liabilities are excluded. Nothing else is scored.
+              </p>
+              {guarded.map((h) => {
+                const ok = !!(h.docId && h.nominee && h.accessNote);
+                return (
+                  <div
+                    key={h.id}
+                    style={{ display: "flex", alignItems: "center", gap: 9, padding: "5px 0", fontSize: 12 }}
+                  >
+                    <span
+                      style={{ width: 8, height: 8, borderRadius: 9, background: ok ? T.mint : T.coral, flexShrink: 0 }}
+                    />
+                    <span
+                      style={{
+                        flex: 1,
+                        color: T.text,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {h.name}
+                    </span>
+                    <span style={{ fontFamily: "ui-monospace, monospace", color: T.muted }}>
+                      {h.docId ? "✓" : "✗"}doc {h.nominee ? "✓" : "✗"}nom {h.accessNote ? "✓" : "✗"}access
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "ui-monospace, monospace",
+                        color: ok ? T.mint : T.coral,
+                        width: 74,
+                        textAlign: "right",
+                      }}
+                    >
+                      {money(h.value || 0)}
+                    </span>
+                  </div>
+                );
+              })}
+            </Card>
+          )}
           <div
             style={{
               display: "flex",
@@ -4604,6 +4551,7 @@ const NAV: [string, string, any][] = [
   ["health", "Health", HeartPulse],
   ["wealth", "Wealth", Wallet],
   ["trust", "Trust center", ShieldCheck],
+  ["settings", "Settings", SettingsIcon],
 ];
 
 /* ═══════════════ GLOBAL SEARCH ═══════════════ */
@@ -5856,6 +5804,524 @@ function buildEstate(store: any): string {
   </body></html>`;
 }
 
+/* ═════ SETTINGS ═════ */
+const CHANGELOG: [string, string][] = [
+  ["Semantic document ontology", "One Aadhaar now satisfies Address Proof across all 34 packs that ask for it."],
+  ["100 curated packs", "Requirements gathered from published government, bank, embassy, and insurer checklists."],
+  ["Estate readiness, explained", "The score now shows its own math, holding by holding."],
+  [
+    "SOS handoff",
+    "Release the estate summary, documents, and access instructions to your emergency contacts, with reason and revoke.",
+  ],
+  ["Proof-first capture", "Money moments are captured as evidence, findable in Wealth and under Documents › Proofs."],
+];
+const FAQS: [string, string][] = [
+  [
+    "Where is my data stored?",
+    "In this prototype, everything lives in your browser's storage on this device. The production design stores encrypted data server-side with strict access controls; nothing is sold or shared.",
+  ],
+  [
+    "Is the Wealth passcode encryption?",
+    "No. It is an app lock for shared screens. It stops casual viewing, not a determined person with access to your device.",
+  ],
+  [
+    "Are pack checklists guaranteed complete?",
+    "They follow published requirements from the named sources, with 'may be required' flags for situational items. Institutions can ask for more; treat packs as a strong head start, not a guarantee.",
+  ],
+  [
+    "Who can see my family's documents?",
+    "Access levels are set per person in Trust center: Full member, Contributor, Emergency access, or View only. SOS handoff shares the wealth pack with emergency contacts only when you release it.",
+  ],
+  [
+    "Does LifePack give medical or financial advice?",
+    "Never. It organizes documents and shows readiness. It does not diagnose, recommend investments, or predict approvals.",
+  ],
+];
+
+function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }: any) {
+  const [pinModal, setPinModal] = useState(false);
+  const [modal, setModal] = useState<null | "whatsnew" | "faq" | "feedback" | "about" | "delete">(null);
+  const [name, setName] = useState(account?.name || store.members.find((m: Member) => m.id === "you")?.name || "");
+  const [fb, setFb] = useState("");
+  const you = store.members.find((m: Member) => m.id === "you");
+  const saveName = () => {
+    if (!name.trim()) return;
+    store.updateMember("you", { name: name.trim() });
+    updateAccountName(name.trim());
+    toast("Name updated");
+  };
+  const toggleNotifications = async () => {
+    if (store.notifications) {
+      store.setNotifications(false);
+      toast("Notifications off");
+      return;
+    }
+    if (!("Notification" in window)) return toast("This browser does not support notifications");
+    const perm = await Notification.requestPermission();
+    if (perm === "granted") {
+      store.setNotifications(true);
+      new Notification("LifePack reminders are on", {
+        body: "Due reminders will alert on this device while the app is open.",
+      });
+      toast("Notifications on");
+    } else toast("Permission was not granted");
+  };
+  const RowBtn = ({ icon: Ic, label, sub, onClick, danger }: any) => (
+    <button
+      onClick={onClick}
+      style={{
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 16px",
+        borderTop: `1px solid ${T.border}`,
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        textAlign: "left",
+      }}
+    >
+      <Ic size={16} color={danger ? T.coral : T.muted} />
+      <span style={{ flex: 1 }}>
+        <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: danger ? T.coral : T.text }}>
+          {label}
+        </span>
+        {sub && <span style={{ display: "block", fontSize: 12, color: T.muted, marginTop: 1 }}>{sub}</span>}
+      </span>
+      <ChevronRight size={14} color={T.faint} />
+    </button>
+  );
+  const inp: CSSProperties = {
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 10,
+    padding: "9px 12px",
+    color: T.text,
+    fontSize: 14,
+    outline: "none",
+  };
+  const Overlay = ({ children, title }: any) => (
+    <div
+      onClick={() => setModal(null)}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 70,
+        background: "rgba(4,7,15,.62)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: T.panel,
+          border: `1px solid ${T.border}`,
+          borderRadius: 16,
+          width: "min(480px,100%)",
+          maxHeight: "86vh",
+          overflowY: "auto",
+          padding: 22,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <b style={{ color: T.white, fontSize: 17 }}>{title}</b>
+          <button onClick={() => setModal(null)} style={{ ...btnGhost, padding: 8 }}>
+            <X size={15} />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+  return (
+    <div>
+      <SectionHead title="Settings" sub="Your account, your family's access, and how LifePack behaves." />
+      <div className="lp-cols2">
+        <div>
+          <Card style={{ padding: 0, marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 16 }}>
+              <span
+                style={{
+                  display: "grid",
+                  placeItems: "center",
+                  width: 46,
+                  height: 46,
+                  borderRadius: 13,
+                  background: T.gold + "22",
+                  color: T.gold,
+                  fontWeight: 800,
+                  fontSize: 19,
+                }}
+              >
+                {(name || "?")[0]}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input style={{ ...inp, flex: 1 }} value={name} onChange={(e) => setName(e.target.value)} />
+                  <button onClick={saveName} style={{ ...btnGhost, padding: "8px 13px", fontSize: 12.5 }}>
+                    Save
+                  </button>
+                </div>
+                <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6 }}>
+                  {account?.email || "local profile"}
+                  {account?.createdAt
+                    ? ` · member since ${new Date(account.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })}`
+                    : ""}
+                  {you?.bloodGroup ? ` · ${you.bloodGroup}` : ""}
+                </div>
+              </div>
+            </div>
+            <RowBtn
+              icon={Users}
+              label="Family access"
+              sub="Who is in your LifePack and what each person can see"
+              onClick={() => go("trust")}
+            />
+            <RowBtn
+              icon={Lock}
+              label={store.wealthPin ? "Wealth passcode · on" : "Wealth passcode · off"}
+              sub="App lock for the Wealth tab on shared screens; not encryption"
+              onClick={() => setPinModal(true)}
+            />
+          </Card>
+          <Card style={{ padding: 0, marginBottom: 16 }}>
+            <div style={{ padding: "13px 16px", fontSize: 13.5, fontWeight: 700, color: T.white }}>Preferences</div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "12px 16px",
+                borderTop: `1px solid ${T.border}`,
+              }}
+            >
+              {store.theme === "dark" ? <Moon size={16} color={T.muted} /> : <Sun size={16} color={T.gold} />}
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: T.text }}>Appearance</span>
+              <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: 9, overflow: "hidden" }}>
+                {(["dark", "light"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => {
+                      store.setTheme(t);
+                      toast(t === "light" ? "Light mode on" : "Dark mode on");
+                    }}
+                    style={{
+                      padding: "6px 14px",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "none",
+                      background: store.theme === t ? T.gold : "transparent",
+                      color: store.theme === t ? "#10182A" : T.muted,
+                    }}
+                  >
+                    {t === "dark" ? "Dark" : "Light"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "12px 16px",
+                borderTop: `1px solid ${T.border}`,
+              }}
+            >
+              <BellIcon size={16} color={store.notifications ? T.gold : T.muted} />
+              <span style={{ flex: 1 }}>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: T.text }}>
+                  Reminder notifications
+                </span>
+                <span style={{ display: "block", fontSize: 12, color: T.muted }}>
+                  Alerts on this device while the app is open
+                </span>
+              </span>
+              <button
+                onClick={toggleNotifications}
+                style={{
+                  width: 42,
+                  height: 24,
+                  borderRadius: 99,
+                  border: `1px solid ${store.notifications ? T.gold : T.border}`,
+                  background: store.notifications ? T.gold + "55" : T.raised,
+                  cursor: "pointer",
+                  position: "relative",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: store.notifications ? 20 : 2,
+                    width: 18,
+                    height: 18,
+                    borderRadius: 99,
+                    background: store.notifications ? T.gold : T.muted,
+                    transition: "left .15s",
+                  }}
+                />
+              </button>
+            </div>
+          </Card>
+        </div>
+        <div>
+          <Card style={{ padding: 0, marginBottom: 16 }}>
+            <div style={{ padding: "13px 16px", fontSize: 13.5, fontWeight: 700, color: T.white }}>
+              Support and info
+            </div>
+            <RowBtn
+              icon={Sparkles}
+              label="What's new"
+              sub="Latest changes in LifePack"
+              onClick={() => setModal("whatsnew")}
+            />
+            <RowBtn
+              icon={HelpCircle}
+              label="FAQs"
+              sub="Straight answers, including the uncomfortable ones"
+              onClick={() => setModal("faq")}
+            />
+            <RowBtn
+              icon={MessageSquare}
+              label="Send feedback"
+              sub="Tell us what is broken or missing"
+              onClick={() => setModal("feedback")}
+            />
+            <RowBtn icon={Info} label="About LifePack" onClick={() => setModal("about")} />
+          </Card>
+          <Card style={{ padding: 0 }}>
+            <RowBtn icon={LogOut} label="Sign out" sub="Your archive stays on this device" onClick={onSignOut} />
+            <RowBtn
+              icon={Trash2}
+              label="Delete account"
+              sub="Removes your account and this device's archive"
+              danger
+              onClick={() => setModal("delete")}
+            />
+          </Card>
+        </div>
+      </div>
+      {pinModal && (
+        <PinModal store={store} hasPin={!!store.wealthPin} onClose={() => setPinModal(false)} toast={toast} />
+      )}
+      {modal === "whatsnew" && (
+        <Overlay title="What's new">
+          {CHANGELOG.map(([t, b], i) => (
+            <div key={i} style={{ padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{t}</div>
+              <div style={{ fontSize: 12.5, color: T.muted, marginTop: 3, lineHeight: 1.55 }}>{b}</div>
+            </div>
+          ))}
+        </Overlay>
+      )}
+      {modal === "faq" && (
+        <Overlay title="FAQs">
+          {FAQS.map(([q, a], i) => (
+            <div key={i} style={{ padding: "10px 0", borderTop: i ? `1px solid ${T.border}` : "none" }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{q}</div>
+              <div style={{ fontSize: 12.5, color: T.muted, marginTop: 4, lineHeight: 1.6 }}>{a}</div>
+            </div>
+          ))}
+        </Overlay>
+      )}
+      {modal === "feedback" && (
+        <Overlay title="Send feedback">
+          <textarea
+            autoFocus
+            value={fb}
+            onChange={(e) => setFb(e.target.value)}
+            placeholder="What is broken, missing, or confusing?"
+            style={{ ...inp, width: "100%", minHeight: 110, resize: "vertical", fontFamily: "inherit" }}
+          />
+          <button
+            disabled={!fb.trim()}
+            onClick={() => {
+              const k = "lifepack.feedback";
+              const arr = JSON.parse(localStorage.getItem(k) || "[]");
+              arr.push({ at: new Date().toISOString(), text: fb.trim() });
+              localStorage.setItem(k, JSON.stringify(arr));
+              setFb("");
+              setModal(null);
+              toast("Thank you — feedback recorded");
+            }}
+            style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 12, opacity: fb.trim() ? 1 : 0.4 }}
+          >
+            Send
+          </button>
+          <p style={{ fontSize: 11.5, color: T.faint, marginTop: 8 }}>
+            Prototype note: feedback is recorded on this device for the team to collect.
+          </p>
+        </Overlay>
+      )}
+      {modal === "about" && (
+        <Overlay title="About LifePack AI">
+          <p style={{ fontSize: 13.5, color: T.text, lineHeight: 1.7, margin: 0 }}>
+            LifePack AI is a living archive for a family's documented life: it understands the documents you save, knows
+            what a hundred real-world situations require, shows how ready you already are, and assembles the pack when
+            the moment comes.
+          </p>
+          <p style={{ fontSize: 12, color: T.muted, marginTop: 10 }}>Prototype build · Jul 2026</p>
+        </Overlay>
+      )}
+      {modal === "delete" && (
+        <Overlay title="Delete account?">
+          <p style={{ fontSize: 13.5, color: T.text, lineHeight: 1.6, margin: 0 }}>
+            This removes your account and erases the archive stored on this device: documents, holdings, packs,
+            everything. There is no undo.
+          </p>
+          <button
+            onClick={onDeleteAccount}
+            style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14, background: T.coral }}
+          >
+            <Trash2 size={14} /> Delete everything
+          </button>
+        </Overlay>
+      )}
+    </div>
+  );
+}
+
+/* ═════ AUTH ═════ */
+function AuthScreen({
+  defaultMode,
+  onAuthed,
+}: {
+  defaultMode: "signin" | "signup";
+  onAuthed: (a: Account, isNew: boolean) => void;
+}) {
+  const [mode, setMode] = useState<"signin" | "signup">(defaultMode);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [err, setErr] = useState("");
+  const inp: CSSProperties = {
+    width: "100%",
+    background: T.raised,
+    border: `1px solid ${T.border}`,
+    borderRadius: 10,
+    padding: "11px 13px",
+    color: T.white,
+    fontSize: 15,
+    outline: "none",
+    marginTop: 9,
+  };
+  const submit = () => {
+    setErr("");
+    if (mode === "signup") {
+      if (pw !== pw2) return setErr("Passwords do not match.");
+      const r = signup(name, email, pw);
+      if (!r.ok) return setErr(r.error);
+      onAuthed(r.account, true);
+    } else {
+      const r = login(email, pw);
+      if (!r.ok) return setErr(r.error);
+      onAuthed(r.account, false);
+    }
+  };
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 95,
+        background: T.navy,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 18,
+        overflowY: "auto",
+      }}
+    >
+      <div style={{ width: "min(400px,100%)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, justifyContent: "center" }}>
+          <span
+            style={{
+              display: "grid",
+              placeItems: "center",
+              width: 38,
+              height: 38,
+              borderRadius: 11,
+              background: `linear-gradient(135deg, ${T.gold}, ${T.goldBright})`,
+            }}
+          >
+            <FileText size={19} color="#10182A" />
+          </span>
+          <b style={{ color: T.white, fontSize: 17 }}>
+            LifePack <span style={{ color: T.gold }}>AI</span>
+          </b>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            border: `1px solid ${T.border}`,
+            borderRadius: 11,
+            overflow: "hidden",
+            marginBottom: 16,
+          }}
+        >
+          {(["signin", "signup"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => {
+                setMode(m);
+                setErr("");
+              }}
+              style={{
+                flex: 1,
+                padding: "10px 0",
+                fontSize: 13.5,
+                fontWeight: 700,
+                cursor: "pointer",
+                border: "none",
+                background: mode === m ? T.raised : "transparent",
+                color: mode === m ? T.white : T.muted,
+              }}
+            >
+              {m === "signin" ? "Sign in" : "Create account"}
+            </button>
+          ))}
+        </div>
+        {mode === "signup" && (
+          <input style={inp} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
+        )}
+        <input style={inp} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input
+          style={inp}
+          type="password"
+          placeholder="Password"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && mode === "signin" && submit()}
+        />
+        {mode === "signup" && (
+          <input
+            style={inp}
+            type="password"
+            placeholder="Repeat password"
+            value={pw2}
+            onChange={(e) => setPw2(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+          />
+        )}
+        {err && <div style={{ color: T.coral, fontSize: 12.5, marginTop: 10 }}>{err}</div>}
+        <button onClick={submit} style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}>
+          {mode === "signin" ? "Sign in" : "Create account"} <ArrowRight size={15} />
+        </button>
+        <p style={{ fontSize: 11.5, color: T.faint, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
+          Prototype accounts live on this device only. Production replaces this with server-side auth.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function OnboardingWizard({ store, onDone }: any) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
@@ -6073,15 +6539,31 @@ export default function App() {
   const [navOpen, setNavOpen] = useState(() => (typeof window === "undefined" ? true : window.innerWidth > 760));
   const [wealthOpen, setWealthOpen] = useState(false);
   const [booted, setBooted] = useState(false);
-  const [signedIn, setSignedIn] = useState(false);
+  const [account, setAccount] = useState<Account | null>(null);
+  const [authIntent, setAuthIntent] = useState<"signin" | "signup">("signin");
   useEffect(() => {
-    const f = sessionStorage.getItem("lp-signin") === "1";
-    setSignedIn(f);
-    if (f && !store.onboarded) store.setOnboarded(true);
+    setAccount(getSession());
+    setAuthIntent(sessionStorage.getItem("lp-auth-intent") === "signup" ? "signup" : "signin");
     setBooted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const needsOnboarding = booted && !store.onboarded && !signedIn;
+  useEffect(() => {
+    if (!booted || !store.notifications || typeof Notification === "undefined" || Notification.permission !== "granted")
+      return;
+    if (sessionStorage.getItem("lp-notified") === "1") return;
+    const due = store.reminders.filter((r: Reminder) => !r.done && daysTo(r.due) <= 0);
+    if (due.length) {
+      new Notification(`LifePack: ${due.length} reminder${due.length === 1 ? "" : "s"} due`, {
+        body: due
+          .map((r: Reminder) => r.title)
+          .slice(0, 3)
+          .join(" · "),
+      });
+      sessionStorage.setItem("lp-notified", "1");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booted, store.notifications]);
+  const needsOnboarding = booted && !!account && !store.onboarded;
   const [query, setQuery] = useState("");
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toast = (m: string) => {
@@ -6099,9 +6581,22 @@ export default function App() {
         background: T.navy,
         fontFamily: "Inter, system-ui, sans-serif",
         color: T.text,
+        filter: store.theme === "light" ? "invert(0.93) hue-rotate(180deg)" : "none",
       }}
     >
       <style>{APPCSS}</style>
+      {booted && !account && (
+        <AuthScreen
+          defaultMode={authIntent}
+          onAuthed={(a: Account, isNew: boolean) => {
+            setAccount(a);
+            if (isNew) {
+              store.setOnboarded(false);
+              store.updateMember("you", { name: a.name });
+            }
+          }}
+        />
+      )}
       {needsOnboarding && (
         <OnboardingWizard
           store={store}
@@ -6300,6 +6795,23 @@ export default function App() {
           <Wealth store={store} go={go} toast={toast} unlocked={wealthOpen} onUnlock={() => setWealthOpen(true)} />
         )}
         {route === "trust" && <Trust store={store} toast={toast} />}
+        {route === "settings" && (
+          <SettingsPage
+            store={store}
+            account={account}
+            go={go}
+            toast={toast}
+            onSignOut={() => {
+              logout();
+              window.location.href = "/";
+            }}
+            onDeleteAccount={() => {
+              deleteAccount();
+              localStorage.removeItem("lifepack.v3");
+              window.location.href = "/";
+            }}
+          />
+        )}
       </main>
       {query.trim() && <div onClick={() => setQuery("")} style={{ position: "fixed", inset: 0, zIndex: 30 }} />}
 
