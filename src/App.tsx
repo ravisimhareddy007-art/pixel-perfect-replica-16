@@ -6542,8 +6542,14 @@ export default function App() {
   const [account, setAccount] = useState<Account | null>(null);
   const [authIntent, setAuthIntent] = useState<"signin" | "signup">("signin");
   useEffect(() => {
-    setAccount(getSession());
+    const sess = getSession();
+    setAccount(sess);
     setAuthIntent(sessionStorage.getItem("lp-auth-intent") === "signup" ? "signup" : "signin");
+    if (sess && sessionStorage.getItem("lp-new-account") === "1") {
+      sessionStorage.removeItem("lp-new-account");
+      store.setOnboarded(false);
+      store.updateMember("you", { name: sess.name });
+    }
     setBooted(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
