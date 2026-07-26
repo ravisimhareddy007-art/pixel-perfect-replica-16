@@ -926,6 +926,20 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
+              onClick={onEnter}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: 14,
+                fontWeight: 600,
+                color: C.muted,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Try a demo
+            </button>
+            <button
               onClick={() => setAuth("signin")}
               style={{
                 background: "none",
@@ -941,7 +955,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             >
               Sign in
             </button>
-            <button onClick={() => setAuth("signup")} className="lp-navcta">
+            <button onClick={onEnter} className="lp-navcta">
               Get started <ArrowRight size={15} />
             </button>
           </div>
@@ -972,8 +986,28 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               any visa, loan, job switch, or hospital visit is only a few taps away.
             </p>
             <div className="lp-herocta">
-              <button onClick={() => setAuth("signup")} className="lp-cta">
+              <button onClick={onEnter} className="lp-cta">
                 Open your LifePack <ArrowRight size={17} />
+              </button>
+              <button
+                onClick={() => {
+                  sessionStorage.setItem("lp-try-empty", "1");
+                  onEnter();
+                }}
+                style={{
+                  background: "none",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 12,
+                  padding: "13px 22px",
+                  fontSize: 14.5,
+                  fontWeight: 600,
+                  color: C.ink,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  marginLeft: 12,
+                }}
+              >
+                Try an empty workspace
               </button>
               <span className="lp-trust">
                 <Lock size={12} /> private by design · encrypted · you control what is stored
@@ -1194,7 +1228,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             <p className="lp-sub" style={{ marginTop: 12, marginLeft: "auto", marginRight: "auto" }}>
               Set it up once, and let the next big moment be the easy one.
             </p>
-            <button onClick={() => setAuth("signup")} className="lp-cta" style={{ marginTop: 26 }}>
+            <button onClick={onEnter} className="lp-cta" style={{ marginTop: 26 }}>
               Open your LifePack <ArrowRight size={17} />
             </button>
           </div>
