@@ -41,9 +41,15 @@ export const PackRequirements = z.object({
 });
 export type PackRequirements = z.infer<typeof PackRequirements>;
 
-// Parse + validate raw model text (strips code fences). Throws on invalid shape.
+// Parse + validate raw model text. The model may emit interstitial commentary around the
+// JSON (especially with web search), so pull out the last balanced JSON object.
 export function parseRequirements(raw: string): PackRequirements {
   const cleaned = raw.replace(/```json|```/g, "").trim();
-  const json = JSON.parse(cleaned);
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end <= start) {
+    throw new Error("Model returned no JSON object (response was cut off or contained only prose)");
+  }
+  const json = JSON.parse(cleaned.slice(start, end + 1));
   return PackRequirements.parse(json);
 }

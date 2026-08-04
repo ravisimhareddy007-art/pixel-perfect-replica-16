@@ -10,6 +10,9 @@ import { rankSources } from "./sources";
 const MODEL = "claude-sonnet-5";
 const WEB_SEARCH_TOOL = "web_search_20260318";
 const API_URL = "https://api.anthropic.com/v1/messages";
+// Web search + reasoning consume most of the output budget before the final JSON is written.
+// 1800 was far too low: the response hit stop_reason "max_tokens" mid-research every time.
+const MAX_TOKENS = 12000;
 
 export interface FetchResult {
   ok: boolean;
@@ -28,7 +31,7 @@ async function callClaude(query: string, jurisdictionHint?: string): Promise<str
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 1800,
+      max_tokens: MAX_TOKENS,
       system: SYSTEM_PROMPT,
       tools: [{ type: WEB_SEARCH_TOOL, name: "web_search", max_uses: 6 }],
       messages: [{ role: "user", content: userPrompt(query, jurisdictionHint) }],
@@ -36,11 +39,14 @@ async function callClaude(query: string, jurisdictionHint?: string): Promise<str
   });
   if (!res.ok) throw new Error(`Claude API ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  // Concatenate all text blocks (ignore tool_use / server_tool blocks).
-  return (data.content ?? [])
+  const text = (data.content ?? [])
     .filter((b: any) => b.type === "text")
     .map((b: any) => b.text)
     .join("\n");
+  if (data.stop_reason === "max_tokens" && !text.includes("{")) {
+    throw new Error("Claude ran out of output budget before returning the JSON");
+  }
+  return text;
 }
 
 // Public entry: fetch → validate → re-tier sources. Retries once on parse/validation failure.
