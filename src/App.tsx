@@ -95,6 +95,12 @@ const greeting = () => {
   const h = new Date().getHours();
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 };
+// SSR-safe: server and client can be in different hours, so resolve after hydration.
+const useGreeting = () => {
+  const [g, setG] = useState("Welcome");
+  useEffect(() => { setG(greeting()); }, []);
+  return g;
+};
 const fmtDays = (expiry?: string) => {
   if (!expiry) return "-";
   const d = Math.ceil((+new Date(expiry) - Date.now()) / 86400000);
