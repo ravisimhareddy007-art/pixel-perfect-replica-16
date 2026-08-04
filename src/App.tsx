@@ -2161,26 +2161,28 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
         .map((x: any) => x.p)
     : [];
   const generate = async (fromPack?: any) => {
+    // 1. INSTANT list + name for BOTH paths, so nothing is ever empty or blocked.
+    let query: string;
     if (fromPack) {
-      setReqs([...fromPack.reqs]);
-      setDrafted(true);
+      setReqs([...fromPack.reqs]);                          // instant: catalog list
+      query = fromPack.name;                                // ...then research this topic live
       if (!name.trim()) setName(`${fromPack.name} (my version)`.slice(0, 44));
-      return;
+    } else {
+      if (!desc.trim()) return;
+      setReqs(draftChecklist(desc));                        // instant: rule-based draft
+      query = desc.trim();
+      if (!name.trim()) {
+        const n = desc.trim().replace(/^documents?\s+(needed|requested|required)\s+(for|by)\s+/i, "");
+        setName(n.charAt(0).toUpperCase() + n.slice(1, 44));
+      }
     }
-    if (!desc.trim()) return;
-
-    // 1. show an instant draft immediately so the list is never empty
-    setReqs(draftChecklist(desc));
     setDrafted(true);
-    if (!name.trim()) {
-      const n = desc.trim().replace(/^documents?\s+(needed|requested|required)\s+(for|by)\s+/i, "");
-      setName(n.charAt(0).toUpperCase() + n.slice(1, 44));
-    }
 
-    // 2. then refine with live, sourced requirements from Claude
+    // 2. REFINE with live sourced requirements. getPackRequirements is cache-first:
+    //    a fresh (<30-day) cached result returns instantly; otherwise it researches live.
     setLoading(true);
     try {
-      const { data, source } = await getPackRequirements(desc.trim());
+      const { data, source } = await getPackRequirements(query);
       setReqs(data.requirements.map((r: any) => (r.ontology && r.ontology !== "Other" ? r.ontology : r.item)));
       setMeta({
         sources: data.sources || [],
@@ -2189,7 +2191,7 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
         disclaimer: data.disclaimer,
         dataSource: source,
       });
-    } catch (e: any) {
+    } catch {
       setMeta({ sources: [], dataSource: "fallback", disclaimer: "Couldn't reach the live requirements service — showing an offline draft." });
     } finally {
       setLoading(false);
