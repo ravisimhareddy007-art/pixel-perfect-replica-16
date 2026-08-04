@@ -22,7 +22,7 @@ async function callClaude(query: string, jurisdictionHint?: string): Promise<str
   const res = await fetch(API_URL, {
     method: "POST",
     headers: {
-      "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
+      "x-api-key": process.env['ANTHROPIC_API_KEY'] ?? "",
       "anthropic-version": "2023-06-01",
       "content-type": "application/json",
     },
@@ -45,7 +45,7 @@ async function callClaude(query: string, jurisdictionHint?: string): Promise<str
 
 // Public entry: fetch → validate → re-tier sources. Retries once on parse/validation failure.
 export async function fetchRequirements(query: string, jurisdictionHint?: string): Promise<FetchResult> {
-  if (!process.env.ANTHROPIC_API_KEY) return { ok: false, error: "Missing ANTHROPIC_API_KEY" };
+  if (!process.env['ANTHROPIC_API_KEY']) return { ok: false, error: "Missing ANTHROPIC_API_KEY" };
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const text = await callClaude(query, jurisdictionHint);

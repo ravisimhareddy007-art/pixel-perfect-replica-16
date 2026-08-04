@@ -6,5 +6,5 @@ import { createServerFn } from "@tanstack/react-start";
 import { fetchRequirements } from "./fetch.server";
 
 export const getRequirementsFn = createServerFn({ method: "GET" })
-  .validator((d: { query: string; jurisdiction?: string }) => d)
+  .inputValidator((d: { query: string; jurisdiction?: string }) => d)
   .handler(async ({ data }) => fetchRequirements(data.query, data.jurisdiction));
