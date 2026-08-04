@@ -640,6 +640,17 @@ function persist() {
   subs.forEach((f) => f());
 }
 
+function recipientsFor(category: Category, members: Member[]): Record<string, JsonWebKey> {
+  const mine = myPublicKey();
+  if (!mine) return {};
+  if (category === "Medical") {
+    const r: Record<string, JsonWebKey> = { you: mine };
+    for (const m of members) if (m.publicJwk) r[m.id] = m.publicJwk;
+    return r;
+  }
+  return { you: mine };
+}
+
 export function useStore() {
   const [, force] = useState(0);
   useEffect(() => {
@@ -652,11 +663,13 @@ export function useStore() {
 
   const addFiles = useCallback(async (files: FileList | File[], memberId?: string, override?: Partial<Doc>) => {
     for (const file of Array.from(files)) {
-      const c = classify(file.name);
       const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
-      try {
-        await putBlob(key, file);
-      } catch {}
+      const sizeKB = Math.max(1, Math.round(file.size / 1024));
+      const text = await safeOcr(file, file.type || "", sizeKB);          // on-device OCR
+      const c = classifyContent(file.name, text);                        // content, else filename
+      const recipients = recipientsFor(c.category, state.members);       // Health=family, else owner
+      let meta: DocCrypto | undefined;
+      try { meta = await putEncrypted(key, file, recipients); } catch {} // encrypt on write
       const base: Doc = {
         id: key,
         name: file.name,
@@ -665,10 +678,14 @@ export function useStore() {
         medType: c.medType,
         source: "Upload",
         mime: file.type || "application/octet-stream",
-        sizeKB: Math.max(1, Math.round(file.size / 1024)),
+        sizeKB,
         addedAt: new Date().toISOString(),
+        expiry: c.expiry,
         memberId: memberId || (c.category === "Medical" ? undefined : "you"),
         fileKey: key,
+        iv: meta?.iv,
+        wrappedKeys: meta?.wrappedKeys,
+        enc: !!meta,
       };
       state = { ...state, docs: [{ ...base, ...override, id: key, fileKey: key }, ...state.docs] };
     }
