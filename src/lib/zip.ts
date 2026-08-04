@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { getBlob } from "./idb";
+import { getDecrypted } from "./secure-idb";
 import type { Doc } from "./types";
 
 export async function buildZip(name: string, docs: Doc[], extras?: { name: string; content: string }[]) {
@@ -7,7 +8,9 @@ export async function buildZip(name: string, docs: Doc[], extras?: { name: strin
   const folder = zip.folder(name.replace(/[^\w]+/g, "_")) || zip;
   for (const x of extras || []) folder.file(x.name, x.content);
   for (const d of docs) {
-    const blob = await getBlob(d.fileKey);
+    const blob = d.enc && d.iv && d.wrappedKeys
+      ? await getDecrypted(d.fileKey, d.iv, d.wrappedKeys, "you", d.mime)
+      : await getBlob(d.fileKey);
     if (blob) folder.file(d.name, blob);
   }
   folder.file(
