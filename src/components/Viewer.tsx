@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, Trash2, Download } from "lucide-react";
 import { getBlob } from "../lib/idb";
+import { getDecrypted } from "../lib/secure-idb";
 import { CATEGORIES } from "../lib/classify";
 import { useStore } from "../lib/store";
 import type { Doc } from "../lib/types";
@@ -14,7 +15,10 @@ export default function Viewer({ doc, onClose }: { doc: Doc; onClose: () => void
 
   useEffect(() => {
     let u = "";
-    getBlob(doc.fileKey).then((b) => { if (b) { u = URL.createObjectURL(b); setUrl(u); setBlobMime(b.type || doc.mime); } });
+    const load = doc.enc && doc.iv && doc.wrappedKeys
+      ? getDecrypted(doc.fileKey, doc.iv, doc.wrappedKeys, "you", doc.mime)
+      : getBlob(doc.fileKey);
+    load.then((b) => { if (b) { u = URL.createObjectURL(b); setUrl(u); setBlobMime(b.type || doc.mime); } });
     return () => { if (u) URL.revokeObjectURL(u); };
   }, [doc.fileKey, doc.mime]);
 
