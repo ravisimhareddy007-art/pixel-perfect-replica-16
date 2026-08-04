@@ -14,30 +14,34 @@ export const ONTOLOGY_KEYS = [
 export const SourceTier = z.enum(["official", "embassy", "semiofficial", "general"]);
 export type SourceTier = z.infer<typeof SourceTier>;
 
+// Cap long free-text fields by truncating instead of rejecting the whole response —
+// a slightly verbose jurisdiction or disclaimer is not a reason to fall back to offline data.
+const capped = (max: number) => z.string().transform((s) => s.slice(0, max));
+
 export const Source = z.object({
   url: z.string().url(),
-  title: z.string().min(1).max(200),
+  title: capped(200),
   tier: SourceTier.default("general"),
 });
 export type Source = z.infer<typeof Source>;
 
 export const Requirement = z.object({
-  item: z.string().min(1).max(160),                 // concrete document, e.g. "Yellow Fever Vaccination Certificate"
+  item: capped(160),                                // concrete document, e.g. "Yellow Fever Vaccination Certificate"
   ontology: z.enum(ONTOLOGY_KEYS).default("Other"), // maps to a SATISFIES key when possible
   mandatory: z.boolean().default(true),
-  condition: z.string().max(240).optional(),        // when a conditional item applies
-  note: z.string().max(300).optional(),
+  condition: capped(240).optional(),                // when a conditional item applies
+  note: capped(300).optional(),
 });
 export type Requirement = z.infer<typeof Requirement>;
 
 export const PackRequirements = z.object({
-  pack: z.string().min(1).max(120),
-  jurisdiction: z.string().max(120).optional(),     // country/state the answer applies to
+  pack: capped(120),
+  jurisdiction: capped(200).optional(),             // country/state the answer applies to
   requirements: z.array(Requirement).min(1).max(40),
   sources: z.array(Source).max(20).default([]),
   lastChecked: z.string(),                          // ISO date
   confidence: z.enum(["high", "medium", "low"]).default("medium"),
-  disclaimer: z.string().max(400).optional(),
+  disclaimer: capped(600).optional(),
 });
 export type PackRequirements = z.infer<typeof PackRequirements>;
 
