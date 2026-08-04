@@ -2144,7 +2144,7 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
   const [reqs, setReqs] = useState<string[]>(existing?.reqs || []);
   const [drafted, setDrafted] = useState(!!existing);
   const [loading, setLoading] = useState(false);
-  const [meta, setMeta] = useState(null);
+  const [meta, setMeta] = useState<any>(null);
   const words = desc
     .toLowerCase()
     .split(/[^a-z0-9]+/)
