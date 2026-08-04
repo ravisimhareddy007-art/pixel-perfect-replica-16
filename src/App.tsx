@@ -64,6 +64,7 @@ import { buildZip } from "@/lib/zip";
 import { getSession, signup, login, logout, deleteAccount, updateAccountName, type Account } from "@/lib/auth";
 import { ensureVaultReady } from "@/lib/session";
 import DocViewer from "@/components/DocViewer";
+import { getPackRequirements } from "@/lib/requirements";
 
 /* ── theme ── */
 const T = {
@@ -2142,6 +2143,8 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
   const [name, setName] = useState(existing?.name || "");
   const [reqs, setReqs] = useState<string[]>(existing?.reqs || []);
   const [drafted, setDrafted] = useState(!!existing);
+  const [loading, setLoading] = useState(false);
+  const [meta, setMeta] = useState<any>(null);
   const words = desc
     .toLowerCase()
     .split(/[^a-z0-9]+/)
@@ -2157,9 +2160,30 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
         .slice(0, 3)
         .map((x: any) => x.p)
     : [];
-  const generate = (fromPack?: any) => {
+  const generate = async (fromPack?: any) => {
     if (!fromPack && !desc.trim()) return;
-    setReqs(fromPack ? [...fromPack.reqs] : draftChecklist(desc));
+    if (fromPack) {
+      setReqs([...fromPack.reqs]);
+    } else {
+      setLoading(true);
+      setDrafted(true);
+      try {
+        const { data, source } = await getPackRequirements(desc.trim());
+        // Use the ontology key when known (so readiness matches the user's docs), else the specific item.
+        setReqs(data.requirements.map((r: any) => (r.ontology && r.ontology !== "Other" ? r.ontology : r.item)));
+        setMeta({
+          sources: data.sources || [],
+          lastChecked: data.lastChecked,
+          confidence: data.confidence,
+          disclaimer: data.disclaimer,
+          dataSource: source, // "ai" | "cache" | "fallback"
+        });
+      } catch {
+        setReqs(draftChecklist(desc));
+      } finally {
+        setLoading(false);
+      }
+    }
     if (!name.trim()) {
       const n = fromPack
         ? `${fromPack.name} (my version)`
@@ -2265,16 +2289,16 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
         {!drafted && (
           <button
             onClick={() => generate()}
-            disabled={!desc.trim()}
+            disabled={!desc.trim() || loading}
             style={{
               ...btnGold,
               width: "100%",
               justifyContent: "center",
               marginTop: 12,
-              opacity: desc.trim() ? 1 : 0.4,
+              opacity: desc.trim() && !loading ? 1 : 0.4,
             }}
           >
-            Draft the checklist
+            {loading ? "Fetching current requirements…" : "Draft the checklist"}
           </button>
         )}
         {drafted && (
@@ -2342,6 +2366,24 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
               <div style={{ fontSize: 11.5, color: T.mint, marginTop: 8 }}>
                 {reqs.filter((r) => have?.has(r.trim())).length} of {reqs.filter((r) => r.trim()).length} already in
                 your archive; they will count the moment you save.
+              </div>
+            )}
+            {meta && (
+              <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: T.navy, border: `1px solid ${T.border}` }}>
+                <div style={{ fontSize: 11, color: T.muted, marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: meta.dataSource === "fallback" ? T.coral : T.mint, fontWeight: 700 }}>
+                    {meta.dataSource === "fallback" ? "Offline estimate" : "Live · sourced"}
+                  </span>
+                  {meta.confidence && <span>· confidence: {meta.confidence}</span>}
+                  {meta.lastChecked && <span>· checked {meta.lastChecked}</span>}
+                </div>
+                {meta.sources?.slice(0, 4).map((s: any, i: number) => (
+                  <a key={i} href={s.url} target="_blank" rel="noreferrer" style={{ display: "block", fontSize: 12, color: T.gold, marginTop: 4 }}>
+                    <span style={{ textTransform: "uppercase", fontSize: 9, color: T.muted, marginRight: 6 }}>{s.tier}</span>
+                    {s.title}
+                  </a>
+                ))}
+                {meta.disclaimer && <p style={{ fontSize: 11, color: T.muted, marginTop: 8, lineHeight: 1.45 }}>{meta.disclaimer}</p>}
               </div>
             )}
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
