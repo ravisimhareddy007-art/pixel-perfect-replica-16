@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, Download, FileText, ShieldCheck } from "lucide-react";
 import { getBlob } from "../lib/idb";
+import { getDecrypted } from "../lib/secure-idb";
 import type { Doc } from "../lib/types";
 
 const fmt = (s?: string) =>
@@ -252,7 +253,9 @@ export default function DocViewer({ doc, store, onClose }: { doc: Doc; store: an
     (async () => {
       if (doc.fileKey && doc.fileKey !== "seed") {
         try {
-          const b = await getBlob(doc.fileKey);
+          const b = doc.enc && doc.iv && doc.wrappedKeys
+            ? await getDecrypted(doc.fileKey, doc.iv, doc.wrappedKeys, "you", doc.mime)
+            : await getBlob(doc.fileKey);
           if (b && alive) {
             u = URL.createObjectURL(b);
             setBlobUrl(u);
