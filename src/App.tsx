@@ -2161,36 +2161,39 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
         .map((x: any) => x.p)
     : [];
   const generate = async (fromPack?: any) => {
-    if (!fromPack && !desc.trim()) return;
     if (fromPack) {
       setReqs([...fromPack.reqs]);
-    } else {
-      setLoading(true);
       setDrafted(true);
-      try {
-        const { data, source } = await getPackRequirements(desc.trim());
-        // Use the ontology key when known (so readiness matches the user's docs), else the specific item.
-        setReqs(data.requirements.map((r: any) => (r.ontology && r.ontology !== "Other" ? r.ontology : r.item)));
-        setMeta({
-          sources: data.sources || [],
-          lastChecked: data.lastChecked,
-          confidence: data.confidence,
-          disclaimer: data.disclaimer,
-          dataSource: source, // "ai" | "cache" | "fallback"
-        });
-      } catch {
-        setReqs(draftChecklist(desc));
-      } finally {
-        setLoading(false);
-      }
+      if (!name.trim()) setName(`${fromPack.name} (my version)`.slice(0, 44));
+      return;
     }
+    if (!desc.trim()) return;
+
+    // 1. show an instant draft immediately so the list is never empty
+    setReqs(draftChecklist(desc));
+    setDrafted(true);
     if (!name.trim()) {
-      const n = fromPack
-        ? `${fromPack.name} (my version)`
-        : desc.trim().replace(/^documents?\s+(needed|requested|required)\s+(for|by)\s+/i, "");
+      const n = desc.trim().replace(/^documents?\s+(needed|requested|required)\s+(for|by)\s+/i, "");
       setName(n.charAt(0).toUpperCase() + n.slice(1, 44));
     }
-    setDrafted(true);
+
+    // 2. then refine with live, sourced requirements from Claude
+    setLoading(true);
+    try {
+      const { data, source } = await getPackRequirements(desc.trim());
+      setReqs(data.requirements.map((r: any) => (r.ontology && r.ontology !== "Other" ? r.ontology : r.item)));
+      setMeta({
+        sources: data.sources || [],
+        lastChecked: data.lastChecked,
+        confidence: data.confidence,
+        disclaimer: data.disclaimer,
+        dataSource: source,
+      });
+    } catch (e: any) {
+      setMeta({ sources: [], dataSource: "fallback", disclaimer: "Couldn't reach the live requirements service — showing an offline draft." });
+    } finally {
+      setLoading(false);
+    }
   };
   const inp: CSSProperties = {
     width: "100%",
@@ -2298,11 +2301,16 @@ function CustomPackModal({ existing, have, catalog, onClose, onSave, onDelete }:
               opacity: desc.trim() && !loading ? 1 : 0.4,
             }}
           >
-            {loading ? "Fetching current requirements…" : "Draft the checklist"}
+            Draft the checklist
           </button>
         )}
         {drafted && (
           <>
+            {loading && (
+              <div style={{ fontSize: 11.5, color: T.gold, margin: "4px 0" }}>
+                ⟳ Refining with current official sources… (up to a minute)
+              </div>
+            )}
             <label style={lbl}>Pack name</label>
             <input style={inp} value={name} onChange={(e) => setName(e.target.value)} placeholder="Name this pack" />
             <label style={lbl}>Checklist · edit freely</label>
