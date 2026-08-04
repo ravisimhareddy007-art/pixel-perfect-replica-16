@@ -809,9 +809,9 @@ export function useStore() {
     let docId: string | undefined;
     if (evidence) {
       const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
-      try {
-        await putBlob(key, evidence);
-      } catch {}
+      const recipients = recipientsFor("Finance", state.members);
+      let meta: DocCrypto | undefined;
+      try { meta = await putEncrypted(key, evidence, recipients); } catch {}
       const d: Doc = {
         id: key,
         name: evidence.name,
@@ -825,6 +825,9 @@ export function useStore() {
         memberId: t.memberId || "you",
         fileKey: key,
         notes: t.purpose,
+        iv: meta?.iv,
+        wrappedKeys: meta?.wrappedKeys,
+        enc: !!meta,
       };
       state = { ...state, docs: [d, ...state.docs] };
       docId = key;
