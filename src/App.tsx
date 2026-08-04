@@ -95,6 +95,12 @@ const greeting = () => {
   const h = new Date().getHours();
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 };
+// SSR-safe: server and client can be in different hours, so resolve after hydration.
+const useGreeting = () => {
+  const [g, setG] = useState("Welcome");
+  useEffect(() => { setG(greeting()); }, []);
+  return g;
+};
 const fmtDays = (expiry?: string) => {
   if (!expiry) return "-";
   const d = Math.ceil((+new Date(expiry) - Date.now()) / 86400000);
@@ -1574,6 +1580,7 @@ function Home({ store, go, toast }: any) {
     { key: "wealth", label: "Wealth", icon: Wallet, color: T.gold, to: "wealth", acts: wealthActs },
   ].filter((g) => g.acts.length > 0);
   const totalActs = groups.reduce((n, g) => n + g.acts.length, 0);
+  const hello = useGreeting();
   const stats = [
     { label: "Documents", value: store.docs.length, icon: FolderOpen, c: A.blue, to: "documents" },
     { label: "Overall readiness", value: `${overall}%`, icon: ShieldCheck, c: A.green, to: "packages" },
@@ -1584,7 +1591,7 @@ function Home({ store, go, toast }: any) {
     <div>
       <Eyebrow>Ready when you need them · private by design</Eyebrow>
       <SectionHead
-        title={`${greeting()}, ${(store.members[0]?.name || "there").split(" ")[0]}`}
+        title={`${hello}, ${(store.members[0]?.name || "there").split(" ")[0]}`}
         sub="Your archive at a glance, and what needs attention today."
       />
       {store.dataMode === "empty" && store.docs.length === 0 && (
