@@ -18,6 +18,7 @@ import { safeOcr } from "./ocr";
 import { classifyContent } from "./classify-content";
 import { putEncrypted } from "./secure-idb";
 import { myPublicKey } from "./vault";
+import { ensureVaultReady } from "./session";
 import type { DocCrypto } from "./vault";
 
 const LS = "lifepack.v3"; // bumped: enriched seeds (fresh state on upgrade)
@@ -662,6 +663,7 @@ export function useStore() {
   }, []);
 
   const addFiles = useCallback(async (files: FileList | File[], memberId?: string, override?: Partial<Doc>) => {
+    await ensureVaultReady();
     for (const file of Array.from(files)) {
       const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
       const sizeKB = Math.max(1, Math.round(file.size / 1024));
@@ -776,6 +778,7 @@ export function useStore() {
   const attachDocToHolding = useCallback(async (hid: string, files: FileList | File[], override?: Partial<Doc>) => {
     const file = Array.from(files)[0];
     if (!file) return;
+    await ensureVaultReady();
     const c = classify(file.name);
     const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
     const recipients = recipientsFor(c.category, state.members);
@@ -806,6 +809,7 @@ export function useStore() {
     persist();
   }, []);
   const addTransaction = useCallback(async (t: Omit<Transaction, "id" | "addedAt" | "docId">, evidence?: File) => {
+    await ensureVaultReady();
     let docId: string | undefined;
     if (evidence) {
       const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
