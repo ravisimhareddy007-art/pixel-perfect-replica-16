@@ -1,3 +1,5 @@
+import type { WrappedKey } from "./crypto";
+
 export type Category = "Identity" | "Employment" | "Finance" | "Insurance" | "Property" | "Medical";
 export type MedType = "prescription" | "lab_report" | "discharge" | "bill" | "scan" | "other";
 export type Access = "Owner" | "Full member" | "Emergency access" | "View only";
@@ -10,6 +12,7 @@ export interface Member {
   dob?: string;
   bloodGroup?: string;
   access?: Access;
+  publicJwk?: JsonWebKey;
 }
 export interface Doc {
   id: string;
@@ -25,6 +28,9 @@ export interface Doc {
   expiry?: string;
   memberId?: string;
   fileKey: string;
+  iv?: string;
+  wrappedKeys?: Record<string, WrappedKey>;
+  enc?: boolean;
   notes?: string;
   value?: number; // for Wealth (documented asset value)
   nominee?: boolean; // for Wealth (nominee designated?)
