@@ -19,7 +19,6 @@ import { classifyContent } from "./classify-content";
 import { putEncrypted } from "./secure-idb";
 import { myPublicKey } from "./vault";
 import type { DocCrypto } from "./vault";
-import type { Category } from "./types";
 
 const LS = "lifepack.v3"; // bumped: enriched seeds (fresh state on upgrade)
 const rel = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
