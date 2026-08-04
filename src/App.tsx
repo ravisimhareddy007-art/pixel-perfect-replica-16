@@ -62,6 +62,7 @@ import type { Category, Doc, Member, Access, Holding, Transaction, Reminder } fr
 import Healthcare from "@/components/Healthcare";
 import { buildZip } from "@/lib/zip";
 import { getSession, signup, login, logout, deleteAccount, updateAccountName, type Account } from "@/lib/auth";
+import { ensureVaultReady } from "@/lib/session";
 import DocViewer from "@/components/DocViewer";
 
 /* ── theme ── */
@@ -6965,6 +6966,7 @@ export default function App() {
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth <= 760) setNavOpen(false);
   }, []);
+  useEffect(() => { ensureVaultReady(); }, []);
   const [wealthOpen, setWealthOpen] = useState(false);
   const [booted, setBooted] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
