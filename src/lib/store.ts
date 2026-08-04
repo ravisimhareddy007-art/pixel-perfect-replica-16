@@ -778,9 +778,9 @@ export function useStore() {
     if (!file) return;
     const c = classify(file.name);
     const key = "f_" + Math.random().toString(36).slice(2) + Date.now();
-    try {
-      await putBlob(key, file);
-    } catch {}
+    const recipients = recipientsFor(c.category, state.members);
+    let meta: DocCrypto | undefined;
+    try { meta = await putEncrypted(key, file, recipients); } catch {}
     const d: Doc = {
       id: key,
       name: file.name,
@@ -794,6 +794,9 @@ export function useStore() {
       memberId: "you",
       ...override,
       fileKey: key,
+      iv: meta?.iv,
+      wrappedKeys: meta?.wrappedKeys,
+      enc: !!meta,
     } as Doc;
     state = {
       ...state,
