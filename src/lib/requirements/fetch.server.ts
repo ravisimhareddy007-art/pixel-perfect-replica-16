@@ -32,7 +32,7 @@ async function callClaude(query: string, jurisdictionHint?: string): Promise<str
     body: JSON.stringify({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       tools: [{ type: WEB_SEARCH_TOOL, name: "web_search", max_uses: 2 }],
       messages: [{ role: "user", content: userPrompt(query, jurisdictionHint) }],
     }),
