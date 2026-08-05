@@ -33,7 +33,7 @@ async function callClaude(query: string, jurisdictionHint?: string): Promise<str
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system: SYSTEM_PROMPT,
-      tools: [{ type: WEB_SEARCH_TOOL, name: "web_search", max_uses: 6 }],
+      tools: [{ type: WEB_SEARCH_TOOL, name: "web_search", max_uses: 2 }],
       messages: [{ role: "user", content: userPrompt(query, jurisdictionHint) }],
     }),
   });
@@ -52,16 +52,13 @@ async function callClaude(query: string, jurisdictionHint?: string): Promise<str
 // Public entry: fetch → validate → re-tier sources. Retries once on parse/validation failure.
 export async function fetchRequirements(query: string, jurisdictionHint?: string): Promise<FetchResult> {
   if (!process.env['ANTHROPIC_API_KEY']) return { ok: false, error: "Missing ANTHROPIC_API_KEY" };
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const text = await callClaude(query, jurisdictionHint);
-      const parsed = parseRequirements(text);
-      parsed.sources = rankSources(parsed.sources);        // official/embassy first, tiered
-      if (!parsed.lastChecked) parsed.lastChecked = new Date().toISOString().slice(0, 10);
-      return { ok: true, data: parsed };
-    } catch (e: any) {
-      if (attempt === 1) return { ok: false, error: e?.message ?? "Failed to fetch requirements" };
-    }
+  try {
+    const text = await callClaude(query, jurisdictionHint);
+    const parsed = parseRequirements(text);
+    parsed.sources = rankSources(parsed.sources);
+    if (!parsed.lastChecked) parsed.lastChecked = new Date().toISOString().slice(0, 10);
+    return { ok: true, data: parsed };
+  } catch (e: any) {
+    return { ok: false, error: e?.message ?? "Failed to fetch requirements" };
   }
-  return { ok: false, error: "Unreachable" };
 }
