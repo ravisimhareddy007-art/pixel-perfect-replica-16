@@ -1606,7 +1606,7 @@ function Home({ store, go, toast }: any) {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 8 }}>
             <Sparkles size={17} color={T.gold} />
-            <b style={{ color: T.white, fontSize: 16 }}>Welcome to your empty LifePack</b>
+            <b style={{ color: T.white, fontSize: 16 }}>Welcome to ReadiNes</b>
           </div>
           <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.6, margin: "0 0 14px", maxWidth: 560 }}>
             This is exactly what a brand-new user sees on day zero. Add a few documents and watch the whole app come to
@@ -1818,7 +1818,7 @@ function Home({ store, go, toast }: any) {
         <Card>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <ShieldCheck size={16} color={T.gold} />
-            <b style={{ color: T.white, fontSize: 15 }}>Connected across LifePack</b>
+            <b style={{ color: T.white, fontSize: 15 }}>Connected across ReadiNes</b>
           </div>
           <p style={{ fontSize: 12, color: T.muted, margin: "0 0 10px" }}>
             What your modules mean together, not what they already show apart.
@@ -1943,7 +1943,7 @@ function Packages({ store, toast }: any) {
     <div>
       <SectionHead
         title="Packages"
-        sub={`${all.length} real-world situations. LifePack matches your archive against each one and shows how ready you already are.`}
+        sub={`${all.length} real-world situations. ReadiNes matches your archive against each one and shows how ready you already are.`}
       />
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", margin: "0 0 18px" }}>
         <button onClick={() => setCreating(true)} style={btnGold}>
@@ -2045,7 +2045,7 @@ function Packages({ store, toast }: any) {
           <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
             {cat === "My packs" && !q
               ? "Custom packs you create live here, scored against your archive like any curated pack."
-              : "Describe it and LifePack drafts the checklist for you."}
+              : "Describe it and ReadiNes drafts the checklist for you."}
           </div>
           <button onClick={() => setCreating(true)} style={{ ...btnGold, margin: "14px auto 0" }}>
             <Plus size={15} /> Create a custom pack
@@ -2450,7 +2450,7 @@ function PackageDetail({ ev, store, onClose, onEdit, toast }: any) {
   ];
   const exportPack = () => {
     const body =
-      `LifePack . ${ev.name}\nGenerated ${new Date().toLocaleString()}\nReadiness ${score}% (${got} of ${total})\n\nINCLUDED:\n` +
+      `ReadiNes . ${ev.name}\nGenerated ${new Date().toLocaleString()}\nReadiness ${score}% (${got} of ${total})\n\nINCLUDED:\n` +
       included.map((d: Doc, i: number) => `${i + 1}. ${d.name} [${d.docType}]`).join("\n") +
       `\n\nSTILL NEEDED:\n` +
       rows
@@ -2564,7 +2564,7 @@ function PackageDetail({ ev, store, onClose, onEdit, toast }: any) {
                 gap: 8,
               }}
             >
-              <CheckCircle2 size={16} color={T.mint} /> Found in LifePack ({rows.filter((r) => r.have).length})
+              <CheckCircle2 size={16} color={T.mint} /> Found in ReadiNes ({rows.filter((r) => r.have).length})
             </div>
             {rows
               .filter((r) => r.have)
@@ -5884,7 +5884,7 @@ function buildEstate(store: any): string {
   const secTable = (title: string, arr: Holding[], showNom: boolean) =>
     `<h3 style="margin:18px 0 6px;font-size:14px;color:#111827">${title}</h3><table style="width:100%;border-collapse:collapse;font-size:12.5px"><tr style="background:#f3f4f6">${th("Holding")}${th("Type")}${th("Where")}${th("Value")}${showNom ? th("Nominee") : ""}${th("Document")}${th("How to access")}</tr>${arr.map((h) => `<tr><td style="padding:6px 10px;font-weight:600">${h.name}</td><td style="padding:6px 10px">${h.type}</td><td style="padding:6px 10px;color:#6b7280">${h.institution || ""} ${h.accountRef || ""}</td><td style="padding:6px 10px">${m2(h.value)}</td>${showNom ? `<td style="padding:6px 10px;color:${h.nominee ? "#111827" : "#b91c1c"};font-weight:${h.nominee ? 400 : 700}">${h.nominee ? h.nomineeName || "named" : "NOT NAMED"}</td>` : ""}<td style="padding:6px 10px;color:#6b7280">${dn(h.docId)}</td><td style="padding:6px 10px;color:#374151">${h.accessNote || "\u2014"}</td></tr>`).join("") || `<tr><td colspan="6" style="padding:6px 10px;color:#9ca3af">None</td></tr>`}</table>`;
   return `<!doctype html><html><head><meta charset="utf-8"><title>Estate Summary</title></head><body style="font-family:Inter,Arial,sans-serif;color:#111827;max-width:760px;margin:20px auto;padding:0 20px;background:#fff">
-  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8B25A;padding-bottom:12px"><div><div style="font-weight:800;font-size:20px">LifePack · Estate Summary</div><div style="color:#6b7280;font-size:13px">What your family would need to find and claim everything</div></div><div style="text-align:right;color:#6b7280;font-size:12px">Prepared ${new Date().toLocaleString()}</div></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8B25A;padding-bottom:12px"><div><div style="font-weight:800;font-size:20px">ReadiNes · Estate Summary</div><div style="color:#6b7280;font-size:13px">What your family would need to find and claim everything</div></div><div style="text-align:right;color:#6b7280;font-size:12px">Prepared ${new Date().toLocaleString()}</div></div>
   <div style="display:flex;gap:26px;margin-top:16px">
     <div><div style="font-size:12px;color:#6b7280">Net worth (documented)</div><div style="font-size:22px;font-weight:800">${m2(net)}</div></div>
     <div><div style="font-size:12px;color:#6b7280">Assets</div><div style="font-size:18px;font-weight:700">${m2(s(A_))}</div></div>
@@ -5909,7 +5909,7 @@ function buildEstate(store: any): string {
     ${L_.length ? `<li>Outstanding liabilities to settle or transfer: ${L_.map((l) => `${l.name} (${l.institution || ""})`).join(", ")}</li>` : ""}
   </ol>
   <h3 style="margin:18px 0 6px;font-size:14px;color:#111827">Who can help</h3><ul style="margin:0;padding-left:18px;line-height:1.7;color:#374151;font-size:13px">${trusted.map((mm: Member) => `<li>${mm.name} \u2014 ${mm.relation} (${mm.access})</li>`).join("") || "<li>No trusted contacts set</li>"}</ul>
-  <p style="margin-top:22px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:10px">Prepared by LifePack from your own records. Account references are masked. This is an organizational summary \u2014 not a will, and not legal, tax, or financial advice. Confirm nominee and succession details with each institution and a professional.</p>
+  <p style="margin-top:22px;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb;padding-top:10px">Prepared by ReadiNes from your own records. Account references are masked. This is an organizational summary \u2014 not a will, and not legal, tax, or financial advice. Confirm nominee and succession details with each institution and a professional.</p>
   </body></html>`;
 }
 
@@ -5942,7 +5942,7 @@ const FAQS: [string, string][] = [
     "Access levels are set per person in Trust center: Full member, Contributor, Emergency access, or View only. SOS handoff shares the wealth pack with emergency contacts only when you release it.",
   ],
   [
-    "Does LifePack give medical or financial advice?",
+    "Does ReadiNes give medical or financial advice?",
     "Never. It organizes documents and shows readiness. It does not diagnose, recommend investments, or predict approvals.",
   ],
 ];
@@ -6207,7 +6207,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
     const perm = await Notification.requestPermission();
     if (perm === "granted") {
       store.setNotifications(true);
-      new Notification("LifePack reminders are on", {
+      new Notification("ReadiNes reminders are on", {
         body: "Due reminders will alert on this device while the app is open.",
       });
       toast("Notifications on");
@@ -6333,7 +6333,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
   );
   return (
     <div>
-      <SectionHead title="Settings" sub="Your account, your family, and how LifePack behaves." />
+      <SectionHead title="Settings" sub="Your account, your family, and how ReadiNes behaves." />
       <div className="lp-cols2">
         <div>
           <Section label="Account">
@@ -6378,7 +6378,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
             <Row
               icon={Users}
               label="Manage family members"
-              sub="Who is in your LifePack and what each can see"
+              sub="Who is in your ReadiNes and what each can see"
               onClick={() => go("trust")}
             />
             <Row
@@ -6470,7 +6470,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
               label="Export archive"
               sub="Download all documents as a zip"
               onClick={async () => {
-                await buildZip("LifePack_Archive", store.docs);
+                await buildZip("ReadiNes_Archive", store.docs);
                 toast("Archive exported");
               }}
             />
@@ -6482,7 +6482,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
               icon={Sparkles}
               label="What's new"
               value="v0.9"
-              sub="Latest changes in LifePack"
+              sub="Latest changes in ReadiNes"
               onClick={() => setModal("whatsnew")}
               first
             />
@@ -6498,7 +6498,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
               sub="Tell us what is broken or missing"
               onClick={() => setModal("feedback")}
             />
-            <Row icon={Info} label="About LifePack" onClick={() => setModal("about")} />
+            <Row icon={Info} label="About ReadiNes" onClick={() => setModal("about")} />
           </Section>
           <div style={{ marginBottom: 20 }}>
             <div
@@ -6591,9 +6591,9 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
         </Overlay>
       )}
       {modal === "about" && (
-        <Overlay title="About LifePack AI">
+        <Overlay title="About ReadiNes">
           <p style={{ fontSize: 13.5, color: T.text, lineHeight: 1.7, margin: 0 }}>
-            LifePack AI is a living archive for a family's documented life: it understands the documents you save, knows
+            ReadiNes is a living archive for a family's documented life: it understands the documents you save, knows
             what a hundred real-world situations require, shows how ready you already are, and assembles the pack when
             the moment comes.
           </p>
@@ -6685,7 +6685,7 @@ function AuthScreen({
             <FileText size={19} color="#10182A" />
           </span>
           <b style={{ color: T.white, fontSize: 17 }}>
-            LifePack <span style={{ color: T.gold }}>AI</span>
+            Readi<span style={{ color: T.gold }}>N</span>es
           </b>
         </div>
         <div
@@ -6818,7 +6818,7 @@ function OnboardingWizard({ store, onDone }: any) {
             <FileText size={19} color="#10182A" />
           </span>
           <b style={{ color: T.white, fontSize: 17 }}>
-            LifePack <span style={{ color: T.gold }}>AI</span>
+            Readi<span style={{ color: T.gold }}>N</span>es
           </b>
         </div>
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 22 }}>
@@ -6856,13 +6856,13 @@ function OnboardingWizard({ store, onDone }: any) {
         )}
         {step === 1 && (
           <div style={{ textAlign: "center" }}>
-            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>How LifePack works</h2>
+            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>How ReadiNes works</h2>
             <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
               Three steps, that is the whole product.
             </p>
             <div style={{ display: "grid", gap: 10, textAlign: "left" }}>
               {[
-                [UploadCloud, "Add", "Drop in a document. LifePack reads it and files it automatically."],
+                [UploadCloud, "Add", "Drop in a document. ReadiNes reads it and files it automatically."],
                 [Plane, "Match", "It checks your archive against 100 real situations and shows how ready you are."],
                 [FileText, "Assemble", "When the moment comes, export the exact pack you need in one tap."],
               ].map(([Ic, t, b]: any, i) => (
@@ -6994,7 +6994,7 @@ function OnboardingWizard({ store, onDone }: any) {
             )}
             {err && <div style={{ color: T.coral, fontSize: 12.5, marginTop: 8 }}>{err}</div>}
             <button onClick={finish} style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}>
-              {pin ? "Set passcode and enter" : "Enter LifePack"} <ArrowRight size={15} />
+              {pin ? "Set passcode and enter" : "Enter ReadiNes"} <ArrowRight size={15} />
             </button>
             {!pin && (
               <button
@@ -7057,7 +7057,7 @@ export default function App() {
     if (sessionStorage.getItem("lp-notified") === "1") return;
     const due = store.reminders.filter((r: Reminder) => !r.done && daysTo(r.due) <= 0);
     if (due.length) {
-      new Notification(`LifePack: ${due.length} reminder${due.length === 1 ? "" : "s"} due`, {
+      new Notification(`ReadiNes: ${due.length} reminder${due.length === 1 ? "" : "s"} due`, {
         body: due
           .map((r: Reminder) => r.title)
           .slice(0, 3)
@@ -7137,7 +7137,7 @@ export default function App() {
           {navOpen && (
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 800, fontSize: 16, color: T.white, whiteSpace: "nowrap" }}>
-                LifePack <span style={{ color: T.gold }}>AI</span>
+                Readi<span style={{ color: T.gold }}>N</span>es
               </div>
               <div
                 style={{

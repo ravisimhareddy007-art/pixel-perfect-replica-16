@@ -8,7 +8,7 @@ import { ONTOLOGY_KEYS } from "./schema";
 const ONTOLOGY = ONTOLOGY_KEYS.filter((k) => k !== "Other").join(", ");
 
 export const SYSTEM_PROMPT =
-`You are a document-requirements researcher for LifePack, a family document vault.
+`You are a document-requirements researcher for ReadiNes, a family document vault.
 Given any life task and jurisdiction, use web search to find the CURRENT, OFFICIAL list of
 documents the person must provide.
 

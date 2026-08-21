@@ -1,6 +1,7 @@
 import { signup, login } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { BrandMark, BrandWordmark } from "./BrandLogo";
 import {
   ShieldCheck,
   ArrowRight,
@@ -35,7 +36,7 @@ const C = {
   body: "#4C443A",
   muted: "#897E6D",
   gold: "#A87C22",
-  goldFill: "#D8B25A",
+  goldFill: "#D9A441",
   goldSoft: "#F0E4C6",
   emerald: "#1F9D66",
   clay: "#B85C42",
@@ -819,7 +820,7 @@ function AuthModal({
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <b style={{ fontFamily: "'Space Grotesk'", fontSize: 20, color: C.ink }}>
-            {mode === "signin" ? "Welcome back" : "Start your LifePack"}
+            {mode === "signin" ? "Welcome back" : "Start with ReadiNes"}
           </b>
           <button
             onClick={onClose}
@@ -884,7 +885,7 @@ function AuthModal({
         )}
         {err && <div style={{ color: "#B4231F", fontSize: 13, marginTop: 10 }}>{err}</div>}
         <button onClick={submit} className="lp-cta" style={{ width: "100%", justifyContent: "center", marginTop: 14 }}>
-          {mode === "signin" ? "Sign in" : "Create my LifePack"} <ArrowRight size={15} />
+          {mode === "signin" ? "Sign in" : "Create my ReadiNes"} <ArrowRight size={15} />
         </button>
         <p style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
           Prototype accounts live on this device only. Production replaces this with server-side auth.
@@ -903,21 +904,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       <nav className="lp-nav">
         <div className="lp-navinner">
           <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-            <span
-              style={{
-                display: "grid",
-                placeItems: "center",
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: `linear-gradient(135deg,${C.goldFill},#E9CE8E)`,
-              }}
-            >
-              <ShieldCheck size={19} color="#3A2E12" />
-            </span>
-            <span style={{ fontFamily: "'Space Grotesk'", fontWeight: 700, fontSize: 17, color: C.ink }}>
-              LifePack <span style={{ color: C.gold }}>AI</span>
-            </span>
+            <BrandMark size={32} carve={C.paper} />
+            <BrandWordmark size={19} color={C.ink} />
           </div>
           <div className="lp-navlinks">
             <a href="#features">Features</a>
@@ -978,7 +966,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         <div className="lp-heroinner">
           <motion.div {...fade()}>
             <span className="lp-badge">
-              <Sparkles size={13} /> The living archive for your life
+              <Sparkles size={13} /> Be ready for life's important moments
             </span>
             <h1 className="lp-h1">
               Your documents,
@@ -991,7 +979,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               </span>
             </h1>
             <p className="lp-sub">
-              LifePack quietly gathers, classifies, and assembles every passport, policy, payslip, and prescription, so
+              ReadiNes quietly gathers, classifies, and assembles every passport, policy, payslip, and prescription, so
               any visa, loan, job switch, or hospital visit is only a few taps away.
             </p>
             <div className="lp-herocta">
@@ -1002,7 +990,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
                 }}
                 className="lp-cta"
               >
-                Open your LifePack <ArrowRight size={17} />
+                Open ReadiNes <ArrowRight size={17} />
               </button>
               <button
                 onClick={() => {
@@ -1059,7 +1047,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               Life happens on paper
             </div>
             <h2 className="lp-h2" style={{ margin: 0 }}>
-              You know these moments. LifePack makes sure the papers are never the hard part.
+              You know these moments. ReadiNes makes sure the papers are never the hard part.
             </h2>
           </motion.div>
           <div className="lp-moments">
@@ -1083,7 +1071,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             className="lp-body"
             style={{ marginTop: 16, fontSize: 17, maxWidth: 640, marginLeft: "auto", marginRight: "auto" }}
           >
-            You simply open LifePack, and everything is ready to go. Calm, in order, and entirely yours.
+            You simply open ReadiNes, and everything is ready to go. Calm, in order, and entirely yours.
           </p>
         </motion.div>
       </section>
@@ -1092,7 +1080,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         <Feature
           eyebrow="Life packs"
           title="Assemble any pack in a tap."
-          body="Choose a life event. LifePack gathers the right documents from your archive, shows exactly what is ready, and gently points out anything still to add."
+          body="Choose a life event. ReadiNes gathers the right documents from your archive, shows exactly what is ready, and gently points out anything still to add."
           points={[
             "Visa, loan, hospital, tax, job",
             "Ready and to-add, clearly shown",
@@ -1104,7 +1092,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           flip
           eyebrow="Auto-organize"
           title="Connect once. Everything files itself."
-          body="Link Email, Drive, or DigiLocker, or simply add a photo. LifePack reads each document, files it in the right place, and builds a living graph of your family's papers."
+          body="Link Email, Drive, or DigiLocker, or simply add a photo. ReadiNes reads each document, files it in the right place, and builds a living graph of your family's papers."
           points={[
             "Sorted automatically as it arrives",
             "Identity, finance, insurance, property, health",
@@ -1115,7 +1103,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         <Feature
           eyebrow="Wealth"
           title="See what you own, and who inherits it."
-          body="LifePack reads your financial and insurance papers for what actually matters: total documented value, and the holdings that still have no nominee named."
+          body="ReadiNes reads your financial and insurance papers for what actually matters: total documented value, and the holdings that still have no nominee named."
           points={["Documented value at a glance", "Nominee gaps surfaced, not buried", "Ready for a clean handoff"]}
           mock={<WealthMock />}
         />
@@ -1123,14 +1111,14 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           flip
           eyebrow="Visit companion"
           title="Walk into every appointment ready."
-          body="Medications, recent reports, allergies, and trends for the whole family, assembled into a one-tap doctor visit pack. LifePack organizes and surfaces. It never diagnoses."
+          body="Medications, recent reports, allergies, and trends for the whole family, assembled into a one-tap doctor visit pack. ReadiNes organizes and surfaces. It never diagnoses."
           points={["One-tap doctor visit pack", "Trends shown against standard ranges", "An emergency card for anyone"]}
           mock={<HealthMock />}
         />
         <Feature
           eyebrow="Search"
           title="You remember the keyword. We find the paper."
-          body="No folders to memorize. Type what you recall, a test, a doctor, a month, and LifePack surfaces the prescription, the report, the medication, and everything related."
+          body="No folders to memorize. Type what you recall, a test, a doctor, a month, and ReadiNes surfaces the prescription, the report, the medication, and everything related."
           points={["One search across everything", "Documents, health, people, dates", "Answers in a keystroke"]}
           mock={<SearchMock />}
         />
@@ -1251,7 +1239,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               className="lp-cta"
               style={{ marginTop: 26 }}
             >
-              Open your LifePack <ArrowRight size={17} />
+              Open ReadiNes <ArrowRight size={17} />
             </button>
           </div>
         </motion.div>
@@ -1260,21 +1248,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       <footer className="lp-footer">
         <div className="lp-wrap lp-footinner">
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span
-              style={{
-                display: "grid",
-                placeItems: "center",
-                width: 30,
-                height: 30,
-                borderRadius: 9,
-                background: `linear-gradient(135deg,${C.goldFill},#E9CE8E)`,
-              }}
-            >
-              <ShieldCheck size={16} color="#3A2E12" />
-            </span>
-            <span style={{ fontFamily: "'Space Grotesk'", fontWeight: 700, fontSize: 15, color: C.ink }}>
-              LifePack <span style={{ color: C.gold }}>AI</span>
-            </span>
+            <BrandMark size={26} carve={C.paper} />
+            <BrandWordmark size={15} color={C.ink} />
           </div>
           <span style={{ fontSize: 13, color: C.muted }}>A private, ready archive for your whole family.</span>
           <span

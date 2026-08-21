@@ -38,7 +38,7 @@ function paper(title: string, issuer: string, accent: string, fields: [string, s
     </div>
     <table style="width:100%;border-collapse:collapse">${rows}</table>
     ${body}
-    <div style="margin-top:18px;padding-top:10px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:10.5px">Sample document rendered by LifePack for preview. Not an official copy.</div>
+    <div style="margin-top:18px;padding-top:10px;border-top:1px solid #e5e7eb;color:#9ca3af;font-size:10.5px">Sample document rendered by ReadiNes for preview. Not an official copy.</div>
   </div>`;
 }
 

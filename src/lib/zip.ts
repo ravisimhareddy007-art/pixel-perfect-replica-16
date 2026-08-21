@@ -15,7 +15,7 @@ export async function buildZip(name: string, docs: Doc[], extras?: { name: strin
   }
   folder.file(
     "MANIFEST.txt",
-    `LifePack AI — ${name}\nGenerated ${new Date().toLocaleString()}\n\n` +
+    `ReadiNes — ${name}\nGenerated ${new Date().toLocaleString()}\n\n` +
       docs.map((d, i) => `${i + 1}. ${d.name}  [${d.docType}]`).join("\n"),
   );
   const out = await zip.generateAsync({ type: "blob" });

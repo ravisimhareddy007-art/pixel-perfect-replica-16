@@ -86,7 +86,7 @@ export default function Events({ toast }: { toast: (m: string) => void }) {
   const [open, setOpen] = useState<LifeEvent | null>(null);
   return (
     <>
-      <SectionHead title="Life events" sub="Pick an event. LifePack assembles the package from your vault in seconds." />
+      <SectionHead title="Life events" sub="Pick an event. ReadiNes assembles the package from your vault in seconds." />
       <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))" }}>
         {EVENTS.map((ev, i) => {
           const { score, rows } = evalEvent(ev, docs);

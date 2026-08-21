@@ -43,7 +43,7 @@ export default function Onboarding() {
             <Brand large />
             <h1 className="text-[30px] font-bold text-ink tracking-tight mt-6 mb-2">Connect your document sources</h1>
             <p className="text-[#69728A] text-[15px] leading-relaxed mb-7">
-              LifePack reads only document metadata to build your private graph. Files never leave your control without an action you take.
+              ReadiNes reads only document metadata to build your private graph. Files never leave your control without an action you take.
             </p>
             <div className="grid gap-3">
               {CONNECTORS.map((c) => {

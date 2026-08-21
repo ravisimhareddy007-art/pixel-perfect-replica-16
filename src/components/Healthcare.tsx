@@ -452,7 +452,7 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
           </span>
         </div>
         <p style={{ color: C.sub, fontSize: 14, marginTop: 3 }}>
-          Keep the whole family visit-ready. LifePack organizes and surfaces your records. It never diagnoses.
+          Keep the whole family visit-ready. ReadiNes organizes and surfaces your records. It never diagnoses.
         </p>
       </div>
 
@@ -914,7 +914,7 @@ export default function Healthcare({ toast: extToast }: { toast?: (m: string) =>
               />
             </div>
             <div style={{ fontSize: 12, color: C.faint, marginBottom: 6 }}>
-              Upload anything: LifePack identifies whether it is a prescription, lab report, scan, or discharge summary
+              Upload anything: ReadiNes identifies whether it is a prescription, lab report, scan, or discharge summary
               and files it. A copy lands in Documents too.
             </div>
             {records.length === 0 ? (
@@ -1604,7 +1604,7 @@ function buildVisitCover(
     `<h3 style="margin:16px 0 6px;font-size:13.5px;color:#111827">${t}</h3>${body}`;
   return `<div style="font-family:Inter,Arial,sans-serif;color:#111827;background:#fff;padding:24px;max-width:680px;margin:0 auto">
   <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #D8B25A;padding-bottom:10px">
-    <div><div style="font-weight:800;font-size:18px">LifePack · Visit Pack</div><div style="color:#6b7280;font-size:12.5px">${visitLabel}</div></div>
+    <div><div style="font-weight:800;font-size:18px">ReadiNes · Visit Pack</div><div style="color:#6b7280;font-size:12.5px">${visitLabel}</div></div>
     <div style="text-align:right"><div style="font-weight:800;font-size:15px">${m.name}</div><div style="color:#6b7280;font-size:12px">${m.relation}${a != null ? ` · ${a}y` : ""}${m.bloodGroup ? ` · ${m.bloodGroup}` : ""}</div></div>
   </div>
   ${sec("Critical", `<div style="font-size:13px;line-height:1.7"><b style="color:#b91c1c">Allergies:</b> ${care.allergies || "None recorded"}<br/><b>Conditions:</b> ${(care.conditions || []).join(", ") || "None recorded"}<br/><b>Primary physician:</b> ${care.doctor || "—"}${care.hospital ? `<br/><b>Preferred hospital:</b> ${care.hospital}` : ""}</div>`)}
@@ -1797,7 +1797,7 @@ function buildEmergency(m: Member | undefined, care: any, meds: Medication[], do
     `<tr><td style="padding:7px 12px;color:#6b7280;font-size:12px;width:140px">${a}</td><td style="padding:7px 12px;font-weight:700;font-size:14px;color:${warn ? "#b91c1c" : "#111827"}">${b}</td></tr>`;
   return `<div style="font-family:Inter,Arial,sans-serif;max-width:460px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e5e7eb">
   <div style="background:#b91c1c;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
-    <div style="font-weight:800;font-size:15px;letter-spacing:1px">EMERGENCY INFO</div><div style="font-size:12px;opacity:.9">LifePack</div>
+    <div style="font-weight:800;font-size:15px;letter-spacing:1px">EMERGENCY INFO</div><div style="font-size:12px;opacity:.9">ReadiNes</div>
   </div>
   <div style="padding:6px 4px"><table style="width:100%;border-collapse:collapse">
     ${row("Name", m.name)}
@@ -1809,7 +1809,7 @@ function buildEmergency(m: Member | undefined, care: any, meds: Medication[], do
     ${row("Preferred hospital", care.hospital || "—")}
     ${row("Emergency contact", care.emergency || "—")}
     ${row("Insurance", ins ? ins.name : "—")}
-    ${row("Medical documents", `${medDocs} on file in LifePack`)}
+    ${row("Medical documents", `${medDocs} on file in ReadiNes`)}
   </table></div>
   <div style="padding:10px 16px;background:#f9fafb;color:#9ca3af;font-size:11px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between"><span>Assembled facts only · no diagnosis.</span><span>Generated ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
   </div>`;
