@@ -65,6 +65,7 @@ import { getSession, signup, login, logout, deleteAccount, updateAccountName, ty
 import { ensureVaultReady } from "@/lib/session";
 import DocViewer from "@/components/DocViewer";
 import { getPackRequirements } from "@/lib/requirements";
+import { BrandMark, BrandWordmark } from "./components/BrandLogo";
 
 /* ── theme ── */
 const T = {
@@ -6672,21 +6673,8 @@ function AuthScreen({
     >
       <div style={{ width: "min(400px,100%)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, justifyContent: "center" }}>
-          <span
-            style={{
-              display: "grid",
-              placeItems: "center",
-              width: 38,
-              height: 38,
-              borderRadius: 11,
-              background: `linear-gradient(135deg, ${T.gold}, ${T.goldBright})`,
-            }}
-          >
-            <FileText size={19} color="#10182A" />
-          </span>
-          <b style={{ color: T.white, fontSize: 17 }}>
-            Readi<span style={{ color: T.gold }}>N</span>es
-          </b>
+          <BrandMark size={34} carve={T.navy} />
+          <BrandWordmark size={18} color={T.white} gold={T.gold} />
         </div>
         <div
           style={{
@@ -6805,21 +6793,8 @@ function OnboardingWizard({ store, onDone }: any) {
     >
       <div style={{ width: "min(460px,100%)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 22, justifyContent: "center" }}>
-          <span
-            style={{
-              display: "grid",
-              placeItems: "center",
-              width: 38,
-              height: 38,
-              borderRadius: 11,
-              background: `linear-gradient(135deg, ${T.gold}, ${T.goldBright})`,
-            }}
-          >
-            <FileText size={19} color="#10182A" />
-          </span>
-          <b style={{ color: T.white, fontSize: 17 }}>
-            Readi<span style={{ color: T.gold }}>N</span>es
-          </b>
+          <BrandMark size={34} carve={T.navy} />
+          <BrandWordmark size={18} color={T.white} gold={T.gold} />
         </div>
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 22 }}>
           {[0, 1, 2, 3].map((i) => (
@@ -6833,7 +6808,7 @@ function OnboardingWizard({ store, onDone }: any) {
           <div style={{ textAlign: "center" }}>
             <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>Welcome. What should we call you?</h2>
             <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
-              Your archive is seeded with a sample family so you can explore immediately; everything is editable.
+              Your name stays on this device. Your vault starts empty and private, and it comes to life with the very first document you add.
             </p>
             <input
               autoFocus

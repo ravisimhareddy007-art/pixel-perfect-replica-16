@@ -504,7 +504,7 @@ const SAMPLE: Omit<State, "theme" | "notifications" | "wealthPin" | "onboarded" 
 };
 const DEFAULT: State = {
   onboarded: true,
-  dataMode: "sample",
+  dataMode: "empty",
   members: seedMembers,
   docs: seedDocs,
   labs: seedLabs,
@@ -625,7 +625,7 @@ function load(): State {
         wealthPin: p.wealthPin ?? null,
         theme: p.theme ?? "dark",
         notifications: p.notifications ?? false,
-        dataMode: p.dataMode ?? "sample",
+        dataMode: p.dataMode ?? "empty",
       };
     }
   } catch {}
