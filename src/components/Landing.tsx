@@ -762,11 +762,16 @@ function AuthModal({
   onAuthed: (isNew: boolean, name: string) => void;
 }) {
   const [mode, setMode] = useState<"signin" | "signup">(initMode);
+  const [screen, setScreen] = useState<"start" | "creds" | "mfa" | "otp">("start");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [err, setErr] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [resent, setResent] = useState(false);
+  const [pending, setPending] = useState<{ isNew: boolean; name: string } | null>(null);
   const inp: React.CSSProperties = {
     width: "100%",
     background: "#fff",
@@ -779,18 +784,50 @@ function AuthModal({
     marginTop: 10,
     fontFamily: "inherit",
   };
+  const complete = (p = pending) => {
+    if (p) onAuthed(p.isNew, p.name);
+  };
   const submit = () => {
     setErr("");
     if (mode === "signup") {
       if (pw !== pw2) return setErr("Passwords do not match.");
       const r = signup(name, email, pw);
       if (!r.ok) return setErr(r.error);
-      onAuthed(true, r.account.name);
+      setPending({ isNew: true, name: r.account.name });
+      setScreen("mfa");
     } else {
       const r = login(email, pw);
       if (!r.ok) return setErr(r.error);
-      onAuthed(false, r.account.name);
+      setPending({ isNew: false, name: r.account.name });
+      setScreen("mfa");
     }
+  };
+  const mockGoogle = () => {
+    setErr("");
+    if (mode === "signin") {
+      // preview: treat as a fresh Google account each time
+    }
+    const r = signup("Google User", `user${Date.now()}@gmail.preview`, `g-${Date.now()}`);
+    if (!r.ok) return setErr(r.error);
+    setPending({ isNew: true, name: r.account.name });
+    setScreen("mfa");
+  };
+  const SEC = [
+    ["AES-256-GCM encryption", "Sealed on your device before anything is uploaded"],
+    ["Zero-knowledge design", "We cannot read your files. Not now, not ever"],
+    ["Two-factor authentication", "Your phone confirms every new sign-in"],
+    ["App lock and biometrics", "Face or fingerprint on mobile, PIN on shared screens"],
+    ["Emergency SOS handoff", "The right people get access only when you release it"],
+    ["Free export, forever", "Your documents are never held hostage"],
+  ];
+  const ghostBtn: React.CSSProperties = {
+    background: "none",
+    border: "none",
+    color: C.muted,
+    fontSize: 13,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    marginTop: 12,
   };
   return (
     <div
@@ -813,94 +850,266 @@ function AuthModal({
           background: C.paper,
           border: `1px solid ${C.border}`,
           borderRadius: 20,
-          width: "min(420px,100%)",
-          padding: 26,
+          width: screen === "start" ? "min(780px,100%)" : "min(440px,100%)",
+          display: "flex",
+          overflow: "hidden",
           boxShadow: "0 30px 80px rgba(34,30,23,.35)",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <b style={{ fontFamily: "'Space Grotesk'", fontSize: 20, color: C.ink }}>
-            {mode === "signin" ? "Welcome back" : "Start with ReadiNes"}
-          </b>
-          <button
-            onClick={onClose}
-            style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex" }}
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            border: `1px solid ${C.border}`,
-            borderRadius: 11,
-            overflow: "hidden",
-            background: "#fff",
-          }}
-        >
-          {(["signin", "signup"] as const).map((m) => (
+        <div style={{ flex: 1, padding: 26, minWidth: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <b style={{ fontFamily: "'Space Grotesk'", fontSize: 20, color: C.ink }}>
+              {screen === "mfa"
+                ? "Secure your account"
+                : screen === "otp"
+                  ? "Enter verification code"
+                  : mode === "signin"
+                    ? "Welcome back"
+                    : "Create your account"}
+            </b>
             <button
-              key={m}
-              onClick={() => {
-                setMode(m);
-                setErr("");
-              }}
-              style={{
-                flex: 1,
-                padding: "10px 0",
-                fontSize: 13.5,
-                fontWeight: 700,
-                cursor: "pointer",
-                border: "none",
-                fontFamily: "inherit",
-                background: mode === m ? C.goldSoft : "transparent",
-                color: mode === m ? C.ink : C.muted,
-              }}
+              onClick={onClose}
+              style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, display: "flex" }}
             >
-              {m === "signin" ? "Sign in" : "Create account"}
+              <X size={18} />
             </button>
-          ))}
+          </div>
+
+          {screen === "start" && (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 11,
+                  overflow: "hidden",
+                  background: "#fff",
+                  marginBottom: 14,
+                }}
+              >
+                {(["signin", "signup"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      setMode(m);
+                      setErr("");
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: "10px 0",
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "none",
+                      fontFamily: "inherit",
+                      background: mode === m ? C.goldSoft : "transparent",
+                      color: mode === m ? C.ink : C.muted,
+                    }}
+                  >
+                    {m === "signin" ? "Sign in" : "Create account"}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={mockGoogle}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
+                  background: "#fff",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 12,
+                  padding: "13px",
+                  fontSize: 14.5,
+                  fontWeight: 700,
+                  color: C.ink,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 48 48">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                Continue with Google
+              </button>
+              <button
+                onClick={() => setScreen("creds")}
+                style={{
+                  width: "100%",
+                  background: "#F1EADB",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: "13px",
+                  fontSize: 14.5,
+                  fontWeight: 700,
+                  color: C.ink,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  marginTop: 10,
+                }}
+              >
+                Continue with email
+              </button>
+              {err && <div style={{ color: "#B4231F", fontSize: 13, marginTop: 10 }}>{err}</div>}
+              <p style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 16, lineHeight: 1.5 }}>
+                By continuing you agree to our Terms and Privacy Policy.
+                <br />
+                Prototype accounts live on this device only.
+              </p>
+            </>
+          )}
+
+          {screen === "creds" && (
+            <>
+              {mode === "signup" && (
+                <input style={inp} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
+              )}
+              <input style={inp} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input
+                style={inp}
+                type="password"
+                placeholder="Password"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && mode === "signin" && submit()}
+              />
+              {mode === "signup" && (
+                <input
+                  style={inp}
+                  type="password"
+                  placeholder="Repeat password"
+                  value={pw2}
+                  onChange={(e) => setPw2(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && submit()}
+                />
+              )}
+              {err && <div style={{ color: "#B4231F", fontSize: 13, marginTop: 10 }}>{err}</div>}
+              <button onClick={submit} className="lp-cta" style={{ width: "100%", justifyContent: "center", marginTop: 14 }}>
+                {mode === "signin" ? "Sign in" : "Create my ReadiNes"} <ArrowRight size={15} />
+              </button>
+              <button onClick={() => { setScreen("start"); setErr(""); }} style={ghostBtn}>
+                ← Other sign-in options
+              </button>
+            </>
+          )}
+
+          {screen === "mfa" && (
+            <>
+              <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.6, margin: "0 0 6px" }}>
+                Two-factor authentication adds a second lock only you can open. Your phone confirms every new sign-in.
+              </p>
+              <div
+                style={{
+                  ...inp,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  cursor: "default",
+                  background: "#fff",
+                }}
+              >
+                <span style={{ fontSize: 15 }}>🇮🇳</span>
+                <span style={{ fontSize: 14.5, color: C.ink, fontWeight: 600 }}>India, +91</span>
+              </div>
+              <input
+                style={inp}
+                inputMode="numeric"
+                placeholder="Phone number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                onKeyDown={(e) => e.key === "Enter" && phone.length === 10 && setScreen("otp")}
+              />
+              <button
+                onClick={() => setScreen("otp")}
+                disabled={phone.length !== 10}
+                className="lp-cta"
+                style={{ width: "100%", justifyContent: "center", marginTop: 14, opacity: phone.length === 10 ? 1 : 0.45 }}
+              >
+                Continue <ArrowRight size={15} />
+              </button>
+              <button onClick={() => complete()} style={ghostBtn}>
+                I will do this later
+              </button>
+            </>
+          )}
+
+          {screen === "otp" && (
+            <>
+              <p style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.6, margin: "0 0 6px" }}>
+                Enter the 6-digit code sent to your number.
+              </p>
+              <div style={{ ...inp, display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", cursor: "default" }}>
+                <span style={{ fontSize: 14.5, color: C.ink, fontWeight: 600 }}>+91 {phone}</span>
+                <button onClick={() => setScreen("mfa")} style={{ background: "none", border: "none", color: C.gold, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Edit
+                </button>
+              </div>
+              <input
+                style={{ ...inp, textAlign: "center", letterSpacing: 8, fontFamily: "ui-monospace, monospace", fontSize: 18 }}
+                inputMode="numeric"
+                placeholder="000000"
+                value={otp}
+                autoFocus
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onKeyDown={(e) => e.key === "Enter" && otp.length === 6 && complete()}
+              />
+              <button
+                onClick={() => complete()}
+                disabled={otp.length !== 6}
+                className="lp-cta"
+                style={{ width: "100%", justifyContent: "center", marginTop: 14, opacity: otp.length === 6 ? 1 : 0.45 }}
+              >
+                Verify and continue <ArrowRight size={15} />
+              </button>
+              <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 12, fontSize: 13, color: C.muted }}>
+                Didn't receive a code?
+                <button
+                  onClick={() => setResent(true)}
+                  style={{ background: "none", border: "none", color: C.gold, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13, padding: 0 }}
+                >
+                  {resent ? "Sent again" : "Resend"}
+                </button>
+              </div>
+            </>
+          )}
         </div>
-        {mode === "signup" && (
-          <input style={inp} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} />
-        )}
-        <input style={inp} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input
-          style={inp}
-          type="password"
-          placeholder="Password"
-          value={pw}
-          onChange={(e) => setPw(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && mode === "signin" && submit()}
-        />
-        {mode === "signup" && (
-          <input
-            style={inp}
-            type="password"
-            placeholder="Repeat password"
-            value={pw2}
-            onChange={(e) => setPw2(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-          />
-        )}
-        {err && <div style={{ color: "#B4231F", fontSize: 13, marginTop: 10 }}>{err}</div>}
-        <button onClick={submit} className="lp-cta" style={{ width: "100%", justifyContent: "center", marginTop: 14 }}>
-          {mode === "signin" ? "Sign in" : "Create my ReadiNes"} <ArrowRight size={15} />
-        </button>
-        <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.border}`, display: "grid", gap: 6 }}>
-          {[
-            "Encrypted on your device before anything is stored",
-            "We cannot read your files. Not now, not ever",
-            "Export everything, free, forever",
-          ].map((t) => (
-            <div key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: C.muted }}>
-              <Lock size={11} color={C.gold} /> {t}
+
+        {screen === "start" && (
+          <div
+            className="rn-authside"
+            style={{
+              width: 300,
+              background: C.ink,
+              padding: "26px 22px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              flexShrink: 0,
+            }}
+          >
+            <b style={{ color: "#F3EEE2", fontSize: 17, fontFamily: "'Space Grotesk'", lineHeight: 1.35 }}>
+              Security you can verify. Privacy you don't have to trust us for.
+            </b>
+            <div style={{ display: "grid", gap: 10 }}>
+              {SEC.map(([t, sub]) => (
+                <div key={t} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
+                  <span style={{ width: 20, height: 20, borderRadius: 99, background: "#D9A441", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}>
+                    <Check size={12} color="#1E242B" strokeWidth={3} />
+                  </span>
+                  <span>
+                    <span style={{ display: "block", color: "#F3EEE2", fontSize: 13, fontWeight: 700 }}>{t}</span>
+                    <span style={{ display: "block", color: "#A9A395", fontSize: 11.5, lineHeight: 1.45 }}>{sub}</span>
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <p style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
-          Prototype accounts live on this device only. Production replaces this with server-side auth.
-        </p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1248,6 +1457,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 }
 
 const CSS = `
+@media(max-width:819px){.rn-authside{display:none!important}}
+
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 .lp-root{background:${C.paper};color:${C.ink};font-family:'Inter',system-ui,sans-serif;overflow-x:hidden}
 .lp-root *{box-sizing:border-box}
