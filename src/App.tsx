@@ -56,6 +56,8 @@ import {
   Sparkles,
   HardDrive,
   RefreshCw,
+  Baby,
+  Gem,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import type { Category, Doc, Member, Access, Holding, Transaction, Reminder } from "@/lib/types";
@@ -1612,7 +1614,7 @@ function Home({ store, go, toast }: any) {
           <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.6, margin: "0 0 14px", maxWidth: 560 }}>
             This vault gets smarter with every single page you give it. Add one document and watch the whole app come
             to life: readiness scores fill in, packs start matching, and the next big moment starts becoming the easy
-            one. Want to see it full first? Switch to the sample family in Settings.
+            one.
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <label style={{ ...btnGold, cursor: "pointer" }}>
@@ -1632,9 +1634,6 @@ function Home({ store, go, toast }: any) {
             </label>
             <button onClick={() => go("packages")} style={btnGhost}>
               <Plane size={15} /> Browse the 100 packs
-            </button>
-            <button onClick={() => go("settings")} style={btnGhost}>
-              <SettingsIcon size={15} /> Load sample family
             </button>
           </div>
         </Card>
@@ -4660,7 +4659,6 @@ const NAV: [string, string, any][] = [
   ["packages", "Packages", Plane],
   ["health", "Health", HeartPulse],
   ["wealth", "Wealth", Wallet],
-  ["trust", "Trust center", ShieldCheck],
   ["settings", "Settings", SettingsIcon],
 ];
 
@@ -6389,6 +6387,13 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
               value={store.wealthPin ? "On" : "Off"}
               onClick={() => setPinModal(true)}
             />
+            <Row
+              icon={ShieldCheck}
+              label="Family & Trust center"
+              sub="Access levels, emergency contacts and SOS handoff"
+              value=""
+              onClick={() => go("trust")}
+            />
           </Section>
           <Section label="Preferences">
             <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 16px" }}>
@@ -6745,25 +6750,18 @@ function OnboardingWizard({ store, onDone }: any) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [picks, setPicks] = useState<Set<string>>(new Set());
-  const [pin, setPin] = useState("");
-  const [pin2, setPin2] = useState("");
-  const [err, setErr] = useState("");
   const INTERESTS = [
     ["schengen", "A visa or trip abroad", Plane],
-    ["homeloan", "A home or home loan", HomeIcon],
-    ["hospital", "Family health readiness", HeartPulse],
-    ["will-prep", "Estate and nominees", Wallet],
+    ["home-buy", "Buying a home", HomeIcon],
+    ["home-loan", "A home loan", Wallet],
+    ["baby", "A new baby", Baby],
+    ["wedding", "A wedding", Gem],
+    ["tax", "Tax season", FileText],
     ["school-adm", "Kids' school or exams", GraduationCap],
     ["onboarding", "A job change", Briefcase],
   ] as const;
   const finish = () => {
-    if (pin) {
-      if (pin.length < 4 || pin !== pin2) {
-        setErr(pin !== pin2 ? "The two entries do not match." : "Use 4 to 6 digits.");
-        return;
-      }
-      store.setWealthPin(pinHash(pin));
-    }
+    try { localStorage.setItem("rn-moments", JSON.stringify([...picks])); } catch {}
     store.setOnboarded(true);
     onDone(picks.size > 0);
   };
@@ -6796,8 +6794,19 @@ function OnboardingWizard({ store, onDone }: any) {
           <BrandMark size={34} carve={T.navy} />
           <BrandWordmark size={18} color={T.white} gold={T.gold} />
         </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <button
+            onClick={() => setStep((v) => Math.max(0, v - 1))}
+            style={{ visibility: step > 0 ? "visible" : "hidden", background: "none", border: "none", color: T.muted, fontSize: 12.5, cursor: "pointer" }}
+          >
+            ← Back
+          </button>
+          <button onClick={finish} style={{ background: "none", border: "none", color: T.muted, fontSize: 12.5, cursor: "pointer" }}>
+            Skip setup
+          </button>
+        </div>
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 22 }}>
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2].map((i) => (
             <span
               key={i}
               style={{ width: 26, height: 4, borderRadius: 4, background: i <= step ? T.gold : T.raised }}
@@ -6875,6 +6884,9 @@ function OnboardingWizard({ store, onDone }: any) {
                 </div>
               ))}
             </div>
+            <p style={{ color: T.faint, fontSize: 12, margin: "14px 0 0", textAlign: "center" }}>
+              One vault behind it all: Documents · Packages · Health · Wealth · Family access
+            </p>
             <button
               onClick={() => setStep(2)}
               style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 16 }}
@@ -6887,7 +6899,7 @@ function OnboardingWizard({ store, onDone }: any) {
           <div style={{ textAlign: "center" }}>
             <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>What is coming up in your life?</h2>
             <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
-              Pick anything that applies; we will show how ready you already are.
+              This chooses which curated packs we spotlight first. Nothing is locked out; every pack stays available.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
               {INTERESTS.map(([id, label, Ic]) => {
@@ -6923,69 +6935,11 @@ function OnboardingWizard({ store, onDone }: any) {
               })}
             </div>
             <button
-              onClick={() => setStep(3)}
+              onClick={finish}
               style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
             >
               Continue <ArrowRight size={15} />
             </button>
-          </div>
-        )}
-        {step === 3 && (
-          <div style={{ textAlign: "center" }}>
-            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>Lock the Wealth tab?</h2>
-            <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
-              Optional passcode for shared screens. An app lock, not encryption; you can add or remove it any time in
-              Wealth.
-            </p>
-            <input
-              type="password"
-              inputMode="numeric"
-              style={{ ...inp, textAlign: "center", letterSpacing: 6, fontFamily: "ui-monospace, monospace" }}
-              placeholder="4–6 digits (optional)"
-              value={pin}
-              onChange={(e) => {
-                setErr("");
-                setPin(e.target.value.replace(/\D/g, "").slice(0, 6));
-              }}
-            />
-            {pin && (
-              <input
-                type="password"
-                inputMode="numeric"
-                style={{
-                  ...inp,
-                  textAlign: "center",
-                  letterSpacing: 6,
-                  fontFamily: "ui-monospace, monospace",
-                  marginTop: 9,
-                }}
-                placeholder="Repeat it"
-                value={pin2}
-                onChange={(e) => {
-                  setErr("");
-                  setPin2(e.target.value.replace(/\D/g, "").slice(0, 6));
-                }}
-              />
-            )}
-            {err && <div style={{ color: T.coral, fontSize: 12.5, marginTop: 8 }}>{err}</div>}
-            <button onClick={finish} style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}>
-              {pin ? "Set passcode and enter" : "Enter ReadiNes"} <ArrowRight size={15} />
-            </button>
-            {!pin && (
-              <button
-                onClick={finish}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: T.muted,
-                  fontSize: 12.5,
-                  marginTop: 10,
-                  cursor: "pointer",
-                }}
-              >
-                Skip for now
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -7179,7 +7133,7 @@ export default function App() {
         >
           {navOpen ? (
             <>
-              <ChevronsLeft size={16} /> Collapse
+              <ChevronsLeft size={16} />
             </>
           ) : (
             <ChevronsRight size={16} />
