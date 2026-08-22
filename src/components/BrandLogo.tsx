@@ -29,18 +29,18 @@ export function BrandMark({
       aria-label={title}
     >
       <path
-        d="M72 124 C96 142 112 152 128 162 L198 203"
+        d="M74 122 L190 198"
         fill="none"
         stroke={color}
         strokeLinecap="round"
         strokeWidth={26}
       />
-      <g transform="translate(158.5,164.7) rotate(30.4)">
+      <g transform="translate(150.7,156.7) rotate(33.2)">
         <rect x="0" y="-24" width="17" height="26" rx="3" fill={color} />
         <rect x="3.5" y="-18" width="10" height="2.4" rx="1.2" fill={carve} />
         <rect x="3.5" y="-13" width="7.5" height="2.4" rx="1.2" fill={carve} />
       </g>
-      <g transform="translate(181.5,178.2) rotate(30.4)">
+      <g transform="translate(177.4,174.2) rotate(33.2)">
         <rect x="0" y="-24" width="17" height="26" rx="3" fill={color} />
         <rect x="3.5" y="-18" width="10" height="2.4" rx="1.2" fill={carve} />
         <rect x="3.5" y="-13" width="7.5" height="2.4" rx="1.2" fill={carve} />
@@ -98,14 +98,14 @@ export function BrandWordmark({
         aria-hidden
       >
         <path
-          d="M3 33 L10 45 L22 13"
+          d="M3 33 L10 45 L21 16"
           fill="none"
           stroke={color}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeWidth={8}
         />
-        <circle cx="23" cy="5" r="4.6" fill={gold} />
+        <circle cx="22.5" cy="4.5" r="4" fill={gold} />
       </svg>
       <span style={{ color: gold }}>N</span>es
     </span>
