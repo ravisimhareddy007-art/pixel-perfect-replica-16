@@ -1431,22 +1431,23 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               width: 56,
               height: 56,
               borderRadius: 16,
-              background: C.emerald + "18",
-              border: `1px solid ${C.emerald}33`,
+              background: C.goldSoft,
+              border: `1px solid ${C.gold}44`,
               margin: "0 auto 20px",
             }}
           >
-            <Lock size={26} color={C.emerald} />
+            <Lock size={26} color={C.gold} />
           </span>
           <h2 className="lp-h2" style={{ maxWidth: 640, margin: "0 auto" }}>
             Private by design. Yours alone.
           </h2>
           <p className="lp-body" style={{ marginTop: 14, maxWidth: 620, margin: "14px auto 0", fontSize: 16 }}>
-            Your archive is encrypted on your own device, not on our servers. You choose who in the family sees what,
-            and you can pass it on cleanly when it matters most.
+            Every document is sealed on your device with AES-256-GCM before it goes anywhere; our servers only ever
+            hold ciphertext we cannot read. You choose who in the family sees what, and you can pass it on cleanly
+            when it matters most.
           </p>
           <div className="lp-trust" style={{ justifyContent: "center", marginTop: 22, color: C.muted }}>
-            <ShieldCheck size={13} color={C.emerald} /> encrypted archive · family access levels · no ads, ever
+            <ShieldCheck size={13} color={C.gold} /> AES-256-GCM · zero-knowledge by design · no ads, ever
           </div>
         </motion.div>
       </section>
