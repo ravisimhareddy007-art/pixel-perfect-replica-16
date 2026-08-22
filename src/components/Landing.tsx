@@ -1407,60 +1407,61 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
       <section id="pricing" className="lp-wrap">
         <motion.div {...fade()} style={{ textAlign: "center" }}>
           <div className="lp-eyebrow" style={{ display: "flex", justifyContent: "center" }}>Pricing</div>
-          <h2 className="lp-h2">One plan. Everything included.</h2>
+          <h2 className="lp-h2">Start free. One plan when you're ready.</h2>
           <p className="lp-sub" style={{ marginTop: 10, marginLeft: "auto", marginRight: "auto" }}>
-            No tiers to decode, nothing held back. The only decision is how you pay.
+            No silver-gold-platinum ladder to decode. A free vault to begin, and a single full plan with everything included.
           </p>
         </motion.div>
-        <motion.div {...fade(0.1)} style={{ maxWidth: 440, margin: "30px auto 0" }}>
-          <div
-            style={{
-              background: "#fff",
-              border: `1.5px solid ${C.gold}`,
-              borderRadius: 22,
-              overflow: "hidden",
-              boxShadow: "0 24px 60px rgba(34,30,23,.10)",
-            }}
-          >
-            <div
-              style={{
-                background: C.ink,
-                color: "#E2C285",
-                fontSize: 11.5,
-                fontWeight: 800,
-                letterSpacing: 1.8,
-                textAlign: "center",
-                padding: "9px 0",
-              }}
-            >
+        <motion.div
+          {...fade(0.1)}
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 18, maxWidth: 900, margin: "30px auto 0", alignItems: "start" }}
+        >
+          <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 22, overflow: "hidden" }}>
+            <div style={{ background: C.paper, color: C.muted, fontSize: 11.5, fontWeight: 800, letterSpacing: 1.8, textAlign: "center", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
+              FREE FOREVER
+            </div>
+            <div style={{ padding: "22px 26px 26px" }}>
+              <div style={{ textAlign: "center", marginBottom: 6, paddingTop: 47 }}>
+                <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>₹0</span>
+                <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>Try the whole idea, at no cost, forever</div>
+              </div>
+              <div style={{ display: "grid", gap: 8, margin: "18px 0 20px" }}>
+                {[
+                  "Encrypted vault with 50 MB of storage",
+                  "3 AI document actions every month",
+                  "1 curated pack to experience readiness",
+                  "Every module open: browse and add manually",
+                  "Export everything, free, forever",
+                ].map((f) => (
+                  <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: C.body }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 99, background: C.goldSoft, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}><Check size={11} color={C.gold} strokeWidth={3} /></span>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  sessionStorage.setItem("lp-fresh", "1");
+                  onEnter();
+                }}
+                style={{ width: "100%", background: "none", border: `1.5px solid ${C.ink}`, borderRadius: 12, padding: "13px", fontSize: 14.5, fontWeight: 700, color: C.ink, cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "center", alignItems: "center", gap: 8 }}
+              >
+                Start free <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ background: "#fff", border: `1.5px solid ${C.gold}`, borderRadius: 22, overflow: "hidden", boxShadow: "0 24px 60px rgba(34,30,23,.10)" }}>
+            <div style={{ background: C.ink, color: "#E2C285", fontSize: 11.5, fontWeight: 800, letterSpacing: 1.8, textAlign: "center", padding: "9px 0" }}>
               FOUNDING PRICE · FIRST 1,000 MEMBERS
             </div>
             <div style={{ padding: "22px 26px 26px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 11,
-                  overflow: "hidden",
-                  background: C.paper,
-                  marginBottom: 18,
-                }}
-              >
+              <div style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 11, overflow: "hidden", background: C.paper, marginBottom: 18 }}>
                 {(["annual", "monthly"] as const).map((b) => (
                   <button
                     key={b}
                     onClick={() => setBilling(b)}
-                    style={{
-                      flex: 1,
-                      padding: "9px 0",
-                      fontSize: 13.5,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      border: "none",
-                      fontFamily: "inherit",
-                      background: billing === b ? C.goldSoft : "transparent",
-                      color: billing === b ? C.ink : C.muted,
-                    }}
+                    style={{ flex: 1, padding: "9px 0", fontSize: 13.5, fontWeight: 700, cursor: "pointer", border: "none", fontFamily: "inherit", background: billing === b ? C.goldSoft : "transparent", color: billing === b ? C.ink : C.muted }}
                   >
                     {b === "annual" ? "Annual" : "Monthly"}
                   </button>
@@ -1468,9 +1469,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               </div>
               {billing === "annual" ? (
                 <div style={{ textAlign: "center", marginBottom: 6 }}>
-                  <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>
-                    ₹1,499
-                  </span>
+                  <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>₹1,499</span>
                   <span style={{ fontSize: 15, color: C.muted }}> /year</span>
                   <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>
                     <s style={{ opacity: 0.7 }}>₹1,999</s> · standard price after the first 1,000 members
@@ -1478,28 +1477,22 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
                 </div>
               ) : (
                 <div style={{ textAlign: "center", marginBottom: 6 }}>
-                  <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>
-                    ₹249
-                  </span>
+                  <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>₹249</span>
                   <span style={{ fontSize: 15, color: C.muted }}> /month</span>
-                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>
-                    Cancel anytime · annual saves ₹989 a year
-                  </div>
+                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>Cancel anytime · annual saves ₹989 a year</div>
                 </div>
               )}
               <div style={{ display: "grid", gap: 8, margin: "18px 0 20px" }}>
                 {[
-                  "Every module: Documents, Packages, Health, Wealth, Trust",
-                  "100+ curated life-event packs, India-first",
-                  "AI document reading and readiness scores",
+                  "Everything in Free, without limits",
+                  "Unlimited AI reading, filing and readiness scores",
+                  "All 100+ curated life-event packs, India-first",
+                  "Family-scale encrypted storage",
                   "Family access levels with SOS handoff",
-                  "AES-256-GCM encryption, sealed on your device",
-                  "Export everything, free, forever",
+                  "Source connections: Gmail, Drive, DigiLocker",
                 ].map((f) => (
                   <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: C.body }}>
-                    <span style={{ width: 18, height: 18, borderRadius: 99, background: C.goldSoft, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}>
-                      <Check size={11} color={C.gold} strokeWidth={3} />
-                    </span>
+                    <span style={{ width: 18, height: 18, borderRadius: 99, background: C.goldSoft, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}><Check size={11} color={C.gold} strokeWidth={3} /></span>
                     {f}
                   </div>
                 ))}
@@ -1516,11 +1509,36 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               </button>
             </div>
           </div>
-          <p style={{ fontSize: 12.5, color: C.muted, textAlign: "center", lineHeight: 1.6, margin: "14px auto 0", maxWidth: 400 }}>
-            Your documents are never locked behind a paywall. If you ever stop paying, you keep every file and every
-            export — the AI simply stops doing new work.
-          </p>
         </motion.div>
+
+        <motion.div {...fade(0.15)} style={{ maxWidth: 900, margin: "28px auto 0", background: "#fff", border: `1px solid ${C.border}`, borderRadius: 18, overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr 1fr", background: C.paper, borderBottom: `1px solid ${C.border}`, padding: "12px 18px", fontSize: 12.5, fontWeight: 800, color: C.ink, letterSpacing: 0.4 }}>
+            <span>What you get</span>
+            <span style={{ textAlign: "center" }}>Free</span>
+            <span style={{ textAlign: "center" }}>Full plan</span>
+          </div>
+          {[
+            ["Encrypted storage", "50 MB", "Family-scale"],
+            ["AI document actions", "3 / month", "Unlimited"],
+            ["Curated life-event packs", "1 sample pack", "All 100+"],
+            ["Readiness scores", "On your sample pack", "Across every pack"],
+            ["Modules: Documents, Health, Wealth, Trust", "Browse and add manually", "Full AI automation"],
+            ["Family access levels + SOS handoff", "—", "Included"],
+            ["Gmail, Drive and DigiLocker connections", "—", "Included"],
+            ["Export your documents", "Free, always", "Free, always"],
+            ["Your files if you stop paying", "Yours, always", "Yours, always"],
+          ].map(([a, b, c], i) => (
+            <div key={a} style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr 1fr", padding: "11px 18px", fontSize: 13, color: C.body, borderBottom: i < 8 ? `1px solid ${C.border}` : "none", alignItems: "center" }}>
+              <span style={{ fontWeight: 600, color: C.ink }}>{a}</span>
+              <span style={{ textAlign: "center", color: b === "—" ? C.muted : C.body }}>{b}</span>
+              <span style={{ textAlign: "center", fontWeight: 600 }}>{c}</span>
+            </div>
+          ))}
+        </motion.div>
+        <p style={{ fontSize: 12.5, color: C.muted, textAlign: "center", lineHeight: 1.6, margin: "16px auto 0", maxWidth: 460 }}>
+          Your documents are never locked behind a paywall. If you ever stop paying, you keep every file and every
+          export — the AI simply stops doing new work. No ads, no selling your data, ever.
+        </p>
       </section>
 
       <section className="lp-wrap">
