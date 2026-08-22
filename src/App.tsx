@@ -1609,9 +1609,9 @@ function Home({ store, go, toast }: any) {
             <b style={{ color: T.white, fontSize: 16 }}>Welcome to ReadiNes</b>
           </div>
           <p style={{ fontSize: 13.5, color: T.muted, lineHeight: 1.6, margin: "0 0 14px", maxWidth: 560 }}>
-            This is exactly what a brand-new user sees on day zero. Add a few documents and watch the whole app come to
-            life: readiness scores fill in, packs start matching, and your archive builds itself. Prefer to explore with
-            data first? Switch to the sample family in Settings.
+            This vault gets smarter with every single page you give it. Add one document and watch the whole app come
+            to life: readiness scores fill in, packs start matching, and the next big moment starts becoming the easy
+            one. Want to see it full first? Switch to the sample family in Settings.
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <label style={{ ...btnGold, cursor: "pointer" }}>
@@ -3251,7 +3251,7 @@ function Documents({ store, toast }: any) {
               <div style={{ padding: "40px 16px", textAlign: "center" }}>
                 <FolderOpen size={30} color={T.faint} style={{ margin: "0 auto 10px", display: "block" }} />
                 <div style={{ color: T.text, fontWeight: 600, fontSize: 14.5 }}>
-                  {docs.length === 0 ? "Nothing here yet" : "No documents match these filters"}
+                  {docs.length === 0 ? "Your vault is waiting for its first document" : "No documents match these filters"}
                 </div>
                 <div style={{ color: T.muted, fontSize: 13, marginTop: 4 }}>
                   {docs.length === 0
