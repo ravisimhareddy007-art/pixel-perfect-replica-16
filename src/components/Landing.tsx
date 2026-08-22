@@ -914,23 +914,6 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
-              onClick={() => {
-                sessionStorage.setItem("lp-demo", "1");
-                onEnter();
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: 14,
-                fontWeight: 600,
-                color: C.muted,
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              Try a demo
-            </button>
-            <button
               onClick={() => setAuth("signin")}
               style={{
                 background: "none",
@@ -990,27 +973,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
                 }}
                 className="lp-cta"
               >
-                Open ReadiNes <ArrowRight size={17} />
-              </button>
-              <button
-                onClick={() => {
-                  sessionStorage.setItem("lp-fresh", "1");
-                  onEnter();
-                }}
-                style={{
-                  background: "none",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 12,
-                  padding: "13px 22px",
-                  fontSize: 14.5,
-                  fontWeight: 600,
-                  color: C.ink,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  marginLeft: 12,
-                }}
-              >
-                Try an empty workspace
+                Get started <ArrowRight size={17} />
               </button>
               <span className="lp-trust">
                 <Lock size={12} /> private by design · encrypted · you control what is stored
@@ -1226,7 +1189,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           </div>
           <div style={{ position: "relative" }}>
             <h2 className="lp-h1" style={{ fontSize: 40 }}>
-              Start your family's <span style={{ color: C.clay }}>living archive.</span>
+              Be ready for life's <span style={{ color: C.clay }}>important moments.</span>
             </h2>
             <p className="lp-sub" style={{ marginTop: 12, marginLeft: "auto", marginRight: "auto" }}>
               Set it up once, and let the next big moment be the easy one.
@@ -1239,7 +1202,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               className="lp-cta"
               style={{ marginTop: 26 }}
             >
-              Open ReadiNes <ArrowRight size={17} />
+              Get started <ArrowRight size={17} />
             </button>
           </div>
         </motion.div>

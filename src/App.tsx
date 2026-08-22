@@ -6593,7 +6593,7 @@ function SettingsPage({ store, account, go, toast, onSignOut, onDeleteAccount }:
       {modal === "about" && (
         <Overlay title="About ReadiNes">
           <p style={{ fontSize: 13.5, color: T.text, lineHeight: 1.7, margin: 0 }}>
-            ReadiNes is a living archive for a family's documented life: it understands the documents you save, knows
+            ReadiNes keeps your family ready for life's important moments: it understands the documents you save, knows
             what a hundred real-world situations require, shows how ready you already are, and assembles the pack when
             the moment comes.
           </p>
