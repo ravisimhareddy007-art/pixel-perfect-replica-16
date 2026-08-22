@@ -22,25 +22,25 @@ export function BrandMark({
   return (
     <svg
       width={size}
-      height={size * (204 / 192)}
-      viewBox="34 20 192 204"
+      height={size * (196 / 156)}
+      viewBox="38 22 156 196"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label={title}
     >
       <path
-        d="M74 122 L190 198"
+        d="M76 122 L164 198"
         fill="none"
         stroke={color}
         strokeLinecap="round"
         strokeWidth={26}
       />
-      <g transform="translate(150.7,156.7) rotate(33.2)">
+      <g transform="translate(135.5,156.3) rotate(40.8)">
         <rect x="0" y="-24" width="17" height="26" rx="3" fill={color} />
         <rect x="3.5" y="-18" width="10" height="2.4" rx="1.2" fill={carve} />
         <rect x="3.5" y="-13" width="7.5" height="2.4" rx="1.2" fill={carve} />
       </g>
-      <g transform="translate(177.4,174.2) rotate(33.2)">
+      <g transform="translate(156.7,174.5) rotate(40.8)">
         <rect x="0" y="-24" width="17" height="26" rx="3" fill={color} />
         <rect x="3.5" y="-18" width="10" height="2.4" rx="1.2" fill={carve} />
         <rect x="3.5" y="-13" width="7.5" height="2.4" rx="1.2" fill={carve} />
