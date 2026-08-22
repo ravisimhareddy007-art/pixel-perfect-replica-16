@@ -887,6 +887,17 @@ function AuthModal({
         <button onClick={submit} className="lp-cta" style={{ width: "100%", justifyContent: "center", marginTop: 14 }}>
           {mode === "signin" ? "Sign in" : "Create my ReadiNes"} <ArrowRight size={15} />
         </button>
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.border}`, display: "grid", gap: 6 }}>
+          {[
+            "Encrypted on your device before anything is stored",
+            "We cannot read your files. Not now, not ever",
+            "Export everything, free, forever",
+          ].map((t) => (
+            <div key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: C.muted }}>
+              <Lock size={11} color={C.gold} /> {t}
+            </div>
+          ))}
+        </div>
         <p style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 1.5 }}>
           Prototype accounts live on this device only. Production replaces this with server-side auth.
         </p>

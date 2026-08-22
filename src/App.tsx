@@ -1638,6 +1638,65 @@ function Home({ store, go, toast }: any) {
           </div>
         </Card>
       )}
+      {store.docs.length === 0 && (() => {
+        let picked: string[] = [];
+        try { picked = JSON.parse(localStorage.getItem("rn-moments") || "[]"); } catch {}
+        const STARTERS: Record<string, [string, string[]]> = {
+          schengen: ["A visa or trip abroad", ["Passport", "Bank statements (6 months)", "Passport photos"]],
+          "home-buy": ["Buying a home", ["PAN card", "Salary slips (3 months)", "Bank statements"]],
+          "home-loan": ["A home loan", ["Form 16", "Salary slips (3 months)", "Property papers"]],
+          baby: ["A new baby", ["Health insurance policy", "Aadhaar (both parents)", "Hospital records"]],
+          wedding: ["A wedding", ["Birth certificate", "Aadhaar", "Passport photos"]],
+          tax: ["Tax season", ["Form 16", "Investment proofs", "Rent receipts"]],
+          "school-adm": ["Kids' school or exams", ["Birth certificate", "Previous marksheets", "Address proof"]],
+          onboarding: ["A job change", ["PAN card", "Educational certificates", "Relieving letter"]],
+        };
+        const cards = picked.filter((id) => STARTERS[id]);
+        if (!cards.length) return null;
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12, marginBottom: 20 }}>
+            {cards.map((id) => {
+              const [title, docs3] = STARTERS[id];
+              return (
+                <Card key={id} style={{ padding: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ width: 30, height: 30, borderRadius: 99, border: `2.5px solid ${T.gold}`, display: "grid", placeItems: "center", fontSize: 10, fontWeight: 800, color: T.gold }}>0%</span>
+                    <b style={{ color: T.white, fontSize: 14 }}>{title}</b>
+                  </div>
+                  <p style={{ color: T.muted, fontSize: 12.5, margin: "0 0 8px" }}>Start with these three:</p>
+                  <div style={{ display: "grid", gap: 5, marginBottom: 12 }}>
+                    {docs3.map((d) => (
+                      <div key={d} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: T.text }}>
+                        <FileText size={12} color={T.gold} /> {d}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <label style={{ ...btnGold, cursor: "pointer", fontSize: 12.5, padding: "7px 12px" }}>
+                      <UploadCloud size={13} /> Add these
+                      <input
+                        type="file"
+                        multiple
+                        hidden
+                        onChange={(e) => {
+                          if (e.target.files?.length) {
+                            store.addFiles(e.target.files);
+                            toast(`${e.target.files.length} document(s) added`);
+                          }
+                          e.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                    <button onClick={() => go("packages")} style={{ background: "none", border: "none", color: T.muted, fontSize: 12, cursor: "pointer" }}>
+                      Full pack →
+                    </button>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        );
+      })()}
       <div
         style={{
           display: "grid",
@@ -6750,6 +6809,7 @@ function OnboardingWizard({ store, onDone }: any) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
   const [picks, setPicks] = useState<Set<string>>(new Set());
+  const [sealPhase, setSealPhase] = useState(0);
   const INTERESTS = [
     ["schengen", "A visa or trip abroad", Plane],
     ["home-buy", "Buying a home", HomeIcon],
@@ -6762,9 +6822,24 @@ function OnboardingWizard({ store, onDone }: any) {
   ] as const;
   const finish = () => {
     try { localStorage.setItem("rn-moments", JSON.stringify([...picks])); } catch {}
+    if (name.trim()) store.updateMember("you", { name: name.trim() });
     store.setOnboarded(true);
     onDone(picks.size > 0);
   };
+  const SEAL_LINES = [
+    "Generating your keys on this device…",
+    "Encrypting your space. Nothing readable ever leaves your device.",
+    "Done. Only you hold the key.",
+  ];
+  useEffect(() => {
+    if (step !== 2) return;
+    setSealPhase(0);
+    const t1 = setTimeout(() => setSealPhase(1), 900);
+    const t2 = setTimeout(() => setSealPhase(2), 1900);
+    const t3 = setTimeout(() => finish(), 2800);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
   const inp: CSSProperties = {
     width: "100%",
     background: T.raised,
@@ -6772,8 +6847,10 @@ function OnboardingWizard({ store, onDone }: any) {
     borderRadius: 10,
     padding: "11px 13px",
     color: T.white,
-    fontSize: 15,
+    fontSize: 14.5,
     outline: "none",
+    fontFamily: "inherit",
+    textAlign: "center",
   };
   return (
     <div
@@ -6797,11 +6874,14 @@ function OnboardingWizard({ store, onDone }: any) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
           <button
             onClick={() => setStep((v) => Math.max(0, v - 1))}
-            style={{ visibility: step > 0 ? "visible" : "hidden", background: "none", border: "none", color: T.muted, fontSize: 12.5, cursor: "pointer" }}
+            style={{ visibility: step === 1 ? "visible" : "hidden", background: "none", border: "none", color: T.muted, fontSize: 12.5, cursor: "pointer" }}
           >
             ← Back
           </button>
-          <button onClick={finish} style={{ background: "none", border: "none", color: T.muted, fontSize: 12.5, cursor: "pointer" }}>
+          <button
+            onClick={finish}
+            style={{ visibility: step < 2 ? "visible" : "hidden", background: "none", border: "none", color: T.muted, fontSize: 12.5, cursor: "pointer" }}
+          >
             Skip setup
           </button>
         </div>
@@ -6814,88 +6894,6 @@ function OnboardingWizard({ store, onDone }: any) {
           ))}
         </div>
         {step === 0 && (
-          <div style={{ textAlign: "center" }}>
-            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>Welcome. What should we call you?</h2>
-            <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
-              Your name stays on this device. Your vault starts empty and private, and it comes to life with the very first document you add.
-            </p>
-            <input
-              autoFocus
-              style={inp}
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && setStep(1)}
-            />
-            <button
-              onClick={() => {
-                if (name.trim()) store.updateMember("you", { name: name.trim() });
-                setStep(1);
-              }}
-              style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
-            >
-              Continue <ArrowRight size={15} />
-            </button>
-          </div>
-        )}
-        {step === 1 && (
-          <div style={{ textAlign: "center" }}>
-            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>How ReadiNes works</h2>
-            <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
-              Three steps, that is the whole product.
-            </p>
-            <div style={{ display: "grid", gap: 10, textAlign: "left" }}>
-              {[
-                [UploadCloud, "Add", "Drop in a document. ReadiNes reads it and files it automatically."],
-                [Plane, "Match", "It checks your archive against 100 real situations and shows how ready you are."],
-                [FileText, "Assemble", "When the moment comes, export the exact pack you need in one tap."],
-              ].map(([Ic, t, b]: any, i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "flex-start",
-                    background: T.panel,
-                    border: `1px solid ${T.border}`,
-                    borderRadius: 12,
-                    padding: "13px 14px",
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "grid",
-                      placeItems: "center",
-                      width: 34,
-                      height: 34,
-                      borderRadius: 10,
-                      background: T.gold + "1a",
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Ic size={16} color={T.gold} />
-                  </span>
-                  <span>
-                    <b style={{ color: T.white, fontSize: 14 }}>{t}</b>
-                    <span style={{ display: "block", fontSize: 12.5, color: T.muted, marginTop: 2, lineHeight: 1.5 }}>
-                      {b}
-                    </span>
-                  </span>
-                </div>
-              ))}
-            </div>
-            <p style={{ color: T.faint, fontSize: 12, margin: "14px 0 0", textAlign: "center" }}>
-              One vault behind it all: Documents · Packages · Health · Wealth · Family access
-            </p>
-            <button
-              onClick={() => setStep(2)}
-              style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 16 }}
-            >
-              Continue <ArrowRight size={15} />
-            </button>
-          </div>
-        )}
-        {step === 2 && (
           <div style={{ textAlign: "center" }}>
             <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>What is coming up in your life?</h2>
             <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
@@ -6910,7 +6908,8 @@ function OnboardingWizard({ store, onDone }: any) {
                     onClick={() =>
                       setPicks((prev) => {
                         const n = new Set(prev);
-                        n.has(id) ? n.delete(id) : n.add(id);
+                        if (n.has(id)) n.delete(id);
+                        else n.add(id);
                         return n;
                       })
                     }
@@ -6918,28 +6917,89 @@ function OnboardingWizard({ store, onDone }: any) {
                       display: "flex",
                       alignItems: "center",
                       gap: 9,
-                      padding: "12px 13px",
+                      background: on ? `${T.gold}18` : T.raised,
+                      border: `1px solid ${on ? T.gold : T.border}`,
                       borderRadius: 11,
+                      padding: "12px 12px",
                       cursor: "pointer",
                       textAlign: "left",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      border: `1px solid ${on ? T.gold + "88" : T.border}`,
-                      background: on ? T.gold + "14" : T.panel,
-                      color: on ? T.white : T.muted,
                     }}
                   >
-                    <Ic size={15} color={on ? T.gold : T.muted} /> {label}
+                    <Ic size={16} color={on ? T.gold : T.muted} />
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: T.white }}>{label}</span>
                   </button>
                 );
               })}
             </div>
             <button
-              onClick={finish}
+              onClick={() => setStep(1)}
+              style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 16 }}
+            >
+              {picks.size > 0 ? `Prepare me for ${picks.size === 1 ? "this" : `these ${picks.size}`}` : "I will decide later"}{" "}
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        )}
+        {step === 1 && (
+          <div style={{ textAlign: "center" }}>
+            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>And what should we call you?</h2>
+            <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
+              This names your vault. It stays on this device, and everything in it starts empty and private.
+            </p>
+            <input
+              autoFocus
+              style={inp}
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && setStep(2)}
+            />
+            <button
+              onClick={() => setStep(2)}
               style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
             >
-              Continue <ArrowRight size={15} />
+              {name.trim() ? `Open ${name.trim().split(" ")[0]}'s family vault` : "Open my vault"} <ArrowRight size={15} />
             </button>
+          </div>
+        )}
+        {step === 2 && (
+          <div style={{ textAlign: "center", padding: "18px 0" }}>
+            <div style={{ display: "inline-block", marginBottom: 18 }}>
+              <BrandMark size={56} carve={T.navy} />
+            </div>
+            <h2 style={{ color: T.white, fontSize: 22, margin: "0 0 16px" }}>Sealing your vault</h2>
+            <div style={{ display: "grid", gap: 9, maxWidth: 360, margin: "0 auto", textAlign: "left" }}>
+              {SEAL_LINES.map((l, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 9,
+                    opacity: sealPhase >= i ? 1 : 0.25,
+                    transition: "opacity .4s",
+                    color: sealPhase >= i ? T.text : T.muted,
+                    fontSize: 13.5,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 99,
+                      background: sealPhase >= i ? T.gold : T.raised,
+                      display: "grid",
+                      placeItems: "center",
+                      flexShrink: 0,
+                      transition: "background .4s",
+                    }}
+                  >
+                    {sealPhase >= i && <Check size={11} color={T.navy} strokeWidth={3.5} />}
+                  </span>
+                  {l}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -7077,7 +7137,7 @@ export default function App() {
                   whiteSpace: "nowrap",
                 }}
               >
-                LIVING ARCHIVE
+                READY FOR LIFE
               </div>
             </div>
           )}
