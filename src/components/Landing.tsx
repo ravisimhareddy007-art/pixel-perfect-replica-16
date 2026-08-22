@@ -508,145 +508,178 @@ function SearchMock() {
 }
 
 /* ── life-moment scene cards — illustrated by default; pass img (Lovable asset or any URL) to swap in a photo ── */
+function Shadow({ cx, cy, rx }: { cx: number; cy: number; rx: number }) {
+  // layered ellipses fake a soft contact shadow without SVG filters
+  return (
+    <>
+      <ellipse cx={cx} cy={cy} rx={rx} ry={rx * 0.22} fill="#3A2F1C" opacity=".05" />
+      <ellipse cx={cx} cy={cy} rx={rx * 0.78} ry={rx * 0.17} fill="#3A2F1C" opacity=".06" />
+      <ellipse cx={cx} cy={cy} rx={rx * 0.5} ry={rx * 0.11} fill="#3A2F1C" opacity=".07" />
+    </>
+  );
+}
+
+function BrandKey({ x, y, r, color, carve }: { x: number; y: number; r: number; color: string; carve: string }) {
+  return (
+    <g transform={`translate(${x},${y}) rotate(${r})`}>
+      <circle cx="0" cy="0" r="11" fill="none" stroke={color} strokeWidth="6" />
+      <path d="M9 4 L42 24" stroke={color} strokeWidth="7" strokeLinecap="round" />
+      <path d="M30 17 l4 -7 M38 22 l4 -7" stroke={color} strokeWidth="5" strokeLinecap="round" />
+      <circle cx="0" cy="0" r="4" fill={carve} />
+    </g>
+  );
+}
+
 function MomentScene({ kind }: { kind: "visa" | "hospital" | "home" | "legacy" }) {
-  const scenes: Record<string, { sky: string; ground: string; draw: any }> = {
+  const scenes: Record<string, { sky: string; label: string; draw: React.ReactNode }> = {
     visa: {
-      sky: "linear-gradient(180deg,#DCE8F6,#F3EBDA)",
-      ground: "#C9D8EC",
+      label: "A passport and travel papers laid out on a desk beside a cup of coffee",
+      sky: "linear-gradient(165deg,#F2EBDA,#EDE3CE)",
       draw: (
         <>
-          <motion.g
-            animate={{ x: [0, 190], y: [0, -34] }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", repeatType: "reverse" }}
-          >
-            <path d="M30 92 l34 -10 8 4 -30 12 6 10 -8 2 -8 -8 -6 2 z" fill={C.blue} opacity=".85" />
-          </motion.g>
-          <rect x="120" y="96" width="96" height="60" rx="7" fill="#fff" stroke={C.border} />
-          <rect x="130" y="106" width="34" height="40" rx="4" fill={C.goldSoft} stroke={C.gold} strokeOpacity=".5" />
-          <circle cx="147" cy="120" r="8" fill={C.gold} opacity=".55" />
-          <rect x="172" y="108" width="36" height="5" rx="2.5" fill={C.border} />
-          <rect x="172" y="119" width="28" height="5" rx="2.5" fill={C.border} />
-          <rect x="172" y="130" width="32" height="5" rx="2.5" fill={C.border} />
-          <g transform="rotate(-12 208 100)">
-            <circle cx="208" cy="100" r="17" fill="none" stroke={C.emerald} strokeWidth="2.5" opacity=".9" />
-            <text x="208" y="104" textAnchor="middle" fontSize="9" fontWeight="800" fill={C.emerald}>
-              VISA
-            </text>
+          <Shadow cx={96} cy={146} rx={70} />
+          <g transform="rotate(-4 90 112)">
+            <rect x="44" y="78" width="96" height="66" rx="3" fill="#FBF7EC" stroke="#E4DAC4" />
           </g>
+          <g transform="rotate(2 96 116)">
+            <rect x="52" y="84" width="96" height="66" rx="3" fill="#FFFFFF" stroke="#E4DAC4" />
+            <path d="M148 84 l-14 0 14 14 z" fill="#F0E9D8" />
+            <rect x="63" y="98" width="58" height="4" rx="2" fill="#E2D8C2" />
+            <rect x="63" y="108" width="70" height="4" rx="2" fill="#E9E0CC" />
+            <rect x="63" y="118" width="46" height="4" rx="2" fill="#D9A441" opacity=".55" />
+            <rect x="63" y="128" width="63" height="4" rx="2" fill="#E9E0CC" />
+          </g>
+          <g transform="rotate(-7 84 96)">
+            <rect x="56" y="52" width="58" height="80" rx="6" fill="#242B34" />
+            <rect x="56" y="52" width="58" height="80" rx="6" fill="url(#pp-sheen)" opacity=".25" />
+            <circle cx="85" cy="83" r="12" fill="none" stroke="#D9A441" strokeWidth="1.8" />
+            <circle cx="85" cy="83" r="6.5" fill="none" stroke="#D9A441" strokeWidth="1.4" />
+            <rect x="72" y="106" width="26" height="3" rx="1.5" fill="#D9A441" opacity=".85" />
+          </g>
+          <g transform="rotate(5 196 120)">
+            <rect x="160" y="92" width="76" height="52" rx="4" fill="#FFFDF6" stroke="#E4DAC4" />
+            <line x1="212" y1="92" x2="212" y2="144" stroke="#E0D5BC" strokeDasharray="3 4" />
+            {[168, 172, 177, 180, 185, 190, 194, 199, 203].map((x, i) => (
+              <rect key={x} x={x} y="104" width={i % 3 === 0 ? 2.6 : 1.4} height="26" fill="#2A2F38" opacity=".85" />
+            ))}
+          </g>
+          <Shadow cx={236} cy={70} rx={26} />
+          <circle cx="238" cy="56" r="25" fill="#EFE7D4" stroke="#E0D5BC" />
+          <circle cx="238" cy="56" r="18" fill="#B98A55" />
+          <circle cx="238" cy="56" r="14" fill="#6B4A2E" />
+          <path d="M228 48 a14 14 0 0 1 12 -4" stroke="#8A6440" strokeWidth="2" fill="none" opacity=".6" />
+          <defs>
+            <linearGradient id="pp-sheen" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#fff" stopOpacity=".5" />
+              <stop offset=".4" stopColor="#fff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
         </>
       ),
     },
     hospital: {
-      sky: "linear-gradient(180deg,#F7E9E4,#F3EBDA)",
-      ground: "#EAD6CE",
+      label: "A phone showing a ready document pack beside paperwork, late at night",
+      sky: "linear-gradient(160deg,#2A3140,#1F252E)",
       draw: (
         <>
-          <rect x="36" y="60" width="72" height="96" rx="8" fill="#fff" stroke={C.border} />
-          <rect x="58" y="76" width="28" height="28" rx="5" fill={C.pink} opacity=".18" />
-          <path d="M72 82 v16 M64 90 h16" stroke={C.red} strokeWidth="4" strokeLinecap="round" />
-          <rect x="48" y="116" width="20" height="14" rx="3" fill={C.paperDeep} />
-          <rect x="76" y="116" width="20" height="14" rx="3" fill={C.paperDeep} />
-          <rect x="128" y="98" width="94" height="58" rx="7" fill="#fff" stroke={C.border} />
-          <rect x="138" y="108" width="44" height="6" rx="3" fill={C.pink} opacity=".6" />
-          <rect x="138" y="121" width="66" height="5" rx="2.5" fill={C.border} />
-          <rect x="138" y="132" width="58" height="5" rx="2.5" fill={C.border} />
-          <motion.g animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity }}>
-            <rect
-              x="188"
-              y="76"
-              width="46"
-              height="18"
-              rx="9"
-              fill={C.emerald}
-              opacity=".14"
-              stroke={C.emerald}
-              strokeOpacity=".5"
-            />
-            <text x="211" y="88" textAnchor="middle" fontSize="8.5" fontWeight="800" fill={C.emerald}>
-              CASHLESS
-            </text>
-          </motion.g>
+          <ellipse cx="60" cy="24" rx="150" ry="90" fill="#E8C98A" opacity=".10" />
+          <ellipse cx="60" cy="20" rx="90" ry="56" fill="#E8C98A" opacity=".08" />
+          <g transform="rotate(4 176 120)">
+            <rect x="140" y="76" width="86" height="74" rx="3" fill="#F3EDDD" />
+            <path d="M226 76 l-13 0 13 13 z" fill="#E4DCC6" />
+            <rect x="150" y="88" width="40" height="5" rx="2.5" fill="#9FB4C8" opacity=".8" />
+            <rect x="150" y="101" width="62" height="3.5" rx="1.75" fill="#D8CFB8" />
+            <rect x="150" y="110" width="55" height="3.5" rx="1.75" fill="#D8CFB8" />
+            <rect x="150" y="119" width="60" height="3.5" rx="1.75" fill="#D8CFB8" />
+            <rect x="150" y="128" width="42" height="3.5" rx="1.75" fill="#D8CFB8" />
+          </g>
+          <Shadow cx={92} cy={152} rx={44} />
+          <g transform="rotate(-5 92 104)">
+            <rect x="60" y="42" width="64" height="118" rx="13" fill="#0E1319" />
+            <rect x="65" y="50" width="54" height="102" rx="8" fill="#F7F3E8" />
+            <rect x="65" y="50" width="54" height="16" rx="8" fill="#242B34" />
+            <rect x="72" y="74" width="40" height="4" rx="2" fill="#D8CFB8" />
+            <rect x="72" y="84" width="32" height="4" rx="2" fill="#E4DCC6" />
+            <rect x="72" y="94" width="37" height="4" rx="2" fill="#E4DCC6" />
+            <circle cx="92" cy="124" r="12" fill="#D9A441" />
+            <path d="M86 124 l4 5 8 -10" stroke="#1E242B" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </g>
         </>
       ),
     },
     home: {
-      sky: "linear-gradient(180deg,#EFF3E4,#F3EBDA)",
-      ground: "#DEE4C9",
+      label: "Two keys resting on a home-loan checklist",
+      sky: "linear-gradient(165deg,#F3EFE3,#EEE8D6)",
       draw: (
         <>
-          <path d="M60 118 l52 -40 52 40 v40 h-104 z" fill="#fff" stroke={C.border} />
-          <path d="M60 118 l52 -40 52 40" fill="none" stroke={C.clay} strokeWidth="5" strokeLinecap="round" />
-          <rect x="100" y="132" width="24" height="26" rx="3" fill={C.goldSoft} stroke={C.gold} strokeOpacity=".5" />
-          <motion.g
-            animate={{ rotate: [0, 10, 0] }}
-            transition={{ duration: 4, repeat: Infinity }}
-            style={{ transformOrigin: "196px 96px" }}
-          >
-            <circle cx="196" cy="96" r="10" fill="none" stroke={C.gold} strokeWidth="4" />
-            <path
-              d="M204 102 l18 18 M214 112 l6 -6 M220 120 l6 -6"
-              stroke={C.gold}
-              strokeWidth="4"
-              strokeLinecap="round"
-            />
-          </motion.g>
-          <rect
-            x="150"
-            y="128"
-            width="66"
-            height="30"
-            rx="5"
-            fill="#fff"
-            stroke={C.border}
-            transform="rotate(-4 150 128)"
-          />
-          <rect x="158" y="136" width="40" height="4" rx="2" fill={C.border} transform="rotate(-4 150 128)" />
-          <rect x="158" y="145" width="30" height="4" rx="2" fill={C.border} transform="rotate(-4 150 128)" />
+          <path d="M196 150 v-74 a34 34 0 0 1 68 0 v74" fill="none" stroke="#E3D9C2" strokeWidth="2" />
+          <Shadow cx={116} cy={150} rx={72} />
+          <g transform="rotate(-3 116 112)">
+            <rect x="52" y="66" width="128" height="88" rx="4" fill="#FFFFFF" stroke="#E4DAC4" />
+            <rect x="64" y="78" width="56" height="5" rx="2.5" fill="#D9A441" opacity=".6" />
+            {[0, 1, 2].map((r) =>
+              [0, 1, 2].map((c) => {
+                const i = r * 3 + c;
+                const filled = i < 6;
+                return (
+                  <g key={i} transform={`translate(${64 + c * 38},${94 + r * 18})`}>
+                    <rect width="10" height="10" rx="2.5" fill={filled ? "#D9A441" : "#fff"} stroke={filled ? "#C08F2F" : "#D8CDB4"} />
+                    {filled && <path d="M2.5 5 l2.2 2.6 3.4 -5" stroke="#fff" strokeWidth="1.6" fill="none" strokeLinecap="round" />}
+                    <rect x="15" y="3" width="17" height="3.5" rx="1.75" fill="#E4DAC4" />
+                  </g>
+                );
+              })
+            )}
+          </g>
+          <Shadow cx={140} cy={132} rx={40} />
+          <BrandKey x={120} y={116} r={18} color="#2A2F38" carve="#fff" />
+          <BrandKey x={136} y={104} r={-8} color="#D9A441" carve="#fff" />
+          <circle cx="121" cy="109" r="14" fill="none" stroke="#B7B0A2" strokeWidth="3.5" opacity=".9" />
         </>
       ),
     },
     legacy: {
-      sky: "linear-gradient(180deg,#ECE7F4,#F3EBDA)",
-      ground: "#DCD4EA",
+      label: "A family photo on a shelf beside a prepared folder of documents",
+      sky: "linear-gradient(165deg,#F0E7D8,#EADFCE)",
       draw: (
         <>
-          <circle cx="88" cy="92" r="14" fill={C.purple} opacity=".35" />
-          <path d="M70 158 q18 -34 36 0 z" fill={C.purple} opacity=".35" />
-          <circle cx="126" cy="100" r="10" fill={C.teal} opacity=".4" />
-          <path d="M113 158 q13 -26 26 0 z" fill={C.teal} opacity=".4" />
-          <rect x="152" y="92" width="80" height="56" rx="7" fill="#fff" stroke={C.border} />
-          <path d="M152 104 h80" stroke={C.goldFill} strokeWidth="3" />
-          <rect x="160" y="112" width="52" height="5" rx="2.5" fill={C.border} />
-          <rect x="160" y="123" width="62" height="5" rx="2.5" fill={C.border} />
-          <rect x="160" y="134" width="44" height="5" rx="2.5" fill={C.border} />
-          <motion.g
-            animate={{ scale: [1, 1.12, 1] }}
-            transition={{ duration: 3.5, repeat: Infinity }}
-            style={{ transformOrigin: "224px 88px" }}
-          >
-            <circle cx="224" cy="88" r="13" fill={C.goldSoft} stroke={C.gold} />
-            <path
-              d="M224 82 v8 m-3 -3 a3 3 0 1 0 6 0"
-              stroke={C.gold}
-              strokeWidth="2"
-              fill="none"
-              strokeLinecap="round"
-            />
-          </motion.g>
+          <ellipse cx="52" cy="26" rx="120" ry="70" fill="#E8C98A" opacity=".12" />
+          <rect x="26" y="126" width="208" height="9" rx="2" fill="#C6A87E" />
+          <rect x="26" y="135" width="208" height="4" rx="1" fill="#A98B62" opacity=".55" />
+          <Shadow cx={130} cy={152} rx={86} />
+          <g transform="rotate(-2 84 96)">
+            <rect x="54" y="62" width="62" height="64" rx="3" fill="#8A6B4A" />
+            <rect x="60" y="68" width="50" height="52" rx="2" fill="#F5EFE0" />
+            <circle cx="78" cy="88" r="7" fill="#2E353F" opacity=".85" />
+            <path d="M68 112 q10 -16 20 0 z" fill="#2E353F" opacity=".85" />
+            <circle cx="94" cy="92" r="5.5" fill="#2E353F" opacity=".65" />
+            <path d="M86 112 q8 -12 16 0 z" fill="#2E353F" opacity=".65" />
+          </g>
+          <g transform="rotate(2 176 104)">
+            <rect x="140" y="80" width="74" height="46" rx="4" fill="#E4C687" />
+            <rect x="146" y="72" width="60" height="14" rx="3" fill="#FFFDF4" stroke="#E4DAC4" />
+            <path d="M140 92 h74" stroke="#C9A45B" strokeWidth="1.6" opacity=".7" />
+            <rect x="140" y="80" width="30" height="8" rx="3" fill="#D9B463" />
+            <circle cx="204" cy="112" r="6" fill="#B4483A" opacity=".85" />
+            <circle cx="204" cy="112" r="2.4" fill="#F5EFE0" />
+          </g>
+          <g transform="rotate(8 220 116)">
+            <rect x="204" y="96" width="34" height="24" rx="2" fill="#FFFDF4" stroke="#E0D5BC" />
+            <path d="M204 96 l17 12 17 -12" fill="none" stroke="#E0D5BC" />
+          </g>
         </>
       ),
     },
   };
   const sc = scenes[kind];
   return (
-    <div style={{ width: "100%", height: "100%", background: sc.sky }}>
+    <div role="img" aria-label={sc.label} style={{ width: "100%", height: "100%", background: sc.sky }}>
       <svg
         viewBox="0 0 260 170"
         preserveAspectRatio="xMidYMid slice"
         style={{ width: "100%", height: "100%", display: "block" }}
         aria-hidden
       >
-        <rect x="0" y="126" width="260" height="44" fill={sc.ground} opacity=".55" />
         {sc.draw}
       </svg>
     </div>
@@ -659,35 +692,37 @@ const MOMENTS: {
   title: string;
   body: string;
   chip: string;
-  chipC: string;
+  state: "ready" | "progress" | "configured";
+  progress?: [number, number];
 }[] = [
   {
     kind: "visa",
     title: "Visa interview on Monday",
     body: "Passport, bank statements, ITR, insurance: assembled and export-ready before you finish your coffee.",
-    chip: "Schengen pack · ready",
-    chipC: C.blue,
+    chip: "Schengen pack",
+    state: "ready",
   },
   {
     kind: "hospital",
     title: "Hospital at 2 a.m.",
     body: "Policy, ID, prescriptions, and reports in one cashless pack, when nobody can think straight.",
-    chip: "Admission pack · ready",
-    chipC: C.pink,
+    chip: "Admission pack",
+    state: "ready",
   },
   {
     kind: "home",
     title: "Keys to a new home",
     body: "The full salaried home-loan checklist, matched against what you already have on file.",
-    chip: "Home loan · 6 of 9 in place",
-    chipC: C.emerald,
+    chip: "Home loan",
+    state: "progress",
+    progress: [6, 9],
   },
   {
     kind: "legacy",
     title: "For the day you're not there",
     body: "Every policy, nominee, and access instruction, reaching the right people in one tap.",
-    chip: "SOS handoff · configured",
-    chipC: C.purple,
+    chip: "SOS handoff",
+    state: "configured",
   },
 ];
 
@@ -705,12 +740,23 @@ function MomentCard({ m, i }: { m: (typeof MOMENTS)[number]; i: number }) {
         ) : (
           <MomentScene kind={m.kind} />
         )}
-        <span className="lp-momentchip" style={{ color: m.chipC, borderColor: m.chipC + "55" }}>
-          <Check size={11} /> {m.chip}
-        </span>
       </div>
-      <div style={{ padding: "14px 16px 16px" }}>
-        <div style={{ fontFamily: "'Space Grotesk'", fontWeight: 700, fontSize: 16.5, color: C.ink }}>{m.title}</div>
+      <div style={{ padding: "13px 16px 16px" }}>
+        <span className="lp-momentchip">
+          {m.state === "configured" ? <ShieldCheck size={11} color={C.gold} /> : <Check size={11} color={C.gold} />}
+          {m.chip}
+          {m.state === "progress" && m.progress ? (
+            <>
+              <span style={{ color: C.muted, fontWeight: 700 }}>{m.progress[0]} of {m.progress[1]}</span>
+              <span aria-hidden style={{ width: 44, height: 4, borderRadius: 4, background: "#E8DFCA", overflow: "hidden", display: "inline-block" }}>
+                <span style={{ display: "block", width: `${(m.progress[0] / m.progress[1]) * 100}%`, height: "100%", background: C.gold }} />
+              </span>
+            </>
+          ) : (
+            <span style={{ color: C.muted, fontWeight: 700 }}>{m.state === "configured" ? "configured" : "ready"}</span>
+          )}
+        </span>
+        <div style={{ fontFamily: "'Space Grotesk'", fontWeight: 700, fontSize: 16.5, color: C.ink, marginTop: 9 }}>{m.title}</div>
         <p style={{ margin: "6px 0 0", fontSize: 13.5, lineHeight: 1.6, color: C.body }}>{m.body}</p>
       </div>
     </motion.div>
@@ -1651,9 +1697,12 @@ const CSS = `
 .lp-conn{display:inline-flex;align-items:center;gap:7px;color:${C.body};background:${C.panel};border:1px solid ${C.border};border-radius:20px;padding:7px 14px;font-size:13px}
 .lp-moments{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
 .lp-moment{background:#fff;border:1px solid #E3D8C2;border-radius:16px;overflow:hidden;box-shadow:0 14px 34px rgba(60,48,20,.08);transition:transform .18s ease}
-.lp-moment:hover{transform:translateY(-4px)}
-.lp-momentimg{position:relative;height:168px;overflow:hidden}
-.lp-momentchip{position:absolute;left:10px;bottom:10px;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.92);border:1px solid;border-radius:99px;padding:4px 10px;font-size:11px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.lp-moment:hover{transform:translateY(-4px);box-shadow:0 20px 44px rgba(60,48,20,.12)}
+.lp-momentimg{position:relative;height:172px;overflow:hidden}
+.lp-momentimg>div{transition:transform .35s ease}
+.lp-moment:hover .lp-momentimg>div{transform:scale(1.028)}
+@media(max-width:640px){.lp-momentimg{height:150px}}
+.lp-momentchip{display:inline-flex;align-items:center;gap:7px;background:#FBF7EC;border:1px solid #E4DAC4;border-radius:99px;padding:4px 11px;font-size:11px;font-weight:800;color:#221E17;font-family:'JetBrains Mono',monospace}
 .lp-band{padding:84px 0}
 .lp-band:nth-of-type(even){background:${C.paperDeep}}
 .lp-features{padding:92px 24px;display:grid;gap:104px}
