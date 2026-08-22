@@ -1118,6 +1118,7 @@ function AuthModal({
 export default function Landing({ onEnter }: { onEnter: () => void }) {
   const [auth, setAuth] = useState<null | "signin" | "signup">(null);
   const [billing, setBilling] = useState<"annual" | "monthly">("annual");
+  const [founder, setFounder] = useState(false);
   return (
     <div className="lp-root">
       <style>{CSS}</style>
@@ -1418,12 +1419,12 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
         >
           <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 22, overflow: "hidden" }}>
             <div style={{ background: C.paper, color: C.muted, fontSize: 11.5, fontWeight: 800, letterSpacing: 1.8, textAlign: "center", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
-              FREE FOREVER
+              FREE
             </div>
             <div style={{ padding: "22px 26px 26px" }}>
               <div style={{ textAlign: "center", marginBottom: 6, paddingTop: 47 }}>
                 <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>₹0</span>
-                <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>Try the whole idea, at no cost, forever</div>
+                <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>Everything you need to try the idea</div>
               </div>
               <div style={{ display: "grid", gap: 8, margin: "18px 0 20px" }}>
                 {[
@@ -1431,7 +1432,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
                   "3 AI document actions every month",
                   "1 curated pack to experience readiness",
                   "Every module open: browse and add manually",
-                  "Export everything, free, forever",
+                  "Export everything, free, always",
                 ].map((f) => (
                   <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: C.body }}>
                     <span style={{ width: 18, height: 18, borderRadius: 99, background: C.goldSoft, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}><Check size={11} color={C.gold} strokeWidth={3} /></span>
@@ -1453,7 +1454,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 
           <div style={{ background: "#fff", border: `1.5px solid ${C.gold}`, borderRadius: 22, overflow: "hidden", boxShadow: "0 24px 60px rgba(34,30,23,.10)" }}>
             <div style={{ background: C.ink, color: "#E2C285", fontSize: 11.5, fontWeight: 800, letterSpacing: 1.8, textAlign: "center", padding: "9px 0" }}>
-              FOUNDING PRICE · FIRST 1,000 MEMBERS
+              EVERYTHING INCLUDED
             </div>
             <div style={{ padding: "22px 26px 26px" }}>
               <div style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 11, overflow: "hidden", background: C.paper, marginBottom: 18 }}>
@@ -1469,11 +1470,27 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               </div>
               {billing === "annual" ? (
                 <div style={{ textAlign: "center", marginBottom: 6 }}>
-                  <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>₹1,499</span>
-                  <span style={{ fontSize: 15, color: C.muted }}> /year</span>
-                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>
-                    <s style={{ opacity: 0.7 }}>₹1,999</s> · standard price after the first 1,000 members
-                  </div>
+                  {founder ? (
+                    <>
+                      <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>₹1,499</span>
+                      <span style={{ fontSize: 15, color: C.muted }}> /year</span>
+                      <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>
+                        Early member price · standard <s style={{ opacity: 0.7 }}>₹1,999</s>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>₹1,999</span>
+                      <span style={{ fontSize: 15, color: C.muted }}> /year</span>
+                      <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>About ₹167 a month, billed yearly</div>
+                    </>
+                  )}
+                  <button
+                    onClick={() => setFounder((v) => !v)}
+                    style={{ marginTop: 8, background: founder ? C.goldSoft : "none", border: `1px solid ${founder ? C.gold : C.border}`, borderRadius: 99, padding: "5px 12px", fontSize: 12, fontWeight: 700, color: C.ink, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    {founder ? "Early member offer applied ✓" : "Early member offer · ₹1,499/year"}
+                  </button>
                 </div>
               ) : (
                 <div style={{ textAlign: "center", marginBottom: 6 }}>
