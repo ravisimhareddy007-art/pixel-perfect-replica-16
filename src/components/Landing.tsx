@@ -1117,6 +1117,7 @@ function AuthModal({
 
 export default function Landing({ onEnter }: { onEnter: () => void }) {
   const [auth, setAuth] = useState<null | "signin" | "signup">(null);
+  const [billing, setBilling] = useState<"annual" | "monthly">("annual");
   return (
     <div className="lp-root">
       <style>{CSS}</style>
@@ -1131,6 +1132,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             <a href="#features">Features</a>
             <a href="#how">How it works</a>
             <a href="#privacy">Privacy</a>
+            <a href="#pricing">Pricing</a>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
@@ -1399,6 +1401,125 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
           <div className="lp-trust" style={{ justifyContent: "center", marginTop: 22, color: C.muted }}>
             <ShieldCheck size={13} color={C.emerald} /> encrypted archive · family access levels · no ads, ever
           </div>
+        </motion.div>
+      </section>
+
+      <section id="pricing" className="lp-wrap">
+        <motion.div {...fade()} style={{ textAlign: "center" }}>
+          <div className="lp-eyebrow" style={{ display: "flex", justifyContent: "center" }}>Pricing</div>
+          <h2 className="lp-h2">One plan. Everything included.</h2>
+          <p className="lp-sub" style={{ marginTop: 10, marginLeft: "auto", marginRight: "auto" }}>
+            No tiers to decode, nothing held back. The only decision is how you pay.
+          </p>
+        </motion.div>
+        <motion.div {...fade(0.1)} style={{ maxWidth: 440, margin: "30px auto 0" }}>
+          <div
+            style={{
+              background: "#fff",
+              border: `1.5px solid ${C.gold}`,
+              borderRadius: 22,
+              overflow: "hidden",
+              boxShadow: "0 24px 60px rgba(34,30,23,.10)",
+            }}
+          >
+            <div
+              style={{
+                background: C.ink,
+                color: "#E2C285",
+                fontSize: 11.5,
+                fontWeight: 800,
+                letterSpacing: 1.8,
+                textAlign: "center",
+                padding: "9px 0",
+              }}
+            >
+              FOUNDING PRICE · FIRST 1,000 MEMBERS
+            </div>
+            <div style={{ padding: "22px 26px 26px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 11,
+                  overflow: "hidden",
+                  background: C.paper,
+                  marginBottom: 18,
+                }}
+              >
+                {(["annual", "monthly"] as const).map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => setBilling(b)}
+                    style={{
+                      flex: 1,
+                      padding: "9px 0",
+                      fontSize: 13.5,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "none",
+                      fontFamily: "inherit",
+                      background: billing === b ? C.goldSoft : "transparent",
+                      color: billing === b ? C.ink : C.muted,
+                    }}
+                  >
+                    {b === "annual" ? "Annual" : "Monthly"}
+                  </button>
+                ))}
+              </div>
+              {billing === "annual" ? (
+                <div style={{ textAlign: "center", marginBottom: 6 }}>
+                  <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>
+                    ₹1,499
+                  </span>
+                  <span style={{ fontSize: 15, color: C.muted }}> /year</span>
+                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>
+                    <s style={{ opacity: 0.7 }}>₹1,999</s> · standard price after the first 1,000 members
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: "center", marginBottom: 6 }}>
+                  <span style={{ fontFamily: "'Space Grotesk'", fontSize: 44, fontWeight: 700, color: C.ink }}>
+                    ₹249
+                  </span>
+                  <span style={{ fontSize: 15, color: C.muted }}> /month</span>
+                  <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>
+                    Cancel anytime · annual saves ₹989 a year
+                  </div>
+                </div>
+              )}
+              <div style={{ display: "grid", gap: 8, margin: "18px 0 20px" }}>
+                {[
+                  "Every module: Documents, Packages, Health, Wealth, Trust",
+                  "100+ curated life-event packs, India-first",
+                  "AI document reading and readiness scores",
+                  "Family access levels with SOS handoff",
+                  "AES-256-GCM encryption, sealed on your device",
+                  "Export everything, free, forever",
+                ].map((f) => (
+                  <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: C.body }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 99, background: C.goldSoft, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}>
+                      <Check size={11} color={C.gold} strokeWidth={3} />
+                    </span>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  sessionStorage.setItem("lp-fresh", "1");
+                  onEnter();
+                }}
+                className="lp-cta"
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                Get started <ArrowRight size={15} />
+              </button>
+            </div>
+          </div>
+          <p style={{ fontSize: 12.5, color: C.muted, textAlign: "center", lineHeight: 1.6, margin: "14px auto 0", maxWidth: 400 }}>
+            Your documents are never locked behind a paywall. If you ever stop paying, you keep every file and every
+            export — the AI simply stops doing new work.
+          </p>
         </motion.div>
       </section>
 
