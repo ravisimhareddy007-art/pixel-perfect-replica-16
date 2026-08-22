@@ -6893,9 +6893,11 @@ function OnboardingWizard({ store, onDone }: any) {
             />
           ))}
         </div>
-        {step === 0 && (
+        {step === 1 && (
           <div style={{ textAlign: "center" }}>
-            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>What is coming up in your life?</h2>
+            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>
+              {name.trim() ? `Nice to meet you, ${name.trim().split(" ")[0]}. What's coming up?` : "What is coming up in your life?"}
+            </h2>
             <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
               This chooses which curated packs we spotlight first. Nothing is locked out; every pack stays available.
             </p>
@@ -6932,7 +6934,7 @@ function OnboardingWizard({ store, onDone }: any) {
               })}
             </div>
             <button
-              onClick={() => setStep(1)}
+              onClick={() => setStep(2)}
               style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 16 }}
             >
               {picks.size > 0 ? `Prepare me for ${picks.size === 1 ? "this" : `these ${picks.size}`}` : "I will decide later"}{" "}
@@ -6940,9 +6942,9 @@ function OnboardingWizard({ store, onDone }: any) {
             </button>
           </div>
         )}
-        {step === 1 && (
+        {step === 0 && (
           <div style={{ textAlign: "center" }}>
-            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>And what should we call you?</h2>
+            <h2 style={{ color: T.white, fontSize: 22, margin: 0 }}>Welcome. What should we call you?</h2>
             <p style={{ color: T.muted, fontSize: 13.5, margin: "8px 0 18px" }}>
               This names your vault. It stays on this device, and everything in it starts empty and private.
             </p>
@@ -6952,13 +6954,13 @@ function OnboardingWizard({ store, onDone }: any) {
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && setStep(2)}
+              onKeyDown={(e) => e.key === "Enter" && setStep(1)}
             />
             <button
-              onClick={() => setStep(2)}
+              onClick={() => setStep(1)}
               style={{ ...btnGold, width: "100%", justifyContent: "center", marginTop: 14 }}
             >
-              {name.trim() ? `Open ${name.trim().split(" ")[0]}'s family vault` : "Open my vault"} <ArrowRight size={15} />
+              Continue <ArrowRight size={15} />
             </button>
           </div>
         )}
@@ -6967,7 +6969,9 @@ function OnboardingWizard({ store, onDone }: any) {
             <div style={{ display: "inline-block", marginBottom: 18 }}>
               <BrandMark size={56} carve={T.navy} />
             </div>
-            <h2 style={{ color: T.white, fontSize: 22, margin: "0 0 16px" }}>Sealing your vault</h2>
+            <h2 style={{ color: T.white, fontSize: 22, margin: "0 0 16px" }}>
+              {name.trim() ? `Sealing ${name.trim().split(" ")[0]}'s family vault` : "Sealing your vault"}
+            </h2>
             <div style={{ display: "grid", gap: 9, maxWidth: 360, margin: "0 auto", textAlign: "left" }}>
               {SEAL_LINES.map((l, i) => (
                 <div
@@ -7081,9 +7085,7 @@ export default function App() {
       {needsOnboarding && (
         <OnboardingWizard
           store={store}
-          onDone={(goPacks: boolean) => {
-            if (goPacks) setRoute("packages");
-          }}
+          onDone={() => setRoute("home")}
         />
       )}
       <aside
