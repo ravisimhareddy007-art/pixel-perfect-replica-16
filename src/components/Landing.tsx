@@ -1429,7 +1429,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
               <div style={{ display: "grid", gap: 8, margin: "18px 0 20px" }}>
                 {[
                   "Encrypted vault with 50 MB of storage",
-                  "3 AI document actions every month",
+                  "AI reads and files 3 documents a month",
                   "1 curated pack to experience readiness",
                   "Every module open: browse and add manually",
                   "Export everything, free, always",
@@ -1454,7 +1454,7 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
 
           <div style={{ background: "#fff", border: `1.5px solid ${C.gold}`, borderRadius: 22, overflow: "hidden", boxShadow: "0 24px 60px rgba(34,30,23,.10)" }}>
             <div style={{ background: C.ink, color: "#E2C285", fontSize: 11.5, fontWeight: 800, letterSpacing: 1.8, textAlign: "center", padding: "9px 0" }}>
-              EVERYTHING INCLUDED
+              READY FOR EVERYTHING
             </div>
             <div style={{ padding: "22px 26px 26px" }}>
               <div style={{ display: "flex", border: `1px solid ${C.border}`, borderRadius: 11, overflow: "hidden", background: C.paper, marginBottom: 18 }}>
@@ -1499,14 +1499,17 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
                   <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4 }}>Cancel anytime · annual saves ₹989 a year</div>
                 </div>
               )}
-              <div style={{ display: "grid", gap: 8, margin: "18px 0 20px" }}>
+              <p style={{ fontSize: 13, color: C.muted, textAlign: "center", margin: "14px 0 0" }}>
+                One plan that keeps the whole family ready:
+              </p>
+              <div style={{ display: "grid", gap: 8, margin: "10px 0 20px" }}>
                 {[
-                  "Everything in Free, without limits",
-                  "Unlimited AI reading, filing and readiness scores",
-                  "All 100+ curated life-event packs, India-first",
-                  "Family-scale encrypted storage",
+                  "All 100+ life-event packs, prepared before you need them",
+                  "AI reads, files and scores every document, without limits",
                   "Family access levels with SOS handoff",
-                  "Source connections: Gmail, Drive, DigiLocker",
+                  "Gmail, Drive and DigiLocker feed the vault automatically",
+                  "Encrypted storage for your whole family",
+                  "And everything in Free, without limits",
                 ].map((f) => (
                   <div key={f} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 13.5, color: C.body }}>
                     <span style={{ width: 18, height: 18, borderRadius: 99, background: C.goldSoft, display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}><Check size={11} color={C.gold} strokeWidth={3} /></span>
@@ -1535,8 +1538,8 @@ export default function Landing({ onEnter }: { onEnter: () => void }) {
             <span style={{ textAlign: "center" }}>Full plan</span>
           </div>
           {[
-            ["Encrypted storage", "50 MB", "Family-scale"],
-            ["AI document actions", "3 / month", "Unlimited"],
+            ["Encrypted storage", "50 MB", "For your whole family"],
+            ["Documents the AI reads and files", "3 a month", "Unlimited"],
             ["Curated life-event packs", "1 sample pack", "All 100+"],
             ["Readiness scores", "On your sample pack", "Across every pack"],
             ["Modules: Documents, Health, Wealth, Trust", "Browse and add manually", "Full AI automation"],
