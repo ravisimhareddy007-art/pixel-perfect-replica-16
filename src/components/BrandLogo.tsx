@@ -22,30 +22,24 @@ export function BrandMark({
   return (
     <svg
       width={size}
-      height={size * (196 / 138)}
-      viewBox="38 22 138 196"
+      height={size * (190 / 147)}
+      viewBox="41 25 147 190"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label={title}
     >
-      <path
-        d="M84 124 L142 198"
-        fill="none"
-        stroke={color}
-        strokeLinecap="round"
-        strokeWidth={26}
-      />
-      <g transform="translate(123.8,153.8) rotate(51.9)">
+      <path d="M 60.20,114.70 L 80.66,98.67 L 168.71,211.00 L 135.67,211.00 Z" fill={color} />
+      <g transform="translate(139.84,174.26) rotate(51.9)">
         <rect x="0" y="-24" width="17" height="26" rx="3" fill={color} />
         <rect x="3.5" y="-18" width="10" height="2.4" rx="1.2" fill={carve} />
         <rect x="3.5" y="-13" width="7.5" height="2.4" rx="1.2" fill={carve} />
       </g>
-      <g transform="translate(139.9,174.2) rotate(51.9)">
+      <g transform="translate(155.94,194.66) rotate(51.9)">
         <rect x="0" y="-24" width="17" height="26" rx="3" fill={color} />
         <rect x="3.5" y="-18" width="10" height="2.4" rx="1.2" fill={carve} />
         <rect x="3.5" y="-13" width="7.5" height="2.4" rx="1.2" fill={carve} />
       </g>
-      <path d="M58 42 V198" fill="none" stroke={color} strokeLinecap="round" strokeWidth={26} />
+      <path d="M58 29 V211" fill="none" stroke={color} strokeLinecap="butt" strokeWidth={26} />
       <path d="M45 29 H112 C164 29 164 135 112 135 H45 Z" fill={color} />
       <circle cx="102" cy="68" r="18" fill={carve} />
       <path d="M94 78 L84 114 H120 L110 78 Z" fill={carve} />
